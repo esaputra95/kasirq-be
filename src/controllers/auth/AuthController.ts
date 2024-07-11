@@ -7,9 +7,11 @@ import { LoginInterface } from "#root/interfaces/AuthInterface";
 export const Login = async (req:Request, res:Response) => {
     try {
         const data:LoginInterface = req.body
+        console.log({data});
+        
         const user = await Model.users.findFirst({
             where: {
-                username: data.username
+                email: data.email
             }
         });
         if(!user) throw new Error('Username or password incorrect')
@@ -18,12 +20,15 @@ export const Login = async (req:Request, res:Response) => {
         const accessToken = sign({
             id: user.id,
             username: user.username,
-            name: user.name
+            name: user.name,
+            userType: 'owner'
         }, '1234567890');
         res.json({
             token: accessToken
         })
     } catch (error) {
+        console.log({error});
+        
         res.status(404).json({
             message: `${error}`
         })
