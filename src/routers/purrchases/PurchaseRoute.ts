@@ -9,8 +9,6 @@ import {
     getFacture,
     getDataUpdate
 } from "#controllers/purchases/PurchaseController"
-import validationMessage from "#root/validations/Validate";
-import BrandValidation from "#root/validations/masters/BrandValidation";
 const Purchase = express.Router()
 
 Purchase.get('/', getData);

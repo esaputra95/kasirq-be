@@ -62,6 +62,11 @@ const getData = async (req:Request<{}, {}, {}, AccountQueryInterface>, res:Respo
 
 const postData = async (req:Request, res:Response) => {
     try {
+        console.log('sini');
+
+        console.log(res.locals.userId);
+        
+        
         const ownerId:any = await getOwnerId(res.locals.userId, res.locals.userType)
         if(!ownerId.status) throw new Error('Owner not found')
         const data = { ...req.body, id: uuidv4(), ownerId: ownerId.id};
@@ -228,11 +233,32 @@ const getSelect = async (req:Request, res:Response) => {
     }
 }
 
+const uploadImage = async (req:Request, res:Response) => {
+    try {
+        // console.log(req ?? '');
+        
+        res.status(200).json({
+            code:1,
+            status:200,
+            message: "Successfully upload",
+            data: req?.file?.filename??''
+        })
+    } catch (error) {
+        console.log({error});
+        
+        res.status(500).json({
+            status: false,
+            errors: `${error}`
+        })
+    }
+}
+
 export {
     getData,
     postData,
     updateData,
     deleteData,
     getDataById,
-    getSelect
+    getSelect,
+    uploadImage
 }

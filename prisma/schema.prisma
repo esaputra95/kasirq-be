@@ -17,6 +17,7 @@ model brands {
   createdAt   DateTime? @default(now()) @db.DateTime(0)
   updatedAt   DateTime? @default(now()) @db.DateTime(0)
   deletedAt   DateTime? @db.DateTime(0)
+  products products[]
   users       users?    @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "brandUser")
 
   @@index([userCreate], map: "brandUser")
@@ -144,6 +145,7 @@ model products {
   productConversions productConversions[]
   stocks stocks[]
   categories           categories?                @relation(fields: [categoryId], references: [id])
+  brands brands? @relation(fields: [brandId], references: [id])
   itemInDetails        itemInDetails[]
   itemOutDetails       itemOutDetails[]
   purchaseDetails      purchaseDetails[]
@@ -449,6 +451,7 @@ model account {
   name      String?   @db.VarChar(255)
   balance   Decimal?  @db.Decimal(13, 4)
   type      String?   @db.VarChar(10)
+  image String? @db.Text()
   createdAt DateTime? @db.DateTime(0)
   updatedAt DateTime? @db.DateTime(0)
   deletedAt DateTime? @db.DateTime(0)
