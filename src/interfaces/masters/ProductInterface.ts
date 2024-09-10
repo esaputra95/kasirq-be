@@ -3,7 +3,7 @@ import { products_consignmentType, products_status, products_type } from "@prism
 export interface ProductInterface {
     id: string
     storeId: string | null
-    categoriId: string
+    categoryId: string
     brandId: string
     code: string | null
     name: string

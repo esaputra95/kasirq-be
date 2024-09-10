@@ -36,6 +36,7 @@ const getData = async (req:Request<{}, {}, {}, BrandQueryInterface>, res:Respons
                 ...filter
             }
         })
+        
         res.status(200).json({
             status: true,
             message: "successful in getting Brand data",
@@ -182,18 +183,19 @@ const getSelect = async (req:Request, res:Response) => {
     try {
         let filter:any={};
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
+        console.log({filter});
+        
         let dataOption:any=[];
         const data = await Model.brands.findMany({
             where: {
                 ...filter
-            },
-            take:10
+            }
         });
         for (const value of data) {
             dataOption= [
                 ...dataOption, {
-                    id: value.id,
-                    title: value.name
+                    value: value.id,
+                    label: value.name
                 }
             ]
         }

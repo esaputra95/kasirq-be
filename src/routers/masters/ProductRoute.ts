@@ -4,16 +4,19 @@ import {
     getData,
     getDataById,
     postData,
-    updateData
+    updateData,
+    uploadImage,
+    getProductSell
 } from "#controllers/masters/ProductController"
-import validationMessage from "#root/validations/Validate";
-import BrandValidation from "#root/validations/masters/BrandValidation";
-const Brand = express.Router()
+import { ImageUpload } from "#root/helpers/uploadImage";
+const Route = express.Router()
 
-Brand.get('/', getData);
-Brand.post('/',  postData);
-Brand.put('/:id', updateData);
-Brand.delete('/:id', deleteData);
-Brand.get('/:id', getDataById);
+Route.get('/', getData);
+Route.get('/sell', getProductSell);
+Route.post('/image', ImageUpload.single('images'), uploadImage);
+Route.post('/',  postData);
+Route.put('/:id', updateData);
+Route.delete('/:id', deleteData);
+Route.get('/:id', getDataById);
 
-export default Brand
+export default Route

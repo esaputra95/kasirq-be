@@ -11,8 +11,6 @@ import getOwnerId from "#root/helpers/GetOwnerId";
 const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
     try {
         const query = req.query;
-        console.log({query});
-        
         // PAGING
         const take:number = parseInt(query.limit ?? 20 )
         const page:number = parseInt(query.page ?? 1 );
@@ -21,7 +19,8 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
         let filter:any= []
         query.name ? filter = [...filter, {name: { contains: query.name }}] : null
         query.code ? filter = [...filter, {code: { contains: query.code }}] : null
-        query.code ? filter = [...filter, {name: { contains: query.code }}] : null
+        // query.categoryId ? filter = [...filter, {categoriId: { contains: query.categoryId }}] : null;
+
         
         if(filter.length > 0){
             filter = {
@@ -30,9 +29,11 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
                 ]
             }
         }
+
         const data = await Model.products.findMany({
             where: {
-                ...filter
+                ...filter,
+                categoryId: { contains: query.categoryId }
             },
             select: {
                 categories: {
@@ -76,8 +77,11 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
                                 price: true,
                                 storeId: true,
                                 conversionId: true,
-                            }
+                            },
                         }
+                    },
+                    orderBy: {
+                        quantity: 'asc'
                     }
                 },
                 categoryId: true,
@@ -92,12 +96,11 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
             skip: skip,
             take: take
         });
-
         const total = await Model.products.count({
             where: {
                 ...filter
             }
-        })
+        });
         res.status(200).json({
             status: true,
             message: "successful in getting product data",
@@ -122,15 +125,126 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
     }
 }
 
+const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
+    try {
+        const query = req.query;
+        // PAGING
+        const take:number = parseInt(query.limit ?? 20 )
+        const page:number = parseInt(query.page ?? 1 );
+        const skip:number = (page-1)*take
+        // FILTER
+        let filter:any= []
+        query.name ? filter = [...filter, {name: { contains: query.name }}] : null
+        query.code ? filter = [...filter, {code: { contains: query.code }}] : null
+        if(filter.length > 0){
+            filter = {
+                OR: [
+                    ...filter
+                ]
+            }
+        }
+        const data = await Model.products.findMany({
+            where: {
+                ...filter,
+                categoryId: { contains: query.categoryId }
+            },
+            select: {
+                categories: {
+                    select: {
+                        id: true,
+                        name: true
+                    },
+                },
+                stocks: {
+                    select: {
+                        id: true,
+                        productId: true,
+                        quantity: true,
+                        storeId: true,
+                    }
+                },
+                productConversions: {
+                    select: {
+                        id: true,
+                        quantity: true,
+                        unitId: true,
+                        status:  true,
+                        units: {
+                            select: {
+                                id: true,
+                                name: true,
+                                ownerId: true,
+                            }
+                        },
+                        productSellPrices: {
+                            select: {
+                                id: true,
+                                price: true,
+                                storeId: true,
+                                conversionId: true,
+                            }
+                        }
+                    },
+                    orderBy: {
+                        quantity: 'asc'
+                    }
+                },
+                categoryId: true,
+                id: true,
+                name: true,
+                barcode: true,
+                code: true,
+                image: true, 
+                ownerId: true, 
+                sku: true,
+            },
+            skip: skip,
+            take: take
+        });
+        const total = await Model.products.count({
+            where: {
+                ...filter
+            }
+        })
+        res.status(200).json({
+            status: true,
+            message: "successful in getting product data",
+            data: {
+                product: data,
+                info:{
+                    page: page,
+                    limit: take,
+                    total: total
+                }
+            }
+        })
+    } catch (error) {
+        console.log({error});
+        
+        let message = errorType
+        message.message.msg = `${error}`
+        res.status(500).json({
+            status: message.status,
+            errors: [
+                message.message
+            ]
+        })
+    }
+}
+
 const postData = async (req:Request, res:Response) => {
     try {
+        console.log('sampai');
+        
         const ownerId:any = await getOwnerId(res.locals.userId, res.locals.userType)
         if(!ownerId.status) throw new Error('Owner not found')
         const data = { ...req.body, ownerId: ownerId.id};
         let dataProduct = {...data};
+        console.log({dataProduct});
+        
         delete dataProduct.price;
         delete dataProduct.storeId;
-        delete dataProduct.isStock;
+        // delete dataProduct.isStock;
         const conversion = data.price;
         const productId = uuidv4();
         const transaction = async () => {
@@ -192,6 +306,8 @@ const postData = async (req:Request, res:Response) => {
             message: 'successful in created user data'
         })
     } catch (error) {
+        console.log({error});
+        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -279,6 +395,7 @@ const getDataById = async (req:Request, res:Response) => {
             include: {
                 categories: true,
                 stocks: true,
+                brands: true,
                 productConversions: {
                     include: {
                         units: true,
@@ -313,10 +430,32 @@ const getDataById = async (req:Request, res:Response) => {
     }
 }
 
+const uploadImage = async (req:Request, res:Response) => {
+    try {
+        // console.log(req ?? '');
+        
+        res.status(200).json({
+            code:1,
+            status:200,
+            message: "Successfully upload",
+            data: req?.file?.filename??''
+        })
+    } catch (error) {
+        console.log({error});
+        
+        res.status(500).json({
+            status: false,
+            errors: `${error}`
+        })
+    }
+}
+
 export {
     getData,
+    getProductSell,
     postData,
     updateData,
     deleteData,
-    getDataById
+    getDataById,
+    uploadImage
 }

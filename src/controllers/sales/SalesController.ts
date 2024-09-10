@@ -4,11 +4,12 @@ import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
 import { v4 as uuidv4 } from 'uuid';
-import { ItemInQueryInterface } from "#root/interfaces/supplies/ItemInInterface";
+import { SalesQueryInterface } from "#root/interfaces/sales/SalesInterface";
 import moment from "moment";
 import { DecrementStock, IncrementStock } from "#root/helpers/stock";
+import formatter from "#root/helpers/formatCurrency";
 
-const getData = async (req:Request<{}, {}, {}, ItemInQueryInterface>, res:Response) => {
+const getData = async (req:Request<{}, {}, {}, SalesQueryInterface>, res:Response) => {
     try {
         const query = req.query;
         // PAGING
@@ -17,7 +18,7 @@ const getData = async (req:Request<{}, {}, {}, ItemInQueryInterface>, res:Respon
         const skip:number = (page-1)*take
         // FILTER
         let filter:any= []
-        query.name ? filter = [...filter, {name: { contains: query.name }}] : null
+        query.invoice ? filter = [...filter, {name: { contains: query.invoice }}] : null
         if(filter.length > 0){
             filter = {
                 OR: [
@@ -25,14 +26,14 @@ const getData = async (req:Request<{}, {}, {}, ItemInQueryInterface>, res:Respon
                 ]
             }
         }
-        const data = await Model.itemIns.findMany({
+        const data = await Model.sales.findMany({
             where: {
                 ...filter
             },
             skip: skip,
             take: take
         });
-        const total = await Model.itemIns.count({
+        const total = await Model.sales.count({
             where: {
                 ...filter
             }
@@ -40,9 +41,9 @@ const getData = async (req:Request<{}, {}, {}, ItemInQueryInterface>, res:Respon
         
         res.status(200).json({
             status: true,
-            message: "successful in getting ItemIn data",
+            message: "successful in getting sales data",
             data: {
-                ItemIn: data,
+                sales: data,
                 info:{
                     page: page,
                     limit: take,
@@ -63,34 +64,38 @@ const getData = async (req:Request<{}, {}, {}, ItemInQueryInterface>, res:Respon
 }
 
 const postData = async (req: Request, res: Response) => {
-    const ItemInId = uuidv4();
+    const salesId = uuidv4();
+    const data = req.body;
+    console.log({data});
     
     const transaction = async () => {
-        const data = req.body;
-        console.log({data});
-        
         const dataDetail = data.detailItem;
-
         // Start transaction
         return Model.$transaction(async (prisma) => {
-            const ItemInData = {
-                id: ItemInId,
+            const salesData = {
+                id: salesId,
                 date: moment().format(),
                 storeId: data.storeId,
+                accountCashId: data.accountId,
+                memberId: data.memberId,
                 invoice: uuidv4(),
-                total: data.total ?? 0,
-                description: data.description
+                subTotal: parseInt(data.subTotal ?? 0),
+                total: parseInt(data.subTotal ?? 0)-parseInt(data.discount??0),
+                description: data.description,
+                userCreate: res.locals.userId,
+                discount: parseInt(data.discount??0),
+                payCash: parseInt(data.pay??0),
             };
-            const createItemIn = await prisma.itemIns.create({
-                data: ItemInData,
+            const createSales = await prisma.sales.create({
+                data: salesData,
             });
 
             for (const key in dataDetail) {
                 const idDetail = uuidv4();
-                await prisma.itemInDetails.create({
+                await prisma.saleDetails.create({
                     data: {
                         id: idDetail,
-                        itemInId: ItemInData.id,
+                        saleId: salesData.id,
                         productId: key,
                         productConversionId: dataDetail[key].unitId,
                         quantity: dataDetail[key].quantity ?? 1,
@@ -104,7 +109,7 @@ const postData = async (req: Request, res: Response) => {
                     }
                 });
 
-                const increment = await IncrementStock(
+                const increment = await DecrementStock(
                     prisma, 
                     key,
                     conversion?.quantity ?? 1,
@@ -117,18 +122,21 @@ const postData = async (req: Request, res: Response) => {
                 }
             };
 
-            return { createItemIn };
+            return { createSales };
         });
     };
 
     try {
-        const result = await transaction();
+        await transaction();
         res.status(200).json({
             status: true,
-            message: 'Successful in created ItemIn data',
-            data: ItemInId
+            message: 'Successful in created sales data',
+            data: salesId,
+            remainder: (parseInt(data?.pay ?? 0)-(parseInt(data.subTotal ?? 0)-parseInt(data.discount??0)))
         });
     } catch (error) {
+        console.log({error});
+        
         res.status(500).json({
             status: 500,
             errors: error
@@ -143,36 +151,36 @@ const updateData = async (req:Request, res:Response) => {
 
         const data = { ...req.body};
         const dataDetail = data.detailItem
-        const ItemInId = req.params.id
+        const salesId = req.params.id
         const transaction = async () => {
             // Mulai transaksi
             await Model.$transaction(async (prisma) => {
-                const ItemInData = {
+                const salesData = {
                     supplierId: data.supplierId,
                     discount: data.discount,
                     payCash: data.pay ?? 0,
                     total: data.total ?? 0
                 }
-                const createItemIn = await prisma.itemIns.update({
-                    data: ItemInData,
+                const createsales = await prisma.sales.update({
+                    data: salesData,
                     where: {
-                        id: ItemInId
+                        id: salesId
                     }
                 });
 
-                let createItemInDetails:any;
+                let createsalesDetails:any;
                 
                 for (const key in dataDetail) {
-                    let idDetail = dataDetail[key].ItemInDetailId;
+                    let idDetail = dataDetail[key].salesDetailId;
                     if(idDetail){
                         if(dataDetail[key].quantity===0){
-                            await prisma.itemInDetails.delete({
+                            await prisma.saleDetails.delete({
                                 where: {
                                     id: idDetail
                                 }
                             });
                         }else{
-                            createItemInDetails = await prisma.itemInDetails.update({
+                            createsalesDetails = await prisma.saleDetails.update({
                                 data: {
                                     quantity: dataDetail[key].quantity,
                                     productConversionId: dataDetail[key].unitId,
@@ -185,9 +193,9 @@ const updateData = async (req:Request, res:Response) => {
                         }
                     } else {
                         idDetail = uuidv4();
-                        createItemInDetails = await prisma.itemInDetails.create({data: {
+                        createsalesDetails = await prisma.saleDetails.create({data: {
                             id: idDetail,
-                            itemInId: ItemInId,
+                            saleId: salesId,
                             productId: key,
                             productConversionId: dataDetail[key].unitId,
                             quantity: dataDetail[key].quantity ?? 1,
@@ -224,7 +232,7 @@ const updateData = async (req:Request, res:Response) => {
                     })
                 };
                 
-                return { createItemIn, createItemInDetails };
+                return { createsales, createsalesDetails };
             });
         }
         
@@ -239,7 +247,7 @@ const updateData = async (req:Request, res:Response) => {
 
         res.status(200).json({
             status: true,
-            message: 'successful in updated ItemIn data'
+            message: 'successful in updated sales data'
         })
     } catch (error) {
         console.log({error});
@@ -260,15 +268,15 @@ const updateData = async (req:Request, res:Response) => {
 
 const deleteData = async (req:Request, res:Response)=> {
     try {
-        const model = await Model.itemIns.findUnique({
+        const model = await Model.sales.findUnique({
             where: {
                 id: req.params.id
             },
             include: {
-                itemInDetails: true
+                saleDetails: true
             }
         });
-        const detail = model?.itemInDetails ?? [];
+        const detail = model?.saleDetails ?? [];
         
         for (const value of detail) {
             const conversion = await Model.productConversions.findFirst({
@@ -285,7 +293,7 @@ const deleteData = async (req:Request, res:Response)=> {
                 parseInt(value.quantity+'')
             );
         }
-        await Model.itemIns.delete({
+        await Model.sales.delete({
             where: {
                 id: req.params.id
             }
@@ -293,7 +301,7 @@ const deleteData = async (req:Request, res:Response)=> {
 
         res.status(200).json({
             status: false,
-            message: 'successfully in deleted ItemIn data'
+            message: 'successfully in deleted sales data'
         })
     } catch (error) {
         console.log({error});
@@ -316,7 +324,7 @@ const deleteData = async (req:Request, res:Response)=> {
 
 const getDataById = async (req:Request, res:Response) => {
     try {
-        const model = await Model.itemIns.findUnique({
+        const model = await Model.sales.findUnique({
             where: {
                 id: req.params.id
             }
@@ -325,9 +333,9 @@ const getDataById = async (req:Request, res:Response) => {
         if(!model) throw new Error('data not found')
         res.status(200).json({
             status: true,
-            message: 'successfully in get ItemIn data',
+            message: 'successfully in get sales data',
             data: {
-                ItemIn: model
+                sales: model
             }
         })
     } catch (error) {
@@ -352,7 +360,7 @@ const getSelect = async (req:Request, res:Response) => {
         let filter:any={};
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
         let dataOption:any=[];
-        const data = await Model.itemIns.findMany({
+        const data = await Model.sales.findMany({
             where: {
                 ...filter
             },
@@ -368,9 +376,9 @@ const getSelect = async (req:Request, res:Response) => {
         }
         res.status(200).json({
             status: true,
-            message: 'successfully in get ItemIn data',
+            message: 'successfully in get sales data',
             data: {
-                ItemIn: dataOption
+                sales: dataOption
             }
         })
     } catch (error) {
@@ -393,7 +401,8 @@ const getSelect = async (req:Request, res:Response) => {
 const getFacture = async (req:Request, res:Response) => {
     try {
         const id = req.query.id as string;
-        const data = await Model.itemIns.findUnique({
+        const storeId = req.query.storeId as string;
+        const data = await Model.sales.findUnique({
             where: {
                 id: id??'',
             },
@@ -401,7 +410,12 @@ const getFacture = async (req:Request, res:Response) => {
                 id:true,
                 date: true,
                 total: true,
-                itemInDetails: {
+                users: {
+                    select: {
+                        name: true
+                    }
+                },
+                saleDetails: {
                     select: {
                         id: true,
                         quantity: true,
@@ -426,30 +440,42 @@ const getFacture = async (req:Request, res:Response) => {
             }
         });
 
+        const store = await Model.stores.findUnique({
+            where: {
+                id: storeId
+            },
+            select: {
+                name: true,
+                address: true
+            }
+        })
+
         let newData:any=[];
-        const ItemInDetails = data?.itemInDetails ?? []
-        for (let index = 0; index < ItemInDetails.length; index++) {
+        const salesDetails = data?.saleDetails ?? []
+        for (let index = 0; index < salesDetails.length; index++) {
             newData=[
                 ...newData,
                 {
-                    product: ItemInDetails[index].products.name,
-                    quantity: ItemInDetails[index].quantity,
-                    price: ItemInDetails[index].price,
-                    unit: ItemInDetails[index].productConversions?.units.name,
+                    product: salesDetails[index].products.name,
+                    quantity: formatter.format(parseInt(salesDetails[index].quantity+'') ?? 0),
+                    price: formatter.format(parseInt(salesDetails[index].price+'') ?? 0),
+                    unit: salesDetails[index].productConversions?.units.name,
                 }
             ]
         }
         res.status(200).json({
             status: true,
-            message: 'successfully in get ItemIn data',
+            message: 'successfully in get sales data',
             data: {
-                ItemIn: {
+                sales: {
                     payCash: 0,
                     date: data?.date,
-                    total: data?.total,
+                    total: formatter.format(parseInt(data?.total+'') ?? 0),
                     id: data?.id,
-                    ItemInDetails: []
-                }
+                    user: data?.users?.name,
+                    salesDetails: newData
+                },
+                store
             }
         })
     } catch (error) {
@@ -471,12 +497,12 @@ const getFacture = async (req:Request, res:Response) => {
 
 const getDataUpdate = async (req:Request, res:Response) => {
     try {
-        const data = await Model.itemIns.findUnique({
+        const data = await Model.sales.findUnique({
             where: {
                 id: req.params.id
             },
             include: {
-                itemInDetails: {
+                saleDetails: {
                     include: {
                         products: true
                     }
@@ -484,7 +510,7 @@ const getDataUpdate = async (req:Request, res:Response) => {
             }
         });
         let newData:any={};
-        const dataDetail = data?.itemInDetails ?? []
+        const dataDetail = data?.saleDetails ?? []
         for (const value of dataDetail) {
             newData= {
                 ...newData,
@@ -493,17 +519,22 @@ const getDataUpdate = async (req:Request, res:Response) => {
                     unit: value.productConversionId,
                     price: value.price,
                     product: value.products,
-                    itemInId: value.itemInId,
-                    itemInDetailId: value.id
+                    salesId: value.saleId,
+                    salesDetailId: value.id
                 }
             }
         }
 
         res.status(200).json({
             status: true,
-            message: "Success get data ItemIn",
+            message: "Success get data sales",
             data: {
-                ItemIn: newData,
+                sale: {
+                    pay: data?.payCash,
+                    discount: data?.discount,
+                    memberId: data?.memberId,
+                },
+                saleDetail: newData,
                 id: req.params.id
             }
         })

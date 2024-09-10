@@ -182,19 +182,20 @@ const getSelect = async (req:Request, res:Response) => {
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
         let dataOption:any=[];
         const data = await Model.categories.findMany({
-            where: {
-                ...filter
-            },
+            // where: {
+            //     ...filter
+            // },
             take:10
         });
         for (const value of data) {
             dataOption= [
                 ...dataOption, {
-                    id: value.id,
-                    title: value.name
+                    value: value.id,
+                    label: value.name
                 }
             ]
         }
+        
         res.status(200).json({
             status: true,
             message: 'successfully in get Category data',
