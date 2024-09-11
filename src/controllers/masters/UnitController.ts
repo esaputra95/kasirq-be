@@ -199,11 +199,13 @@ const getSelect = async (req:Request, res:Response) => {
         for (const value of data) {
             dataOption= [
                 ...dataOption, {
-                    id: value.id,
-                    title: value.name
+                    value: value.id,
+                    label: value.name
                 }
             ]
         }
+        console.log({dataOption});
+        
         res.status(200).json({
             status: true,
             message: 'successfully in get Units data',
