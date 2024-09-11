@@ -401,6 +401,9 @@ const getDataById = async (req:Request, res:Response) => {
                         units: true,
                         productPurchasePrices: true,
                         productSellPrices: true
+                    },
+                    orderBy: {
+                        quantity: 'asc'
                     }
                 }
             },
