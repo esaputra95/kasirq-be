@@ -2,7 +2,8 @@ import express from "express";
 import 'module-alias/register';
 import 'dotenv/config'
 import bodyParser from 'body-parser';
-import path from 'path'
+import path from 'path';
+import cors from 'cors';
 
 import login from './routers/auth/index'
 import {
@@ -23,6 +24,7 @@ import { SalesRoute } from "./routers/sales";
 import { ReportPurchaseRoute, ReportSaleRoute } from "./routers/reports";
 
 const app = express()
+app.use(cors());
 app.use(bodyParser.json()); // Parse JSON requests
 app.use(bodyParser.urlencoded({ extended: true }))
 
