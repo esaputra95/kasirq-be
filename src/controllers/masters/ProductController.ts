@@ -92,6 +92,7 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
                 image: true, 
                 ownerId: true, 
                 sku: true,
+                isStock: true,
             },
             skip: skip,
             take: take
@@ -197,6 +198,7 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
                 image: true, 
                 ownerId: true, 
                 sku: true,
+                isStock: true
             },
             skip: skip,
             take: take
