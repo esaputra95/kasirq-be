@@ -11,13 +11,15 @@ import getOwnerId from "#root/helpers/GetOwnerId";
 const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
     try {
         const query = req.query;
+        console.log({query});
+        
         // PAGING
         const take:number = parseInt(query.limit ?? 20 )
         const page:number = parseInt(query.page ?? 1 );
         const skip:number = (page-1)*take
         // FILTER
         let filter:any= []
-        query.name ? filter = [...filter, {name: { contains: query.name }}] : null
+        query.code ? filter = [...filter, {name: { contains: query.code }}] : null
         query.code ? filter = [...filter, {code: { contains: query.code }}] : null
         // query.categoryId ? filter = [...filter, {categoriId: { contains: query.categoryId }}] : null;
 
@@ -129,14 +131,15 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
 const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
     try {
         const query = req.query;
+        console.log({query})
         // PAGING
         const take:number = parseInt(query.limit ?? 20 )
         const page:number = parseInt(query.page ?? 1 );
         const skip:number = (page-1)*take
         // FILTER
         let filter:any= []
-        query.name ? filter = [...filter, {name: { contains: query.name }}] : null
-        query.code ? filter = [...filter, {code: { contains: query.code }}] : null
+        query.code ? filter = [...filter, {name: { contains: query.code}}] : null
+        query.code ? filter = [...filter, {code: { contains: query.code}}] : null
         if(filter.length > 0){
             filter = {
                 OR: [
@@ -236,14 +239,10 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
 
 const postData = async (req:Request, res:Response) => {
     try {
-        console.log('sampai');
-        
         const ownerId:any = await getOwnerId(res.locals.userId, res.locals.userType)
         if(!ownerId.status) throw new Error('Owner not found')
         const data = { ...req.body, ownerId: ownerId.id};
         let dataProduct = {...data};
-        console.log({dataProduct});
-        
         delete dataProduct.price;
         delete dataProduct.storeId;
         // delete dataProduct.isStock;
@@ -326,24 +325,108 @@ const postData = async (req:Request, res:Response) => {
 
 const updateData = async (req:Request, res:Response) => {
     try {
-        const salt = await bcrypt.genSalt();
         const data = { ...req.body};
-        if(!req.body.password){
-            delete data.password
-        }else{
-            data.password = await bcrypt.hash(req.body.password, salt);
+        let dataProduct = {...data};
+        delete dataProduct.price;
+        delete dataProduct.storeId;
+        // delete dataProduct.isStock;
+        const conversion = data.price;
+        const transaction = async () => {
+            // Mulai transaksi
+            await Model.$transaction(async (prisma) => {
+                const createProduct = await prisma.products.update({
+                    data: {
+                        ...dataProduct,
+                        isStock: dataProduct.isStock ? 1 : 0
+                    },
+                    where: {
+                        id: dataProduct.id
+                    }
+                });
+                let createProductConversion:any
+                for (const value of conversion) {
+                    if(value.id){
+                        createProductConversion = await prisma.productConversions.update({
+                            data: {
+                                unitId: value.unitId,
+                                quantity: value.quantity,
+                                status: value.type === "default" ? 1 : 0
+                            },
+                            where: {
+                                id: value.id
+                            }
+                        });
+                        await prisma.productPurchasePrices.updateMany({
+                            data: {
+                                id: uuidv4(),
+                                price: value.capital,
+                                storeId: data.storeId
+                            },
+                            where: {
+                                conversionId: value.id
+                            }
+                        })
+                        await prisma.productSellPrices.updateMany({
+                            data: {
+                                id: uuidv4(),
+                                price: value.sell,
+                                storeId: data.storeId,
+                                level: value.level ?? 1
+                            },
+                            where: {
+                                conversionId: value.id
+                            }
+                        })
+                    }else {
+                    const conversionId = uuidv4()
+                    createProductConversion = await prisma.productConversions.create({
+                        data: {
+                            productId: dataProduct.id,
+                            unitId: value.unitId,
+                            quantity: value.quantity,
+                            id: conversionId,
+                            status: value.type === "default" ? 1 : 0
+                        }
+                    });
+                    await prisma.productPurchasePrices.create({
+                        data: {
+                            id: uuidv4(),
+                            conversionId: conversionId,
+                            price: value.capital,
+                            storeId: data.storeId
+                        }
+                    })
+                    await prisma.productSellPrices.create({
+                        data: {
+                            id: uuidv4(),
+                            conversionId: conversionId,
+                            price: value.sell,
+                            storeId: data.storeId,
+                            level: value.level ?? 1
+                        }
+                    })
+                    }
+
+                }
+                return { createProduct, createProductConversion };
+            });
         }
-        await Model.users.update({
-            where: {
-                id: req.params.id
-            },
-            data: data
-        });
+        
+        transaction()
+            .catch((e) => {
+                console.error(e);
+                process.exit(1);
+            })
+            .finally(async () => {
+                await Model.$disconnect();
+            });
         res.status(200).json({
             status: true,
-            message: 'successful in updated user data'
+            message: 'successful in created user data'
         })
     } catch (error) {
+        console.log({error});
+        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {

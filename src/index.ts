@@ -22,6 +22,7 @@ import { PurchaseRoute } from "./routers/purrchases";
 import { ItemInRoute } from "./routers/supplies";
 import { SalesRoute } from "./routers/sales";
 import { ReportPurchaseRoute, ReportSaleRoute } from "./routers/reports";
+import DashboardRoute from '#routers/dashboards/DashboardRoute'
 
 const app = express()
 app.use(cors());
@@ -43,6 +44,7 @@ app.use('/item-ins', AccessToken, ItemInRoute)
 app.use('/sales', AccessToken, SalesRoute)
 app.use('/report/purchase-reports', AccessToken, ReportPurchaseRoute)
 app.use('/report/sale-reports', AccessToken, ReportSaleRoute)
+app.use('/dashboards', AccessToken, DashboardRoute);
 
 app.use('/images', express.static(path.join(__dirname, '/public')))
 

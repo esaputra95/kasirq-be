@@ -8,7 +8,6 @@ const AccessToken = async (req:Request, res:Response, next:NextFunction) => {
         
         const token = authHeader.split(" ")[1];
         if(token==null) return res.send(401);
-        console.log('oke');
         
         jwt.verify(token, '1234567890', (err, decode:any)=>{
             if(err) return res.send(403);
