@@ -92,7 +92,7 @@ const postData = async (req: Request, res: Response) => {
 
             for (const key in dataDetail) {
                 const idDetail = uuidv4();
-                await prisma.purchaseDetails.create({
+                const purchaseDetail = await prisma.purchaseDetails.create({
                     data: {
                         id: idDetail,
                         purchaseId: purchaseData.id,
@@ -109,12 +109,23 @@ const postData = async (req: Request, res: Response) => {
                     }
                 });
 
+                await prisma.hppHistory.create({
+                    data: {
+                        id: uuidv4(),
+                        productConversionId: dataDetail[key].unitId,
+                        price: dataDetail[key].price / (conversion?.quantity ?? 1),
+                        quantity: (dataDetail[key].quantity) * (conversion?.quantity ?? 1),
+                        quantityUsed: 0,
+                        transactionDetailId: purchaseDetail.id,
+                        storeId: data.storeId
+                    }
+                })
+
                 const increment = await IncrementStock(
                     prisma, 
                     key,
-                    conversion?.quantity ?? 1,
                     data.storeId,
-                    dataDetail[key].quantity
+                    dataDetail[key].quantity * (conversion?.quantity ?? 1)
                 );
 
                 if (!increment.status) {
@@ -134,10 +145,6 @@ const postData = async (req: Request, res: Response) => {
             data: purchaseId
         });
     } catch (error) {
-        // let message = { status: false, message: { msg: `${error}` } };
-        // if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        //     message = await handleValidationError(error);
-        // }
         res.status(500).json({
             status: 500,
             errors: error
@@ -172,6 +179,17 @@ const updateData = async (req:Request, res:Response) => {
                 let createPurchaseDetails:any;
                 
                 for (const key in dataDetail) {
+                    const oldConversion = await prisma.productConversions.findUnique({
+                        where : {
+                            id: dataDetail[key].oldUnitId,
+
+                        }
+                    });
+                    const newConversion = await prisma.productConversions.findUnique({
+                        where: {
+                            id: dataDetail[key].unitId
+                        }
+                    })
                     let idDetail = dataDetail[key].purchaseDetailId;
                     if(idDetail){
                         if(dataDetail[key].quantity===0){
@@ -180,6 +198,17 @@ const updateData = async (req:Request, res:Response) => {
                                     id: idDetail
                                 }
                             });
+                            await prisma.hppHistory.deleteMany({
+                                where: {
+                                    transactionDetailId: idDetail
+                                }
+                            });
+                            const conversion = await prisma.productConversions.findFirst({
+                                where: {
+                                    id: dataDetail[key].unitId
+                                }
+                            });
+                            await DecrementStock(prisma, key, data.storeId, (conversion?.quantity??1)*dataDetail[key].quantity)
                         }else{
                             createPurchaseDetails = await prisma.purchaseDetails.update({
                                 data: {
@@ -191,6 +220,29 @@ const updateData = async (req:Request, res:Response) => {
                                     id: idDetail
                                 }
                             });
+                            await prisma.hppHistory.deleteMany({
+                                where: {
+                                    transactionDetailId: idDetail
+                                }
+                            });
+                            await prisma.hppHistory.create({
+                                data : {
+                                    price: dataDetail[key].price ?? 0,
+                                    quantity: dataDetail[key].quantity,
+                                    quantityUsed: 0,
+                                    productConversionId: dataDetail[key].unitId,
+                                    id: uuidv4(),
+                                    storeId: createPurchase.storeId,
+                                }
+                            });
+
+                            const quantityStock = ((newConversion?.quantity ?? 0) * dataDetail[0]?.quantity) - ((oldConversion?.quantity ?? 0) * dataDetail[0]?.oldQuantity)
+                            await IncrementStock(
+                                prisma, 
+                                key,
+                                data.storeId,
+                                quantityStock
+                            );
                         }
                     } else {
                         idDetail = uuidv4();
@@ -202,35 +254,35 @@ const updateData = async (req:Request, res:Response) => {
                             quantity: dataDetail[key].quantity ?? 1,
                             price: dataDetail[key].price ?? 0,
                         }});
+
+                        const conversion = await prisma.productConversions.findFirst({
+                            where: {
+                                id: dataDetail[key].unitId
+                            }
+                        });
+    
+                        const increment = await IncrementStock(
+                            prisma, 
+                            key,
+                            data.storeId,
+                            dataDetail[key].quantity * (conversion?.quantity ?? 1)
+                        )
+                        if(!increment.status){
+                            throw increment.message;
+                        };
+    
+                        await prisma.hppHistory.create({
+                            data: {
+                                id: uuidv4(),
+                                productConversionId: dataDetail[key].unitId,
+                                price: dataDetail[key].price / (conversion?.quantity ?? 1),
+                                quantity: dataDetail[key].quantity * (conversion?.quantity ?? 1),
+                                quantityUsed: 0,
+                                storeId: createPurchase.storeId,
+                                transactionDetailId: idDetail
+                            }
+                        })
                     }
-                    
-                    const conversion = await prisma.productConversions.findFirst({
-                        where: {
-                            id: dataDetail[key].unitId
-                        }
-                    });
-
-                    const increment = await IncrementStock(
-                        prisma, 
-                        key,
-                        conversion?.quantity ?? 1,
-                        data.storeId,
-                        dataDetail[key].quantity
-                    )
-                    if(!increment.status){
-                        console.log('kambing');
-                        
-                        throw increment.message;
-                    };
-                    console.log('ayam');
-                    
-
-                    await prisma.hppHistory.create({
-                        data: {
-                            id: uuidv4(),
-                            // productConversionId: 
-                        }
-                    })
                 };
                 
                 return { createPurchase, createPurchaseDetails };
@@ -285,13 +337,18 @@ const deleteData = async (req:Request, res:Response)=> {
                     id: value.productConversionId ?? ''
                 }
             });
+            
+            await Model.hppHistory.deleteMany({
+                where: {
+                    transactionDetailId: value.id
+                }
+            })
 
             await DecrementStock(
                 Model,
                 value.productId,
-                conversion?.quantity ?? 1 ,
                 model?.storeId ?? '',
-                parseInt(value.quantity+'')
+                parseInt(value.quantity+'') * (conversion?.quantity ?? 1)
             );
         }
         await Model.purchases.delete({
