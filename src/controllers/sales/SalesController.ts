@@ -6,7 +6,7 @@ import { errorType } from "#root/helpers/errorType";
 import { v4 as uuidv4 } from 'uuid';
 import { SalesQueryInterface } from "#root/interfaces/sales/SalesInterface";
 import moment from "moment";
-import { DecrementStock, IncrementStock } from "#root/helpers/stock";
+import { DecrementStock, GetHpp, IncrementStock } from "#root/helpers/stock";
 import formatter from "#root/helpers/formatCurrency";
 
 const getData = async (req:Request<{}, {}, {}, SalesQueryInterface>, res:Response) => {
@@ -66,8 +66,6 @@ const getData = async (req:Request<{}, {}, {}, SalesQueryInterface>, res:Respons
 const postData = async (req: Request, res: Response) => {
     const salesId = uuidv4();
     const data = req.body;
-    console.log({data});
-    
     const transaction = async () => {
         const dataDetail = data.detailItem;
         // Start transaction
@@ -112,10 +110,34 @@ const postData = async (req: Request, res: Response) => {
                 const increment = await DecrementStock(
                     prisma, 
                     key,
-                    conversion?.quantity ?? 1,
                     data.storeId,
-                    dataDetail[key].quantity
+                    dataDetail[key].quantity * (conversion?.quantity ?? 1)
                 );
+                
+                const hpp = await GetHpp(prisma, data.storeId, dataDetail[key].quantity);
+                for (const value of hpp.hpp) {
+                    console.log({value});
+                    
+                    await prisma.cogs.create({
+                        data: {
+                            id: uuidv4(),
+                            hppHistoryId: value.hppHistoryId,
+                            saleDetailId: idDetail,
+                            price: value.price,
+                            quantity: value.quantity
+                        }
+                    })
+                    await prisma.hppHistory.update({
+                        data: { 
+                            quantityUsed: {
+                                increment: value.quantity
+                            }
+                        },
+                        where: {
+                            id: value.hppHistoryId
+                        }
+                    })
+                }
 
                 if (!increment.status) {
                     throw increment.message;
@@ -212,9 +234,8 @@ const updateData = async (req:Request, res:Response) => {
                     const increment = await IncrementStock(
                         prisma, 
                         key,
-                        conversion?.quantity ?? 1,
                         data.storeId,
-                        dataDetail[key].quantity
+                        dataDetail[key].quantity * (conversion?.quantity ?? 1)
                     )
                     if(!increment.status){
                         console.log('kambing');
@@ -288,9 +309,8 @@ const deleteData = async (req:Request, res:Response)=> {
             await DecrementStock(
                 Model,
                 value.productId,
-                conversion?.quantity ?? 1 ,
                 model?.storeId ?? '',
-                parseInt(value.quantity+'')
+                parseInt(value.quantity+'') * (conversion?.quantity ?? 1)
             );
         }
         await Model.sales.delete({

@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { hppHistory, Prisma, PrismaClient } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -6,7 +6,6 @@ const IncrementStock = async (
     prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, 
         "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
     productId: string,
-    quantityConversion: number,
     storeId: string,
     quantity: number,
 ) => {
@@ -23,7 +22,7 @@ const IncrementStock = async (
                 data: {
                     id: uuidv4(),
                     productId: productId,
-                    quantity: (quantityConversion * quantity ?? 1),
+                    quantity: (quantity ?? 0),
                     storeId: storeId
                 }
             });
@@ -32,7 +31,7 @@ const IncrementStock = async (
                 data: {
                     productId: productId,
                     quantity: {
-                        increment: (quantityConversion * quantity ?? 1)
+                        increment: (quantity ?? 0)
                     },
                     storeId: storeId,
                 },
@@ -57,7 +56,6 @@ const DecrementStock = async (
     prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, 
         "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
     productId: string,
-    quantityConversion: number,
     storeId: string,
     quantity: number,
 ) => {
@@ -73,7 +71,7 @@ const DecrementStock = async (
                 data: {
                     id: uuidv4(),
                     productId: productId,
-                    quantity: (quantityConversion * quantity ?? 1),
+                    quantity: quantity,
                     storeId: storeId
                 }
             });
@@ -82,7 +80,7 @@ const DecrementStock = async (
                 data: {
                     productId: productId,
                     quantity: {
-                        decrement: (quantityConversion * quantity ?? 1)
+                        decrement: quantity
                     },
                     storeId: storeId,
                 },
@@ -91,7 +89,6 @@ const DecrementStock = async (
                 }
             })
         }
-        // await prisma.hppHistory.create
         return {
             status: true,
         }
@@ -103,4 +100,57 @@ const DecrementStock = async (
     }
 }
 
-export { IncrementStock, DecrementStock }
+const GetHpp = async (
+    prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, 
+        "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
+    storeId: string,
+    quantityNeed: number
+) => {
+    try {
+        const hpp:hppHistory[] = await prisma.$queryRaw`
+            SELECT * FROM hppHistory WHERE quantity > quantityUsed AND storeId = ${storeId}
+        `;
+        let dataHpp:any=[];
+        let getQuantity=quantityNeed
+        for (const value of hpp) {
+            let q=0;
+            if(((value.quantity ?? 0)-(value.quantityUsed ?? 0)) >= getQuantity){
+                dataHpp=[
+                    ...dataHpp,
+                    {
+                        hppHistoryId: value.id,
+                        quantity: getQuantity,
+                        price: value.price
+                    }
+                ];
+                break;
+            } else{
+                dataHpp=[
+                    ...dataHpp,
+                    {
+                        hppHistoryId: value.id,
+                        quantity: (value.quantity ?? 0)-(value.quantityUsed ?? 0),
+                        price: value.price
+                    }
+                ];
+                getQuantity-=(value.quantity ?? 0)-(value.quantityUsed ?? 0)
+            }
+        }
+        return {
+            status: true,
+            hpp:dataHpp
+        };
+    } catch (error) {
+        console.log({error});
+        return {
+            status:false,
+            hpp:[]
+        };
+    }
+}
+
+export {
+    IncrementStock,
+    DecrementStock,
+    GetHpp
+}

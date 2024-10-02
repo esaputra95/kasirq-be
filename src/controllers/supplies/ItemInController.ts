@@ -67,10 +67,7 @@ const postData = async (req: Request, res: Response) => {
     
     const transaction = async () => {
         const data = req.body;
-        console.log({data});
-        
         const dataDetail = data.detailItem;
-
         // Start transaction
         return Model.$transaction(async (prisma) => {
             const ItemInData = {
@@ -107,10 +104,21 @@ const postData = async (req: Request, res: Response) => {
                 const increment = await IncrementStock(
                     prisma, 
                     key,
-                    conversion?.quantity ?? 1,
                     data.storeId,
-                    dataDetail[key].quantity
+                    dataDetail[key].quantity * (conversion?.quantity ?? 1)
                 );
+
+                await prisma.hppHistory.create({
+                    data: {
+                        id: uuidv4(),
+                        productConversionId: dataDetail[key].unitId,
+                        price: dataDetail[key].price / (conversion?.quantity ?? 1),
+                        quantity: dataDetail[key].quantity * (conversion?.quantity ?? 1),
+                        quantityUsed: 0,
+                        storeId: data.storeId,
+                        transactionDetailId: idDetail
+                    }
+                })
 
                 if (!increment.status) {
                     throw increment.message;
@@ -163,6 +171,17 @@ const updateData = async (req:Request, res:Response) => {
                 let createItemInDetails:any;
                 
                 for (const key in dataDetail) {
+                    const oldConversion = await prisma.productConversions.findUnique({
+                        where : {
+                            id: dataDetail[key].oldUnitId,
+
+                        }
+                    });
+                    const newConversion = await prisma.productConversions.findUnique({
+                        where: {
+                            id: dataDetail[key].unitId
+                        }
+                    })
                     let idDetail = dataDetail[key].ItemInDetailId;
                     if(idDetail){
                         if(dataDetail[key].quantity===0){
@@ -171,6 +190,18 @@ const updateData = async (req:Request, res:Response) => {
                                     id: idDetail
                                 }
                             });
+                            await prisma.hppHistory.deleteMany({
+                                where: {
+                                    transactionDetailId: idDetail
+                                }
+                            });
+
+                            const conversion = await prisma.productConversions.findFirst({
+                                where: {
+                                    id: dataDetail[key].unitId
+                                }
+                            });
+                            await DecrementStock(prisma, key, data.storeId, (conversion?.quantity??1)*dataDetail[key].quantity)
                         }else{
                             createItemInDetails = await prisma.itemInDetails.update({
                                 data: {
@@ -182,6 +213,29 @@ const updateData = async (req:Request, res:Response) => {
                                     id: idDetail
                                 }
                             });
+                            await prisma.hppHistory.deleteMany({
+                                where: {
+                                    transactionDetailId: idDetail
+                                }
+                            });
+                            await prisma.hppHistory.create({
+                                data : {
+                                    price: dataDetail[key].price ?? 0,
+                                    quantity: dataDetail[key].quantity,
+                                    quantityUsed: 0,
+                                    productConversionId: dataDetail[key].unitId,
+                                    id: uuidv4(),
+                                    storeId: createItemIn.storeId,
+                                }
+                            });
+
+                            const quantityStock = ((newConversion?.quantity ?? 0) * dataDetail[0]?.quantity) - ((oldConversion?.quantity ?? 0) * dataDetail[0]?.oldQuantity)
+                            await IncrementStock(
+                                prisma, 
+                                key,
+                                data.storeId,
+                                quantityStock
+                            );
                         }
                     } else {
                         idDetail = uuidv4();
@@ -204,10 +258,10 @@ const updateData = async (req:Request, res:Response) => {
                     const increment = await IncrementStock(
                         prisma, 
                         key,
-                        conversion?.quantity ?? 1,
                         data.storeId,
-                        dataDetail[key].quantity
-                    )
+                        dataDetail[key].quantity * (conversion?.quantity ?? 1)
+                    );
+                    
                     if(!increment.status){
                         console.log('kambing');
                         
@@ -280,9 +334,8 @@ const deleteData = async (req:Request, res:Response)=> {
             await DecrementStock(
                 Model,
                 value.productId,
-                conversion?.quantity ?? 1 ,
                 model?.storeId ?? '',
-                parseInt(value.quantity+'')
+                parseInt(value.quantity+'') * (conversion?.quantity ?? 1)
             );
         }
         await Model.itemIns.delete({
