@@ -16,11 +16,15 @@ const color = {
 }
 
 
-const getTotalSales = async (_req:Request, res:Response) => {
+const getTotalSales = async (req:Request, res:Response) => {
     try {
+        const query = req.query;
         const data = await Model.sales.aggregate({
             _sum: {
                 total: true
+            },
+            where:{
+                storeId: query.storeId as string
             }
         });
         res.status(200).json({
@@ -37,8 +41,9 @@ const getTotalSales = async (_req:Request, res:Response) => {
     }
 }
 
-const getMarginWeek = async (_req:Request, res:Response) => {
+const getMarginWeek = async (req:Request, res:Response) => {
     try {
+        const query = req.query;
         const date = await getDatesOfCurrentWeek();
         let tpmData:any=[]
         for (let index = 0; index < date.length; index++) {
@@ -55,6 +60,7 @@ const getMarginWeek = async (_req:Request, res:Response) => {
                     sales ON sales.id = saleDetails.saleId
                 WHERE 
                     sales.date BETWEEN ${moment(date[index]+' 00:00:00').format()} AND ${moment(date[index]+' 23:59:00').format()}
+                AND sales.storeId = ${query.storeId}
                 GROUP BY saleDetails.id
                 `;
             const loop = results as []
@@ -83,11 +89,15 @@ const getMarginWeek = async (_req:Request, res:Response) => {
         })
     }
 }
-const getTotalPurchase = async (_req:Request, res:Response) => {
+const getTotalPurchase = async (req:Request, res:Response) => {
     try {
+        const query = req.query;
         const data = await Model.purchases.aggregate({
             _sum: {
                 total: true
+            },
+            where: {
+                storeId: query.storeId as string
             }
         });
         res.status(200).json({
@@ -104,8 +114,9 @@ const getTotalPurchase = async (_req:Request, res:Response) => {
     }
 }
 
-const getSalesWeek = async (_req:Request, res:Response) => {
+const getSalesWeek = async (req:Request, res:Response) => {
     try {
+        const query = req.query;
         let data:any = [];
         const date = await getDatesOfCurrentWeek();
         for (let index = 0; index < date.length; index++) {
@@ -117,7 +128,8 @@ const getSalesWeek = async (_req:Request, res:Response) => {
                     date: {
                         gte: moment(date[index]+' 00:00:00').format(),
                         lte: moment(date[index]+' 23:59:00').format(),
-                    }
+                    },
+                    storeId: query.storeId as string
                 }
             })
             data=[
