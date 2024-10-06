@@ -6,9 +6,7 @@ import { Request, Response } from "express";
 const getSelect = async (_req:Request, res:Response) => {
     try {
         let dataOption:any=[]
-        console.log('ayam');
-        
-        
+        console.log('dsini', res.locals.userId)
         const data = await Model.stores.findMany({
             where: {
                 ownerId: res.locals.userId

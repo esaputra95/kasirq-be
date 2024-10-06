@@ -349,9 +349,11 @@ model users {
   email                                    String?                @db.VarChar(255)
   phone                                    String?                @db.VarChar(15)
   level                                    users_level?
+  verified                                 user_verifed @default(non_active)
   storeId                                  String?                @db.VarChar(36)
   createdAt                                DateTime?              @default(now()) @db.DateTime(0)
   updatedAt                                DateTime?              @default(now()) @db.DateTime(0)
+  token String? @db.Text()
   deletedAt                                DateTime?              @db.DateTime(0)
   userCreate                               String?                @db.VarChar(36)
   brands                                   brands[]
@@ -673,4 +675,10 @@ enum users_level {
   owner
   cashier
   supervisor
+}
+
+enum user_verifed {
+  active
+  non_active
+  email_verification
 }
