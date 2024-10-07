@@ -5,21 +5,46 @@ import { Request, Response } from "express";
 
 const getSelect = async (_req:Request, res:Response) => {
     try {
+        let user
+
         let dataOption:any=[]
-        console.log('dsini', res.locals.userId)
-        const data = await Model.stores.findMany({
-            where: {
-                ownerId: res.locals.userId
-            }
-        });
-        for (const value of data) {
-            dataOption= [
-                ...dataOption, {
-                    key: value.id,
-                    value: value.name
+        if(res.locals.level==="cashier"){
+            user = await Model.users.findUnique({
+                where: {
+                    id: res.locals.userId
                 }
-            ]
+            });
+            const data = await Model.stores.findMany({
+                where: {
+                    id: user?.storeId ?? ''
+                }
+            });
+            for (const value of data) {
+                dataOption= [
+                    ...dataOption, {
+                        key: value.id,
+                        value: value.name
+                    }
+                ]
+            }
+        } else {
+            const data = await Model.stores.findMany({
+                where: {
+                    ownerId: res.locals.userId
+                }
+            });
+            for (const value of data) {
+                dataOption= [
+                    ...dataOption, {
+                        key: value.id,
+                        value: value.name
+                    }
+                ]
+            }
         }
+        
+        console.log({dataOption});
+        
         res.status(200).json({
             status: true,
             message: 'successfully in get user data',

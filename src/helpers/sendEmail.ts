@@ -1,6 +1,6 @@
 import * as nodemailer from "nodemailer";
 
-const sendEmail = async (email:string, code:string, type:'register' | 'forgot-password') => {
+const sendEmail = async (email:string, code:string, type:'register' | 'forgot-password', message?:string) => {
     try {
         if(type==="register"){
             if(!email) throw new Error ("Email not found")

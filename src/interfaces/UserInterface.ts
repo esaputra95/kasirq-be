@@ -5,6 +5,7 @@ export interface UserInterface {
     password: string,
     email?: string | null,
     phone?: string | null,
+    storeId?: string;
     userCreate?: string | null,
     createdAt?: Date | null,
     updatedAt?: Date | null,

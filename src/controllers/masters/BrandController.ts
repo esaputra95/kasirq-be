@@ -10,6 +10,7 @@ import getOwnerId from "#root/helpers/GetOwnerId";
 const getData = async (req:Request<{}, {}, {}, BrandQueryInterface>, res:Response) => {
     try {
         const query = req.query;
+        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
         // PAGING
         const take:number = parseInt(query.limit ?? 20 )
         const page:number = parseInt(query.page ?? 1 );
@@ -26,14 +27,16 @@ const getData = async (req:Request<{}, {}, {}, BrandQueryInterface>, res:Respons
         }
         const data = await Model.brands.findMany({
             where: {
-                ...filter
+                ...filter,
+                ownerId: owner.id
             },
             skip: skip,
             take: take
         });
         const total = await Model.brands.count({
             where: {
-                ...filter
+                ...filter,
+                ownerId: owner.id
             }
         })
         
@@ -91,7 +94,6 @@ const postData = async (req:Request, res:Response) => {
 
 const updateData = async (req:Request, res:Response) => {
     try {
-
         const data = { ...req.body};
         await Model.brands.update({
             where: {
@@ -181,14 +183,15 @@ const getDataById = async (req:Request, res:Response) => {
 
 const getSelect = async (req:Request, res:Response) => {
     try {
+        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
         let filter:any={};
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
-        console.log({filter});
         
         let dataOption:any=[];
         const data = await Model.brands.findMany({
             where: {
-                ...filter
+                ...filter,
+                ownerId: owner.id
             }
         });
         for (const value of data) {
@@ -199,8 +202,6 @@ const getSelect = async (req:Request, res:Response) => {
                 }
             ]
         }
-        console.log({dataOption});
-        
         res.status(200).json({
             status: true,
             message: 'successfully in get Brand data',

@@ -10,6 +10,7 @@ import getOwnerId from "#root/helpers/GetOwnerId";
 const getData = async (req:Request<{}, {}, {}, CategoryQueryInterface>, res:Response) => {
     try {
         const query = req.query;
+        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
         // PAGING
         const take:number = parseInt(query.limit ?? 20 )
         const page:number = parseInt(query.page ?? 1 );
@@ -26,14 +27,16 @@ const getData = async (req:Request<{}, {}, {}, CategoryQueryInterface>, res:Resp
         }
         const data = await Model.categories.findMany({
             where: {
-                ...filter
+                ...filter,
+                ownerId: owner.id
             },
             skip: skip,
             take: take
         });
         const total = await Model.categories.count({
             where: {
-                ...filter
+                ...filter,
+                ownerId: owner.id
             }
         })
         res.status(200).json({
@@ -179,14 +182,19 @@ const getDataById = async (req:Request, res:Response) => {
 const getSelect = async (req:Request, res:Response) => {
     try {
         let filter:any={};
+        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
         let dataOption:any=[];
         const data = await Model.categories.findMany({
-            // where: {
-            //     ...filter
-            // },
+            where: {
+                // ...filter,
+                ownerId: owner.id
+            },
             take:10
         });
+
+        console.log({data});
+        
         for (const value of data) {
             dataOption= [
                 ...dataOption, {

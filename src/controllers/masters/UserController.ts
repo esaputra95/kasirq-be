@@ -19,6 +19,7 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
         query.username ? filter = [...filter, {username: { contains: query.username }}] : null
         query.email ? filter = [...filter, {email: { contains: query.email }}] : null
         query.phone ? filter = [...filter, {phone: { contains: query.phone }}] : null
+        query.storeId ? filter = [...filter, {storeId: query.storeId}] : null;
         if(filter.length > 0){
             filter = {
                 OR: [
@@ -28,14 +29,16 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
         }
         const data = await Model.users.findMany({
             where: {
-                ...filter
+                ...filter,
+                verified: 'active'
             },
             skip: skip,
             take: take
         });
         const total = await Model.users.count({
             where: {
-                ...filter
+                ...filter,
+                verified: 'active'
             }
         })
         res.status(200).json({
@@ -51,6 +54,8 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
             }
         })
     } catch (error) {
+        console.log({error});
+        
         let message = errorType
         message.message.msg = `${error}`
         res.status(500).json({
@@ -64,15 +69,27 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
 
 const postData = async (req:Request, res:Response) => {
     try {
+        console.log('post user');
+        
         const salt = await bcrypt.genSalt();
         const newPass = await bcrypt.hash(req.body.password, salt);
         const data = { ...req.body, password: newPass };
-        await Model.users.create({data: data});
+        await Model.users.create({data: {
+            email: data.email,
+            username: data.email,
+            password: newPass,
+            storeId: data.storeId,
+            name: data.name,
+            level: data.level,
+            verified: 'active'
+        }});
         res.status(200).json({
             status: true,
             message: 'successful in created user data'
         })
     } catch (error) {
+        console.log({error});
+        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {

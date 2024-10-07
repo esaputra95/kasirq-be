@@ -28,7 +28,8 @@ const getData = async (req:Request<{}, {}, {}, BrandQueryInterface>, res:Respons
         }
         const data = await Model.purchases.findMany({
             where: {
-                ...filter
+                ...filter,
+                storeId: query.storeId
             },
             include: {
                 suppliers: true,
