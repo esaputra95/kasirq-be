@@ -6,6 +6,7 @@ import { LoginInterface } from "#root/interfaces/AuthInterface";
 import { v4 as uuidv4 } from 'uuid';
 import sendEmail from "#root/helpers/sendEmail";
 import path from 'path';
+import moment from "moment";
 
 const Login = async (req:Request, res:Response) => {
     try {
@@ -60,6 +61,16 @@ const RegisterOwner = async (req:Request, res:Response) => {
             }
         });
 
+        await Model.stores.create({
+            data:{
+                id: uuidv4(),
+                ownerId: data.id,
+                name: body.name,
+                expiredDate: moment().add(30, 'd').format(),
+                address: body.address,
+            }
+        })
+
         await sendEmail(req.body.email, code, 'register')
 
         res.status(200).json({
@@ -79,7 +90,6 @@ const RegisterOwner = async (req:Request, res:Response) => {
 
 const Verification = async (req:Request, res:Response) => {
     try {
-        res.sendFile(path.join(__dirname, '/../../helpers/message.html'));
         const query = req.query;
         const user = await Model.users.findFirst({
             where: {
@@ -98,7 +108,7 @@ const Verification = async (req:Request, res:Response) => {
             }
         })
 
-        res.redirect(`${process.env.FE_URL}/auth/login`)
+        res.sendFile(path.join(__dirname, '/../../../message.html'));
         
     } catch (error) {
         console.log({error})

@@ -1,7 +1,6 @@
-import bcrypt from "bcryptjs";
 import Model from "#root/services/PrismaService";
 import { Request, Response } from "express";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
 import { ProductQueryInterface } from "#root/interfaces/masters/ProductInterface";
@@ -11,7 +10,7 @@ import getOwnerId from "#root/helpers/GetOwnerId";
 const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
     try {
         const query = req.query;
-        console.log({query});
+        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
         
         // PAGING
         const take:number = parseInt(query.limit ?? 20 )
@@ -35,7 +34,8 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
         const data = await Model.products.findMany({
             where: {
                 ...filter,
-                categoryId: { contains: query.categoryId }
+                categoryId: { contains: query.categoryId },
+                ownerId: owner.id,
             },
             select: {
                 categories: {
@@ -71,6 +71,9 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
                                 price: true, 
                                 storeId: true,
                                 conversionId: true,
+                            },
+                            where: {
+                                storeId: query.storeId
                             }
                         },
                         productSellPrices: {
@@ -80,6 +83,9 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
                                 storeId: true,
                                 conversionId: true,
                             },
+                            where: {
+                                storeId: query.storeId
+                            }
                         }
                     },
                     orderBy: {
@@ -131,7 +137,7 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
 const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
     try {
         const query = req.query;
-        console.log({query})
+        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType)
         // PAGING
         const take:number = parseInt(query.limit ?? 20 )
         const page:number = parseInt(query.page ?? 1 );
@@ -150,7 +156,8 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
         const data = await Model.products.findMany({
             where: {
                 ...filter,
-                categoryId: { contains: query.categoryId }
+                categoryId: { contains: query.categoryId },
+                ownerId: owner.id
             },
             select: {
                 categories: {
@@ -186,6 +193,9 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
                                 price: true,
                                 storeId: true,
                                 conversionId: true,
+                            },
+                            where: {
+                                storeId: query.storeId
                             }
                         }
                     },

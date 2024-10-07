@@ -28,7 +28,8 @@ const getData = async (req:Request<{}, {}, {}, SalesQueryInterface>, res:Respons
         }
         const data = await Model.sales.findMany({
             where: {
-                ...filter
+                ...filter,
+                storeId: query.storeId
             },
             skip: skip,
             take: take

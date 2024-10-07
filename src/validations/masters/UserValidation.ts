@@ -1,7 +1,7 @@
 import { body } from 'express-validator';
 
 const UserValidation = [
-    body("username")
+    body("email")
         .exists({ checkFalsy: true })
         .withMessage("User name is required")
         .isString()
