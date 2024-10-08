@@ -65,7 +65,7 @@ const RegisterOwner = async (req:Request, res:Response) => {
             data:{
                 id: uuidv4(),
                 ownerId: data.id,
-                name: body.name,
+                name: body.store,
                 expiredDate: moment().add(30, 'd').format(),
                 address: body.address,
             }

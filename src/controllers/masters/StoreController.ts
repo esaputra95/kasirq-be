@@ -11,7 +11,7 @@ const getSelect = async (_req:Request, res:Response) => {
         if(res.locals.level==="cashier"){
             user = await Model.users.findUnique({
                 where: {
-                    id: res.locals.userId
+                    id: res.locals.userId,
                 }
             });
             const data = await Model.stores.findMany({
