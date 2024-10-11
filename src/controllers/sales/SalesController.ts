@@ -1,5 +1,5 @@
 import Model from "#root/services/PrismaService";
-import e, { Request, Response } from "express";
+import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";

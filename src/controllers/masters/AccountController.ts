@@ -191,10 +191,8 @@ const getDataById = async (req:Request, res:Response) => {
 const getSelect = async (req:Request, res:Response) => {
     try {
         let filter:any={};
-        console.log(req.query);
-        
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
-        let dataOption:any=[];
+        let dataOption:any=[{value:'', label:''}];
         const data = await Model.account.findMany({
             where: {
                 ...filter
@@ -204,8 +202,8 @@ const getSelect = async (req:Request, res:Response) => {
         for (const value of data) {
             dataOption= [
                 ...dataOption, {
-                    id: value.id,
-                    title: value.name
+                    value: value.id,
+                    label: value.name
                 }
             ]
         }
