@@ -530,8 +530,6 @@ const getDataById = async (req:Request, res:Response) => {
 
 const uploadImage = async (req:Request, res:Response) => {
     try {
-        // console.log(req ?? '');
-        
         res.status(200).json({
             code:1,
             status:200,
@@ -545,6 +543,33 @@ const uploadImage = async (req:Request, res:Response) => {
             status: false,
             errors: `${error}`
         })
+    }
+}
+
+const getPriceMember = async (req:Request, res:Response) => {
+    try {
+        const query = req.query;
+        const member = await Model.members.findUnique({
+            where: {
+                id: query.id as string
+            }
+        });
+
+        const data = await Model.productSellPrices.findFirst({
+            where: {
+                conversionId: query.conversionId as string,
+                level: parseInt(member?.level+''),
+                storeId: query.storeId as string
+            }
+        })
+
+        const price = {
+            unit: data?.conversionId,
+            price: data?.price,
+            conversionId: data?.conversionId,
+        }
+    } catch (error) {
+        
     }
 }
 

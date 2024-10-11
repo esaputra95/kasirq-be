@@ -1,2 +1,1 @@
-export {default as ReportPurchaseRoute} from './PurchaseReportRoute'
-export {default as ReportSaleRoute} from './SaleReportRoute'
+export {default as ReportRoute} from './ReportRoute'

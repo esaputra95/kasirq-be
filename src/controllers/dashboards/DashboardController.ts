@@ -63,7 +63,7 @@ const getMarginWeek = async (req:Request, res:Response) => {
                 AND sales.storeId = ${query.storeId}
                 GROUP BY saleDetails.id
                 `;
-            const loop = results as []
+            const loop = results as [];
             tpmData = [
                 ...tpmData,
                 {
