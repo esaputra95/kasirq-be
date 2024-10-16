@@ -54,8 +54,6 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
             }
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         res.status(500).json({
@@ -69,8 +67,6 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
 
 const postData = async (req:Request, res:Response) => {
     try {
-        console.log('post user');
-        
         const salt = await bcrypt.genSalt();
         const newPass = await bcrypt.hash(req.body.password, salt);
         const data = { ...req.body, password: newPass };
@@ -88,8 +84,6 @@ const postData = async (req:Request, res:Response) => {
             message: 'successful in created user data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {

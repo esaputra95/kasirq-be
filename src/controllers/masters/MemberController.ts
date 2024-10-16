@@ -75,7 +75,6 @@ const postData = async (req:Request, res:Response) => {
             message: 'successful in created Member data'
         })
     } catch (error) {
-        console.log({error})
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -183,12 +182,8 @@ const getDataById = async (req:Request, res:Response) => {
 const getSelect = async (req:Request, res:Response) => {
     try {
         let filter:any={};
-        console.log(req.query);
-        
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
         let dataOption:any=[];
-        console.log({filter});
-        
         const data = await Model.members.findMany({
             where: {
                 ...filter

@@ -196,6 +196,9 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
                             },
                             where: {
                                 storeId: query.storeId
+                            },
+                            orderBy: {
+                                level: 'asc'
                             }
                         }
                     },
@@ -234,8 +237,6 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
             }
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         res.status(500).json({
@@ -258,6 +259,7 @@ const postData = async (req:Request, res:Response) => {
         // delete dataProduct.isStock;
         const conversion = data.price;
         const productId = uuidv4();
+        let conversionId = uuidv4();
         const transaction = async () => {
             // Mulai transaksi
             await Model.$transaction(async (prisma) => {
@@ -269,25 +271,28 @@ const postData = async (req:Request, res:Response) => {
                     },
                 });
                 let createProductConversion:any
+                let unitId=''
                 for (const value of conversion) {
-                    const conversionId = uuidv4()
-                    createProductConversion = await prisma.productConversions.create({
-                        data: {
-                            productId: productId,
-                            unitId: value.unitId,
-                            quantity: value.quantity,
-                            id: conversionId,
-                            status: value.type === "default" ? 1 : 0
-                        }
-                    });
-                    await prisma.productPurchasePrices.create({
-                        data: {
-                            id: uuidv4(),
-                            conversionId: conversionId,
-                            price: value.capital,
-                            storeId: data.storeId
-                        }
-                    })
+                    if(unitId!==value.unitId){
+                        createProductConversion = await prisma.productConversions.create({
+                            data: {
+                                productId: productId,
+                                unitId: value.unitId,
+                                quantity: value.quantity,
+                                id: conversionId,
+                                status: value.type === "default" ? 1 : 0
+                            }
+                        });
+                        await prisma.productPurchasePrices.create({
+                            data: {
+                                id: uuidv4(),
+                                conversionId: conversionId,
+                                price: value.capital,
+                                storeId: data.storeId
+                            }
+                        });
+                        unitId=value.unitId
+                    }
                     await prisma.productSellPrices.create({
                         data: {
                             id: uuidv4(),
@@ -297,7 +302,7 @@ const postData = async (req:Request, res:Response) => {
                             level: value.level ?? 1
                         }
                     })
-
+                    unitId=value.unitId
                 }
                 return { createProduct, createProductConversion };
             });
@@ -305,7 +310,6 @@ const postData = async (req:Request, res:Response) => {
         
         transaction()
             .catch((e) => {
-                console.error(e);
                 process.exit(1);
             })
             .finally(async () => {
@@ -317,8 +321,6 @@ const postData = async (req:Request, res:Response) => {
             message: 'successful in created user data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -424,7 +426,6 @@ const updateData = async (req:Request, res:Response) => {
         
         transaction()
             .catch((e) => {
-                console.error(e);
                 process.exit(1);
             })
             .finally(async () => {
@@ -435,8 +436,6 @@ const updateData = async (req:Request, res:Response) => {
             message: 'successful in created user data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -463,8 +462,6 @@ const deleteData = async (req:Request, res:Response)=> {
             message: 'successfully in deleted Product data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = {
             status:500,
             message: { msg: `${error}` }
@@ -537,8 +534,6 @@ const uploadImage = async (req:Request, res:Response) => {
             data: req?.file?.filename??''
         })
     } catch (error) {
-        console.log({error});
-        
         res.status(500).json({
             status: false,
             errors: `${error}`
@@ -548,28 +543,50 @@ const uploadImage = async (req:Request, res:Response) => {
 
 const getPriceMember = async (req:Request, res:Response) => {
     try {
-        const query = req.query;
-        const member = await Model.members.findUnique({
-            where: {
-                id: query.id as string
-            }
-        });
-
-        const data = await Model.productSellPrices.findFirst({
-            where: {
-                conversionId: query.conversionId as string,
-                level: parseInt(member?.level+''),
-                storeId: query.storeId as string
-            }
-        })
-
-        const price = {
-            unit: data?.conversionId,
-            price: data?.price,
-            conversionId: data?.conversionId,
+        type GetPriceMemberType = {
+            productId: string, 
+            memberId: string, 
+            storeId?: string,
+            conversionId: string;
+            price?: number
         }
-    } catch (error) {
+
+        const query:GetPriceMemberType[] = req.body ?? [];
+        let tmpData:GetPriceMemberType[]=[];
+        for (const value of query) {
+            const member = await Model.members.findUnique({
+                where: {
+                    id: value.memberId as string
+                }
+            });
+            const data = await Model.productSellPrices.findFirst({
+                where: {
+                    conversionId: value.conversionId as string,
+                    level: parseInt(member?.level+''),
+                }
+            })
+            tmpData=[
+                ...tmpData,
+                {
+                    productId: value.productId as string,
+                    price: data?.price ?? 0,
+                    conversionId: data?.conversionId as string,
+                    storeId: value.storeId as string,
+                    memberId: value.memberId
+                }
+            ]
+        }
+        res.status(200).json({
+            status: true,
+            message: 'succes get data price member',
+            data: tmpData
+        })
         
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            errors: `${error}`
+        })
     }
 }
 
@@ -580,5 +597,6 @@ export {
     updateData,
     deleteData,
     getDataById,
-    uploadImage
+    uploadImage,
+    getPriceMember,
 }

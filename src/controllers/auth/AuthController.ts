@@ -11,8 +11,6 @@ import moment from "moment";
 const Login = async (req:Request, res:Response) => {
     try {
         const data:LoginInterface = req.body
-    console.log({data});
-        
         const user = await Model.users.findFirst({
             where: {
                 email: data.email,
@@ -32,8 +30,6 @@ const Login = async (req:Request, res:Response) => {
             token: accessToken
         })
     } catch (error) {
-        console.log({error});
-        
         res.status(404).json({
             message: `${error}`
         })
@@ -43,8 +39,6 @@ const Login = async (req:Request, res:Response) => {
 const RegisterOwner = async (req:Request, res:Response) => {
     try {
         const body = req.body;
-        console.log({body});
-        
         const salt = await genSalt()
         body.password = await hash(body.password, salt)
         const token = Math.random().toString(36).substring(2,7);
@@ -79,8 +73,6 @@ const RegisterOwner = async (req:Request, res:Response) => {
             data: data
         })
     } catch (error) {
-        console.log({error});
-        
         res.status(500).json({
             status: false,
             message: `${error}`

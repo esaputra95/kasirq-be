@@ -4,8 +4,6 @@ import moment from "moment";
 
 const getData = async (req:Request, res:Response) => {
     try {
-        console.log(req.query);
-        
         const data = await Model.purchases.findMany({
             include: {
                 suppliers: true
@@ -37,8 +35,6 @@ const getData = async (req:Request, res:Response) => {
             }
         })
     } catch (error) {
-        console.log({error});
-        
         res.status(500).json({
             status: false,
             message: `${error}`

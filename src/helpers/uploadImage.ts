@@ -5,8 +5,6 @@ const imageStorage =multer.diskStorage({
     // Destination to store image
     destination: path.join(__dirname, '../public/products'), // Use an absolute path
     filename: (req, file, cb) => {
-        console.log('asdas');
-        
         cb(null, file.fieldname + '_' + Date.now() + path.extname(file.originalname));
         // file.fieldname is the name of the field (image)
         // path.extname gets the uploaded file extension
@@ -20,8 +18,6 @@ const ImageUpload = multer({
         fileSize: 100000000, // 1000000 Bytes = 1 MB
     },
     fileFilter(req, file, cb) {
-        console.log(file);
-        
         if (!file.originalname.match(/\.(png|jpg|jpeg)$/)) {
         // upload only png and jpg format
         return cb(new Error('Please upload an image with a valid format (png or jpg).'));

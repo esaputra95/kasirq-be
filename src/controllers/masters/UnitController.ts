@@ -6,6 +6,7 @@ import { errorType } from "#root/helpers/errorType";
 import { UnitQueryInterface } from "#root/interfaces/masters/UnitInterface";
 import { v4 as uuidv4 } from 'uuid';
 import getOwnerId from "#root/helpers/GetOwnerId";
+import moment from "moment";
 
 const getData = async (req:Request<{}, {}, {}, UnitQueryInterface>, res:Response) => {
     try {
@@ -75,8 +76,6 @@ const postData = async (req:Request, res:Response) => {
             message: 'successful in created Unit data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -95,21 +94,23 @@ const updateData = async (req:Request, res:Response) => {
     try {
 
         const data = { ...req.body};
-        console.log({data});
-        
         await Model.units.update({
             where: {
                 id: req.params.id
             },
-            data: data
+            data: {
+                id: data.id,
+                name: data.name,
+                ownerId: data.ownerId,
+                description: data.description,
+                updatedAt: moment().format(),
+            }
         });
         res.status(200).json({
             status: true,
             message: 'successful in updated Unit data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -159,8 +160,6 @@ const getDataById = async (req:Request, res:Response) => {
                 id: req.params.id
             }
         })
-        console.log({model});
-        
         if(!model) throw new Error('data not found')
         res.status(200).json({
             status: true,
@@ -208,8 +207,6 @@ const getSelect = async (req:Request, res:Response) => {
                 }
             ]
         }
-        console.log({dataOption});
-        
         res.status(200).json({
             status: true,
             message: 'successfully in get Units data',

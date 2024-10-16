@@ -43,8 +43,6 @@ const getSelect = async (_req:Request, res:Response) => {
             }
         }
         
-        console.log({dataOption});
-        
         res.status(200).json({
             status: true,
             message: 'successfully in get user data',

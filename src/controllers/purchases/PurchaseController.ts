@@ -292,7 +292,6 @@ const updateData = async (req:Request, res:Response) => {
         
         transaction()
         .catch((e) => {
-            console.error(e);
             process.exit(1);
         })
         .finally(async () => {
@@ -304,8 +303,6 @@ const updateData = async (req:Request, res:Response) => {
             message: 'successful in updated Brand data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -363,8 +360,6 @@ const deleteData = async (req:Request, res:Response)=> {
             message: 'successfully in deleted Brand data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = {
             status:500,
             message: { msg: `${error}` }
@@ -582,8 +577,6 @@ const getDataUpdate = async (req:Request, res:Response) => {
             }
         })
     } catch (error) {
-        console.log({error});
-        
         res.status(500)
     }
 }

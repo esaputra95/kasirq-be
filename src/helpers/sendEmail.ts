@@ -22,14 +22,14 @@ const sendEmail = async (email:string, code:string, type:'register' | 'forgot-pa
                 </body>`
             }else{
                 body=`<body>
-                <h1>BERBAGI</h1>
+                <h1>KAsir Q</h1>
                 <p>Horee! ini Password Kamu yang baru ${code}</p>
                 </body>`
             }
             const mailOptions: nodemailer.SendMailOptions = {
                 from: "itmasjidpedia@gmail.com",
                 to: email,
-                subject: "Perifikasi Akun Berbagi",
+                subject: "Perifikasi Akun Kasir Q",
                 text: ``,
                 html: body,
             };
