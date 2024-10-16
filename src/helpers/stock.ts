@@ -141,7 +141,6 @@ const GetHpp = async (
             hpp:dataHpp
         };
     } catch (error) {
-        console.log({error});
         return {
             status:false,
             hpp:[]

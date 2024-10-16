@@ -97,7 +97,12 @@ const updateData = async (req:Request, res:Response) => {
             where: {
                 id: req.params.id
             },
-            data: data
+            data: {
+                id: data.id,
+                name: data.name,
+                ownerId: data.ownerId,
+                description: data.description
+            }
         });
         res.status(200).json({
             status: true,
@@ -190,10 +195,8 @@ const getSelect = async (req:Request, res:Response) => {
                 // ...filter,
                 ownerId: owner.id
             },
-            take:10
+            take:25
         });
-
-        console.log({data});
         
         for (const value of data) {
             dataOption= [

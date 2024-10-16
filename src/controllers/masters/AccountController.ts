@@ -62,11 +62,6 @@ const getData = async (req:Request<{}, {}, {}, AccountQueryInterface>, res:Respo
 
 const postData = async (req:Request, res:Response) => {
     try {
-        console.log('sini');
-
-        console.log(res.locals.userId);
-        
-        
         const ownerId:any = await getOwnerId(res.locals.userId, res.locals.userType)
         if(!ownerId.status) throw new Error('Owner not found')
         const data = { ...req.body, id: uuidv4(), ownerId: ownerId.id};
@@ -77,8 +72,6 @@ const postData = async (req:Request, res:Response) => {
             message: 'successful in created Account data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -97,8 +90,6 @@ const updateData = async (req:Request, res:Response) => {
     try {
 
         const data = { ...req.body};
-        console.log({data});
-        
         await Model.account.update({
             where: {
                 id: req.params.id
@@ -110,8 +101,6 @@ const updateData = async (req:Request, res:Response) => {
             message: 'successful in updated Account data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -161,8 +150,6 @@ const getDataById = async (req:Request, res:Response) => {
                 id: req.params.id
             }
         })
-        console.log({model});
-        
         if(!model) throw new Error('data not found')
         res.status(200).json({
             status: true,
@@ -233,8 +220,6 @@ const getSelect = async (req:Request, res:Response) => {
 
 const uploadImage = async (req:Request, res:Response) => {
     try {
-        // console.log(req ?? '');
-        
         res.status(200).json({
             code:1,
             status:200,
@@ -242,8 +227,6 @@ const uploadImage = async (req:Request, res:Response) => {
             data: req?.file?.filename??''
         })
     } catch (error) {
-        console.log({error});
-        
         res.status(500).json({
             status: false,
             errors: `${error}`

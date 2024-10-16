@@ -76,8 +76,6 @@ const postData = async (req:Request, res:Response) => {
             message: 'successful in created Brand data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -99,7 +97,11 @@ const updateData = async (req:Request, res:Response) => {
             where: {
                 id: req.params.id
             },
-            data: data
+            data: {
+                id: data.id,
+                name: data.name,
+                description: data.description
+            }
         });
         res.status(200).json({
             status: true,

@@ -117,8 +117,6 @@ const postData = async (req: Request, res: Response) => {
                 
                 const hpp = await GetHpp(prisma, data.storeId, dataDetail[key].quantity);
                 for (const value of hpp.hpp) {
-                    console.log({value});
-                    
                     await prisma.cogs.create({
                         data: {
                             id: uuidv4(),
@@ -158,8 +156,6 @@ const postData = async (req: Request, res: Response) => {
             remainder: (parseInt(data?.pay ?? 0)-(parseInt(data.subTotal ?? 0)-parseInt(data.discount??0)))
         });
     } catch (error) {
-        console.log({error});
-        
         res.status(500).json({
             status: 500,
             errors: error
@@ -239,13 +235,8 @@ const updateData = async (req:Request, res:Response) => {
                         dataDetail[key].quantity * (conversion?.quantity ?? 1)
                     )
                     if(!increment.status){
-                        console.log('kambing');
-                        
                         throw increment.message;
                     };
-                    console.log('ayam');
-                    
-
                     await prisma.hppHistory.create({
                         data: {
                             id: uuidv4(),
@@ -260,7 +251,6 @@ const updateData = async (req:Request, res:Response) => {
         
         transaction()
         .catch((e) => {
-            console.error(e);
             process.exit(1);
         })
         .finally(async () => {
@@ -272,8 +262,6 @@ const updateData = async (req:Request, res:Response) => {
             message: 'successful in updated sales data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -325,8 +313,6 @@ const deleteData = async (req:Request, res:Response)=> {
             message: 'successfully in deleted sales data'
         })
     } catch (error) {
-        console.log({error});
-        
         let message = {
             status:500,
             message: { msg: `${error}` }
@@ -560,8 +546,6 @@ const getDataUpdate = async (req:Request, res:Response) => {
             }
         })
     } catch (error) {
-        console.log({error});
-        
         res.status(500)
     }
 }
