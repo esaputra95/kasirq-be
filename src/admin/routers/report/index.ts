@@ -1,0 +1,1 @@
+export {default as ReportSalesRoute} from "#root/admin/routers/report/ReportSalesRoute"

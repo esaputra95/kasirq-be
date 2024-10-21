@@ -108,10 +108,12 @@
     "baseUrl": "./",
     "paths": {
       "#root/*": ["src/*"],
-      "#controllers/*": ["src/controllers/*"],
-      "#routers/*": ["src/routers/*"],
+      "#mobile/controllers/*": ["src/mobile/controllers/*"],
+      "#mobile/routers/*": ["src/mobile/routers/*"],
+      "#admin/controllers/*": ["src/admin/controllers/*"],
+      "#admin/routers/*": ["src/admin/routers/*"],
       "#interfaces/*": ["src/interfaces/*"],
-      "#services/*": ["src/services/*"]
+      "#services/*": ["src/services/*"],
     }
   }
 }

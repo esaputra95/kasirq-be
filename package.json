@@ -48,8 +48,10 @@
   },
   "_moduleAliases": {
     "#root": "src",
-    "#controllers": "src/controllers",
-    "#routers": "src/routers",
+    "#controllers": "src/mobile/controllers",
+    "#admin-controllers": "src/admin/controllers",
+    "#routers": "src/mobile/routers",
+    "#admin-routers": "src/admin/routers",
     "#interfaces": "src/interfaces",
     "#services": "src/services"
   }
