@@ -671,6 +671,7 @@ enum sales_status {
 }
 
 enum users_level {
+  superadmin
   admin
   owner
   cashier

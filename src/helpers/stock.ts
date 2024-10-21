@@ -1,3 +1,4 @@
+import Model from "#root/services/PrismaService";
 import { hppHistory, Prisma, PrismaClient } from "@prisma/client";
 import { DefaultArgs } from "@prisma/client/runtime/library";
 import { v4 as uuidv4 } from 'uuid';
@@ -101,45 +102,71 @@ const DecrementStock = async (
 }
 
 const GetHpp = async (
-    prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, 
+    {
+        prisma,
+        storeId,
+        quantityNeed,
+        productId
+    }:
+    {
+        prisma: Omit<PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>, 
         "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">,
-    storeId: string,
-    quantityNeed: number
+        storeId: string,
+        quantityNeed: number,
+        productId: string}
 ) => {
     try {
-        const hpp:hppHistory[] = await prisma.$queryRaw`
-            SELECT * FROM hppHistory WHERE quantity > quantityUsed AND storeId = ${storeId}
-        `;
-        let dataHpp:any=[];
-        let getQuantity=quantityNeed
-        for (const value of hpp) {
-            let q=0;
-            if(((value.quantity ?? 0)-(value.quantityUsed ?? 0)) >= getQuantity){
-                dataHpp=[
-                    ...dataHpp,
+        const checkProductStatus = await Model.products.findUnique({
+            where: {
+                id:productId
+            }
+        })
+        if(checkProductStatus?.isStock){
+            const hpp:hppHistory[] = await prisma.$queryRaw`
+                SELECT * FROM hppHistory WHERE quantity > quantityUsed AND storeId = ${storeId} AND productId = ${productId}
+            `;
+            let dataHpp:any=[];
+            let getQuantity=quantityNeed
+            for (const value of hpp) {
+                let q=0;
+                if(((value.quantity ?? 0)-(value.quantityUsed ?? 0)) >= getQuantity){
+                    dataHpp=[
+                        ...dataHpp,
+                        {
+                            hppHistoryId: value.id,
+                            quantity: getQuantity,
+                            price: value.price
+                        }
+                    ];
+                    break;
+                } else{
+                    dataHpp=[
+                        ...dataHpp,
+                        {
+                            hppHistoryId: value.id,
+                            quantity: (value.quantity ?? 0)-(value.quantityUsed ?? 0),
+                            price: value.price
+                        }
+                    ];
+                    getQuantity-=(value.quantity ?? 0)-(value.quantityUsed ?? 0)
+                }
+            }
+            return {
+                status: true,
+                hpp:dataHpp
+            };
+        }else{
+            return {
+                status: true,
+                hpp:[
                     {
-                        hppHistoryId: value.id,
-                        quantity: getQuantity,
-                        price: value.price
+                        hppHistoryId: null,
+                        quantity: quantityNeed,
+                        price: 0
                     }
-                ];
-                break;
-            } else{
-                dataHpp=[
-                    ...dataHpp,
-                    {
-                        hppHistoryId: value.id,
-                        quantity: (value.quantity ?? 0)-(value.quantityUsed ?? 0),
-                        price: value.price
-                    }
-                ];
-                getQuantity-=(value.quantity ?? 0)-(value.quantityUsed ?? 0)
+                ]
             }
         }
-        return {
-            status: true,
-            hpp:dataHpp
-        };
     } catch (error) {
         return {
             status:false,

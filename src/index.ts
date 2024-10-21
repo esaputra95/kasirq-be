@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import path from 'path';
 import cors from 'cors';
 
-import login from './routers/auth/index'
+import login from './mobile/routers/auth/index'
 import {
     AccountRoute,
     BrandRoute,
@@ -16,13 +16,14 @@ import {
     SupplierRoute,
     UnitRoute,
     user
-} from "./routers/masters";
-import { AccessToken } from "./controllers/auth/middlewareController";
-import { PurchaseRoute } from "./routers/purrchases";
-import { ItemInRoute } from "./routers/supplies";
-import { SalesRoute } from "./routers/sales";
-import { ReportRoute } from "./routers/reports";
-import DashboardRoute from '#routers/dashboards/DashboardRoute'
+} from "./mobile/routers/masters";
+import { AccessToken } from "./mobile/controllers/auth/middlewareController";
+import { PurchaseRoute } from "./mobile/routers/purrchases";
+import { ItemInRoute } from "./mobile/routers/supplies";
+import { SalesRoute } from "./mobile/routers/sales";
+import { ReportRoute } from "./mobile/routers/reports";
+import DashboardRoute from '#root/mobile/routers/dashboards/DashboardRoute'
+import AdminRoute from "./admin/routers";
 
 const app = express()
 app.use(cors());
@@ -44,6 +45,8 @@ app.use('/item-ins', AccessToken, ItemInRoute)
 app.use('/sales', AccessToken, SalesRoute)
 app.use('/reports', ReportRoute)
 app.use('/dashboards', AccessToken, DashboardRoute);
+
+app.use('/admin', AdminRoute);
 
 app.use('/images', express.static(path.join(__dirname, '/public')))
 
