@@ -1,0 +1,1 @@
+export {default as AuthRoute} from '#root/admin/routers/auth/AuthRoute'

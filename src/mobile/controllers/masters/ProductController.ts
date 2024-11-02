@@ -50,6 +50,9 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
                         productId: true,
                         quantity: true,
                         storeId: true,
+                    },
+                    where: {
+                        storeId: query.storeId ?? ''
                     }
                 },
                 productConversions: {
@@ -72,9 +75,9 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
                                 storeId: true,
                                 conversionId: true,
                             },
-                            where: {
-                                storeId: query.storeId
-                            }
+                            // where: {
+                            //     storeId: query.storeId
+                            // }
                         },
                         productSellPrices: {
                             select: {
@@ -83,9 +86,9 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
                                 storeId: true,
                                 conversionId: true,
                             },
-                            where: {
-                                storeId: query.storeId
-                            }
+                            // where: {
+                            //     storeId: query.storeId
+                            // }
                         }
                     },
                     orderBy: {
@@ -175,6 +178,9 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
                         productId: true,
                         quantity: true,
                         storeId: true,
+                    },
+                    where: {
+                        storeId: query.storeId ?? ''
                     }
                 },
                 productConversions: {
@@ -197,9 +203,9 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
                                 storeId: true,
                                 conversionId: true,
                             },
-                            where: {
-                                storeId: query.storeId
-                            },
+                            // where: {
+                            //     storeId: query.storeId
+                            // },
                             orderBy: {
                                 level: 'asc'
                             }
@@ -222,6 +228,7 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
             skip: skip,
             take: take
         });
+        
         const total = await Model.products.count({
             where: {
                 ...filter
@@ -257,8 +264,6 @@ const postData = async (req:Request, res:Response) => {
         if(!ownerId.status) throw new Error('Owner not found')
         const data = { ...req.body, ownerId: ownerId.id};
         let dataProduct = {...data};
-        console.log({dataProduct});
-        
         delete dataProduct.price;
         delete dataProduct.storeId;
         // delete dataProduct.isStock;

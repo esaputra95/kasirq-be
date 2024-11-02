@@ -1,0 +1,6 @@
+export {default as StoreRoute} from '#root/admin/routers/masters/StoreRoute'
+export {default as MemberRoute} from '#root/admin/routers/masters/MemberRoute'
+export {default as ProductCategoryRoute} from '#root/admin/routers/masters/ProductCategoryRoute'
+export {default as ProductRoute} from '#root/admin/routers/masters/ProductRoute'
+export {default as UserRoute} from '#root/admin/routers/masters/UserRoute'
+export {default as AccountRoute} from '#root/admin/routers/masters/AccountRoute'
