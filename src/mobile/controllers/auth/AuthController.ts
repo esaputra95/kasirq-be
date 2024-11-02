@@ -11,7 +11,6 @@ import moment from "moment";
 const Login = async (req: Request, res: Response) => {
     try {
         const data: LoginInterface = req.body;
-        console.log({ data });
         
         const user = await Model.users.findFirst({
             where: {
@@ -90,7 +89,7 @@ const Verification = async (req:Request, res:Response) => {
         const query = req.query;
         const user = await Model.users.findFirst({
             where: {
-                token: query.code+''??''
+                token: query.token+''
             }
         });
         
@@ -112,8 +111,105 @@ const Verification = async (req:Request, res:Response) => {
     }
 }
 
+const RequestCode = async (req:Request, rest:Response) => {
+    try {
+        const body = req.body;
+        const data = await Model.users.findFirst({
+            where: {
+                email: body.email
+            }
+        });
+        if(!data) throw Error();
+        const code = Math.floor(10000 + Math.random() * 90000)
+        
+        await Model.users.updateMany({
+            where: {
+                email: data.email
+            },
+            data:{
+                token: code+''
+            }
+        });
+        await sendEmail(data.email??'', code+'', 'forgot-password')
+        rest.status(200).json({
+            status:true,
+            message:'code is created'
+        })
+    } catch (error) {
+        rest.status(500).json({
+            status: false,
+            message: `${error}`
+        })
+    }
+}
+
+const VerificationCode = async (req:Request, res:Response) => {
+    try {
+        
+        const body = req.body;
+        console.log({body});
+        const data = await Model.users.findFirst({
+            where: {
+                token: body.code,
+                email: body.email
+            }
+        });
+        if(!data) return res.status(400).json({
+            status:false,
+            message: 'Code invalid'
+        })
+        console.log({data});
+        
+        res.status(200).json({
+            status: true,
+            message: 'Code Valid'
+        })
+    } catch (error) {
+        console.log({error});
+        
+        res.status(500).json({
+            status: false,
+            message: `${error}`
+        })
+    }
+}
+
+const ForgotPassword = async (req:Request, res:Response) => {
+    try {
+        const body = req.body;
+        const salt = await genSalt()
+        body.password = await hash(body.newPassword, salt)
+        if(body.newPassword !== body.newPassword) res.status(400).json({
+            status: false,
+            message: 'Password does not match'
+        })
+        await Model.users.updateMany({
+            data: {
+                password: body.password
+            },
+            where: {
+                email: body.email
+            }
+        })
+        res.status(200).json({
+            status: true,
+            message: 'success update password'
+        })
+    } catch (error) {
+        console.log({error});
+        
+        res.status(500).json({
+            status:false,
+            message: `${error}`
+        })
+    }
+}
+
 export {
     Login,
     Verification,
-    RegisterOwner
+    RegisterOwner,
+    RequestCode,
+    VerificationCode,
+    ForgotPassword
 }

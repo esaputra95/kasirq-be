@@ -6,6 +6,8 @@ import Model from "#root/services/PrismaService";
 const getData = async (req:Request, res:Response) => {
     try {
         const response = await modelData(req, res)
+        console.log({response});
+        
         res.status(200).json({
             status: true,
             message: 'SUccess get sales report',
@@ -87,39 +89,25 @@ const xlsxData = async (req:Request, res:Response) => {
 const modelData = async (req: Request, res: Response) => {
     try {
         const body = req.query;
-        console.log({body});
-        
-        let filter={};
-        body?.user ? filter = {
-            ...filter,
-            userId: body.user
-        } : null;
-        body?.storeId ? filter = {
-            ...filter,
-            storeId: body.storeId
-        } : null;
-        body.accountCashId ? filter = {
-            ...filter,
-            accountCashId: body.accountCashId
-        } : null
 
-        const data = await Model.sales.findMany({
-            where: {
-                date: {
-                    gte: moment(body.startDate+' 00:00:00').format(),
-                    lte: moment(body.endDate+' 23:59:00').format(),
-                },
-                ...filter
-            },
-            include:{
-                saleDetails: {
-                    include: {
-                        products: true
-                    }
-                },
-                users: true
-            }
-        });
+        const data:any[] = await Model.$queryRaw`
+            SELECT 
+                saleDetails.quantity * saleDetails.price AS sell,
+                SUM(cogs.price * cogs.quantity) AS capital,
+                sales.date,
+                sales.invoice,
+                saleDetails.id,
+                sales.discount
+            FROM 
+                saleDetails
+            LEFT JOIN 
+                cogs ON cogs.saleDetailId = saleDetails.id
+            LEFT JOIN 
+                sales ON sales.id = saleDetails.saleId
+            WHERE 
+                sales.date BETWEEN ${moment(body?.startDate+' 00:00:00').format()} AND ${moment(body?.endDate+' 00:00:00').format()}
+            GROUP BY saleDetails.id
+        `;
         
         let newResponse:any=[];
         for (let index = 0; index < data.length; index++) {
@@ -129,41 +117,26 @@ const modelData = async (req: Request, res: Response) => {
                     (index+1),
                     data[index].invoice,
                     moment(data[index].date).format('DD/MM/YYYY'),
-                    data[index]?.users?.name??'',
-                    parseInt(data[index].subTotal+''),
-                    parseInt(data[index].discount+''),
-                    parseInt(data[index].total+'')
+                    parseInt(data[index].capital+''),
+                    parseInt(data[index].sell+''),
+                    parseInt(data[index].sell+'')-parseInt(data[index].capital+'')
                 ]
             ]
-            const salesDetail = data[index].saleDetails ?? [];
-            if(salesDetail.length>0){
-                newResponse=[
-                    ...newResponse,
-                    [
-                        '',
-                        '',
-                        '',
-                        'Nama',
-                        'Jumlah',
-                        'Harga',
-                        'Total'
-                    ]
-                ]
-            }
-            for (let iDetail = 0; iDetail < salesDetail.length; iDetail++) {
-                newResponse=[
-                    ...newResponse,
-                    [
-                        '',
-                        '',
-                        '',
-                        salesDetail[iDetail].products?.name ?? '',
-                        salesDetail[iDetail].quantity,
-                        salesDetail[iDetail].price,
-                        (parseInt((salesDetail[iDetail].quantity??0)+'')*parseInt((salesDetail[iDetail].price??0)+''))
-                    ]
-                ]
-            }
+            // const salesDetail = data[index].saleDetails ?? [];
+            // for (let iDetail = 0; iDetail < salesDetail.length; iDetail++) {
+            //     newResponse=[
+            //         ...newResponse,
+            //         [
+            //             '',
+            //             '',
+            //             '',
+            //             salesDetail[iDetail].products?.name ?? '',
+            //             salesDetail[iDetail].quantity,
+            //             salesDetail[iDetail].price,
+            //             (parseInt((salesDetail[iDetail].quantity??0)+'')*parseInt((salesDetail[iDetail].price??0)+''))
+            //         ]
+            //     ]
+            // }
         }
         return newResponse;
     } catch (error) {

@@ -8,7 +8,7 @@ const getData = async (req:Request, res:Response) => {
         const response = await modelData(req, res)
         res.status(200).json({
             status: true,
-            message: 'SUccess get sales report',
+            message: 'SUccess get purchases report',
             data: response
         })
     } catch (error) {
@@ -17,7 +17,7 @@ const getData = async (req:Request, res:Response) => {
 }
 
 const download = async (req: Request, res:Response) => {
-    res.download('Laporan Penjualan.xlsx')
+    res.download('Laporan Pembelian.xlsx')
 }
 
 const xlsxData = async (req:Request, res:Response) => {
@@ -25,6 +25,8 @@ const xlsxData = async (req:Request, res:Response) => {
         const response = await modelData(req, res);
         let dataExcel:any=[];
         for (let index = 0; index < response.length; index++) {
+            console.log(response[index]);
+            
             dataExcel=[
                 ...dataExcel,
                 {
@@ -39,7 +41,7 @@ const xlsxData = async (req:Request, res:Response) => {
             ]
         };
         let settings = {
-            fileName: "Laporan Penjualan", 
+            fileName: "Laporan Pembelian", 
             extraLength: 3,
             writeMode: "writeFile", 
             writeOptions: {},
@@ -76,7 +78,7 @@ const xlsxData = async (req:Request, res:Response) => {
         ], settings)
         res.writeHead(200, {
             "Content-Type": "application/octet-stream",
-            "Content-disposition": "attachment; filename=Laporan Penjualan.xlsx",
+            "Content-disposition": "attachment; filename=Laporan Pembelian.xlsx",
         })
         res.end(buffer)
     } catch (error) {
@@ -103,7 +105,7 @@ const modelData = async (req: Request, res: Response) => {
             accountCashId: body.accountCashId
         } : null
 
-        const data = await Model.sales.findMany({
+        const data = await Model.purchases.findMany({
             where: {
                 date: {
                     gte: moment(body.startDate+' 00:00:00').format(),
@@ -112,7 +114,7 @@ const modelData = async (req: Request, res: Response) => {
                 ...filter
             },
             include:{
-                saleDetails: {
+                purchaseDetails: {
                     include: {
                         products: true
                     }
@@ -135,7 +137,7 @@ const modelData = async (req: Request, res: Response) => {
                     parseInt(data[index].total+'')
                 ]
             ]
-            const salesDetail = data[index].saleDetails ?? [];
+            const salesDetail = data[index].purchaseDetails ?? [];
             if(salesDetail.length>0){
                 newResponse=[
                     ...newResponse,
