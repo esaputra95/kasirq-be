@@ -319,13 +319,12 @@ const postData = async (req:Request, res:Response) => {
         }
         
         transaction()
-            .catch((e) => {
-                process.exit(1);
-            })
-            .finally(async () => {
-                await Model.$disconnect();
-            });
-        // await Model.products.create({data: data});
+        .catch((e) => {
+            throw new Error(e)
+        })
+        .finally(async () => {
+            await Model.$disconnect();
+        });
         res.status(200).json({
             status: true,
             message: 'successful in created user data'
@@ -345,62 +344,61 @@ const postData = async (req:Request, res:Response) => {
     }
 }
 
-const updateData = async (req:Request, res:Response) => {
+const updateData = async (req: Request, res: Response) => {
     try {
-        const data = { ...req.body};
-        let dataProduct = {...data};
+        const data = { ...req.body };
+        let dataProduct = { ...data };
         delete dataProduct.price;
         delete dataProduct.storeId;
-        // delete dataProduct.isStock;
         const conversion = data.price;
-        const transaction = async () => {
-            // Mulai transaksi
-            await Model.$transaction(async (prisma) => {
-                const createProduct = await prisma.products.update({
-                    data: {
-                        ...dataProduct,
-                        isStock: dataProduct.isStock ? 1 : 0
-                    },
-                    where: {
-                        id: dataProduct.id
-                    }
-                });
-                let createProductConversion:any
-                for (const value of conversion) {
-                    if(value.id){
-                        createProductConversion = await prisma.productConversions.update({
-                            data: {
-                                unitId: value.unitId,
-                                quantity: value.quantity,
-                                status: value.type === "default" ? 1 : 0
-                            },
-                            where: {
-                                id: value.id
-                            }
-                        });
-                        await prisma.productPurchasePrices.updateMany({
-                            data: {
-                                id: uuidv4(),
-                                price: value.capital,
-                                storeId: data.storeId
-                            },
-                            where: {
-                                conversionId: value.id
-                            }
-                        })
-                        await prisma.productSellPrices.updateMany({
-                            data: {
-                                id: uuidv4(),
-                                price: value.sell,
-                                storeId: data.storeId,
-                                level: value.level ?? 1
-                            },
-                            where: {
-                                conversionId: value.id
-                            }
-                        })
-                    }else {
-                    const conversionId = uuidv4()
+
+        await Model.$transaction(async (prisma) => {
+            const createProduct = await prisma.products.update({
+                data: {
+                    ...dataProduct,
+                    isStock: dataProduct.isStock ? 1 : 0
+                },
+                where: {
+                    id: dataProduct.id
+                }
+            });
+
+            let createProductConversion: any;
+            for (const value of conversion) {
+                if (value.id) {
+                    createProductConversion = await prisma.productConversions.update({
+                        data: {
+                            unitId: value.unitId,
+                            quantity: value.quantity,
+                            status: value.type === "default" ? 1 : 0
+                        },
+                        where: {
+                            id: value.id
+                        }
+                    });
+
+                    await prisma.productPurchasePrices.updateMany({
+                        data: {
+                            price: value.capital,
+                            storeId: data.storeId
+                        },
+                        where: {
+                            conversionId: value.id
+                        }
+                    });
+
+                    await prisma.productSellPrices.updateMany({
+                        data: {
+                            price: value.sell,
+                            storeId: data.storeId,
+                            level: value.level ?? 1
+                        },
+                        where: {
+                            conversionId: value.id
+                        }
+                    });
+                } else {
+                    const conversionId = uuidv4();
                     createProductConversion = await prisma.productConversions.create({
                         data: {
                             productId: dataProduct.id,
@@ -410,6 +408,7 @@ const updateData = async (req:Request, res:Response) => {
                             status: value.type === "default" ? 1 : 0
                         }
                     });
+
                     await prisma.productPurchasePrices.create({
                         data: {
                             id: uuidv4(),
@@ -417,7 +416,8 @@ const updateData = async (req:Request, res:Response) => {
                             price: value.capital,
                             storeId: data.storeId
                         }
-                    })
+                    });
+
                     await prisma.productSellPrices.create({
                         data: {
                             id: uuidv4(),
@@ -426,39 +426,35 @@ const updateData = async (req:Request, res:Response) => {
                             storeId: data.storeId,
                             level: value.level ?? 1
                         }
-                    })
-                    }
-
+                    });
                 }
-                return { createProduct, createProductConversion };
-            });
-        }
-        
-        transaction()
-            .catch((e) => {
-                process.exit(1);
-            })
-            .finally(async () => {
-                await Model.$disconnect();
-            });
+            }
+
+            return { createProduct, createProductConversion };
+        }).catch((e) => {
+            throw new Error(e)
+        })
+        .finally(async () => {
+            await Model.$disconnect();
+        });
         res.status(200).json({
             status: true,
-            message: 'successful in created user data'
-        })
+            message: 'successful in updated user data'
+        });
     } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
+        let message = errorType;
+        message.message.msg = `${error}`;
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message]
+        });
+    } finally {
+        await Model.$disconnect();
     }
-}
+};
 
 const deleteData = async (req:Request, res:Response)=> {
     try {

@@ -133,6 +133,8 @@ const updateData = async (req:Request, res:Response) => {
             message: 'successful in updated Product data'
         })
     } catch (error) {
+        console.log({error});
+        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {

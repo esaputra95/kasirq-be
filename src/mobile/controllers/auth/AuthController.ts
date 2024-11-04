@@ -19,6 +19,8 @@ const Login = async (req: Request, res: Response) => {
             }
         });
         if (!user) throw new Error('Username or password incorrect');
+        console.log({user});
+        
         
         const match = await compare(data.password, user.password);
         if (!match) {
