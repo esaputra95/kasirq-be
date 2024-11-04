@@ -292,7 +292,7 @@ const updateData = async (req:Request, res:Response) => {
         
         transaction()
         .catch((e) => {
-            process.exit(1);
+            throw new Error(e)
         })
         .finally(async () => {
             await Model.$disconnect();
