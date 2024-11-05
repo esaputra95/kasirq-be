@@ -320,7 +320,10 @@ const postData = async (req:Request, res:Response) => {
         
         transaction()
         .catch((e) => {
-            throw new Error(e)
+            res.status(400).json({
+                status:false,
+                message: `${e}`
+            })
         })
         .finally(async () => {
             await Model.$disconnect();
@@ -352,6 +355,7 @@ const updateData = async (req: Request, res: Response) => {
         delete dataProduct.storeId;
         const conversion = data.price;
 
+        // Mulai transaksi
         await Model.$transaction(async (prisma) => {
             const createProduct = await prisma.products.update({
                 data: {
@@ -363,10 +367,10 @@ const updateData = async (req: Request, res: Response) => {
                 }
             });
 
-            let createProductConversion: any;
             for (const value of conversion) {
                 if (value.id) {
-                    createProductConversion = await prisma.productConversions.update({
+                    // Update existing conversion and prices
+                    await prisma.productConversions.update({
                         data: {
                             unitId: value.unitId,
                             quantity: value.quantity,
@@ -398,8 +402,9 @@ const updateData = async (req: Request, res: Response) => {
                         }
                     });
                 } else {
+                    // Create new conversion and prices
                     const conversionId = uuidv4();
-                    createProductConversion = await prisma.productConversions.create({
+                    await prisma.productConversions.create({
                         data: {
                             productId: dataProduct.id,
                             unitId: value.unitId,
@@ -429,29 +434,30 @@ const updateData = async (req: Request, res: Response) => {
                     });
                 }
             }
-
-            return { createProduct, createProductConversion };
-        }).catch((e) => {
-            throw new Error(e)
-        })
-        .finally(async () => {
-            await Model.$disconnect();
         });
+
+        // Berhasil
         res.status(200).json({
             status: true,
-            message: 'successful in updated user data'
+            message: 'Berhasil memperbarui data produk'
         });
+
     } catch (error) {
-        let message = errorType;
-        message.message.msg = `${error}`;
+        let message = {
+            status:500,
+            message: { msg: `${error}` }
+        }
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message = await handleValidationError(error);
+            message =  await handleValidationError(error)
         }
         res.status(500).json({
             status: message.status,
-            errors: [message.message]
-        });
+            errors: [
+                message.message
+            ]
+        })
     } finally {
+        // Tutup koneksi Prisma setelah semua selesai
         await Model.$disconnect();
     }
 };
