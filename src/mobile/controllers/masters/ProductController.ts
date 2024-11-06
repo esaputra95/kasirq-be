@@ -269,70 +269,58 @@ const postData = async (req:Request, res:Response) => {
         // delete dataProduct.isStock;
         const conversion = data.price;
         const productId = uuidv4();
-        let conversionId = uuidv4();
-        const transaction = async () => {
-            // Mulai transaksi
-            await Model.$transaction(async (prisma) => {
-                const createProduct = await prisma.products.create({
-                    data: {
-                        ...dataProduct,
-                        id: productId,
-                        isStock: dataProduct.isStock ? 1 : 0
-                    },
-                });
-                let createProductConversion:any
-                let unitId=''
-                for (const value of conversion) {
-                    if(unitId!==value.unitId){
-                        createProductConversion = await prisma.productConversions.create({
-                            data: {
-                                productId: productId,
-                                unitId: value.unitId,
-                                quantity: value.quantity,
-                                id: conversionId,
-                                status: value.type === "default" ? 1 : 0
-                            }
-                        });
-                        await prisma.productPurchasePrices.create({
-                            data: {
-                                id: uuidv4(),
-                                conversionId: conversionId,
-                                price: value.capital,
-                                storeId: data.storeId
-                            }
-                        });
-                        unitId=value.unitId
-                    }
-                    await prisma.productSellPrices.create({
+        await Model.$transaction(async (prisma) => {
+            const createProduct = await prisma.products.create({
+                data: {
+                    ...dataProduct,
+                    id: productId,
+                    isStock: dataProduct.isStock ? 1 : 0
+                },
+            });
+            let createProductConversion:any
+            let unitId=''
+            for (const value of conversion) {
+                let conversionId = uuidv4();
+                if(unitId!==value.unitId){
+                    createProductConversion = await prisma.productConversions.create({
+                        data: {
+                            productId: productId,
+                            unitId: value.unitId,
+                            quantity: value.quantity,
+                            id: conversionId,
+                            status: value.type === "default" ? 1 : 0
+                        }
+                    });
+                    await prisma.productPurchasePrices.create({
                         data: {
                             id: uuidv4(),
                             conversionId: conversionId,
-                            price: value.sell,
-                            storeId: data.storeId,
-                            level: value.level ?? 1
+                            price: value.capital,
+                            storeId: data.storeId
                         }
-                    })
+                    });
                     unitId=value.unitId
                 }
-                return { createProduct, createProductConversion };
-            });
-        }
-        
-        transaction()
-        .catch((e) => {
-            res.status(400).json({
-                status:false,
-                message: `${e}`
-            })
-        })
-        .finally(async () => {
-            await Model.$disconnect();
+                await prisma.productSellPrices.create({
+                    data: {
+                        id: uuidv4(),
+                        conversionId: conversionId,
+                        price: value.sell,
+                        storeId: data.storeId,
+                        level: value.level ?? 1
+                    }
+                })
+                unitId=value.unitId
+            }
+            return { createProduct, createProductConversion };
         });
         res.status(200).json({
             status: true,
             message: 'successful in created user data'
         })
     } catch (error) {
+        console.log({error});
+        
         let message = errorType
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
