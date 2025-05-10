@@ -15,7 +15,7 @@ const Login = async (req: Request, res: Response) => {
                 verified: 'active',
                 OR: [
                     {
-                        level: 'admin',
+                        level: 'superadmin',
                     },
                     {
                         level: 'owner'
@@ -29,6 +29,7 @@ const Login = async (req: Request, res: Response) => {
         if (!match) {
             return res.status(401).json({ message: "Wrong username or password" });
         }
+        console.log({user});
         
         const accessToken = sign({
             id: user.id,

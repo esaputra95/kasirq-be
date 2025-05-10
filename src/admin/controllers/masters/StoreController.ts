@@ -9,15 +9,19 @@ import { v4 as uuidv4 } from 'uuid';
 
 const getSelect = async (req:Request, res:Response) => {
     try {
-        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
+        const owner:any = await getOwnerId(res.locals.userId, res.locals.level);
         let filter:any={};
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
+        console.log(res.locals.level);
         
+        if(res.locals.level!=="owner" && res.locals.level!=="superadmin" && res.locals.level!=="admin") return res.status(401).json({status: false, data: []})
+        if(res.locals.level==="owner"){
+            filter={...filter, ownerId: owner.id}
+        }
         let dataOption:any=[];
         const data = await Model.stores.findMany({
             where: {
                 ...filter,
-                ownerId: owner.id
             }
         });
         for (const value of data) {

@@ -8,7 +8,7 @@ const sendEmail = async (email:string, code:string, type:'register' | 'forgot-pa
             service: "gmail",
             auth: {
                 user: "ekosaputra.t.i@gmail.com",
-                pass: "eqth ktax wxoa suei",
+                pass: "hpql adsy nhxz mfnh",
             },
         });
         // Define the email options
