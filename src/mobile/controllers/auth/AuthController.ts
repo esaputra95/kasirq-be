@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import sendEmail from "#root/helpers/sendEmail";
 import path from 'path';
 import moment from "moment";
+import { handleErrorMessage, UnauthorizedError } from "#root/helpers/handleErrors";
 
 const Login = async (req: Request, res: Response) => {
     try {
@@ -18,13 +19,13 @@ const Login = async (req: Request, res: Response) => {
                 verified: 'active'
             }
         });
-        if (!user) throw new Error('Username or password incorrect');
+        if (!user) throw new UnauthorizedError("Username or password incorrect", 401);
         console.log({user});
         
         
         const match = await compare(data.password, user.password);
         if (!match) {
-            return res.status(401).json({ message: "Wrong username or password" });
+            throw new UnauthorizedError("Username or password incorrect", 401);
         }
         
         const accessToken = sign({
@@ -38,7 +39,7 @@ const Login = async (req: Request, res: Response) => {
     } catch (error) {
         console.log({error});
         
-        return res.status(404).json({ message: `${error}` });
+        handleErrorMessage(res, error)
     }
 };
 

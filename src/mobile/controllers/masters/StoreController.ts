@@ -9,6 +9,8 @@ const getSelect = async (_req:Request, res:Response) => {
         let user
 
         let dataOption:any=[]
+        console.log(res.locals);
+        
         if(res.locals.level==="cashier"){
             user = await Model.users.findUnique({
                 where: {
@@ -36,7 +38,7 @@ const getSelect = async (_req:Request, res:Response) => {
                 where: {
                     ownerId: res.locals.userId,
                     expiredDate: {
-                        gte: moment().format()
+                        lte: moment().format()
                     }
                 }
             });
