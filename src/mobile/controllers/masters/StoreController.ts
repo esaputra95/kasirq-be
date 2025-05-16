@@ -38,7 +38,7 @@ const getSelect = async (_req:Request, res:Response) => {
                 where: {
                     ownerId: res.locals.userId,
                     expiredDate: {
-                        lte: moment().format()
+                        gte: moment().format()
                     }
                 }
             });
