@@ -1,3 +1,4 @@
+import { handleErrorMessage } from "#root/helpers/handleErrors";
 import { LoginInterface } from "#root/interfaces/AuthInterface";
 import Model from "#root/services/PrismaService";
 import { compare } from "bcryptjs";
@@ -41,8 +42,7 @@ const Login = async (req: Request, res: Response) => {
         return res.json({ token: accessToken });
     } catch (error) {
         console.log({error});
-        
-        return res.status(404).json({ message: `${error}` });
+        handleErrorMessage(res, error)
     }
 };
 

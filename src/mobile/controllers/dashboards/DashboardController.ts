@@ -1,4 +1,5 @@
 import getOwnerId from "#root/helpers/GetOwnerId";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
 import Model from "#root/services/PrismaService"
 import { Request, Response } from "express"
 import moment from "moment";
@@ -34,11 +35,7 @@ const getTotalSales = async (req:Request, res:Response) => {
             data : data._sum.total ?? 0
         })
     } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: `${error}`,
-
-        })
+        handleErrorMessage(res, error)
     }
 }
 
@@ -83,11 +80,7 @@ const getMarginWeek = async (req:Request, res:Response) => {
             data: tpmData
         })
     } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: `${error}`,
-
-        })
+        handleErrorMessage(res, error)
     }
 }
 const getTotalPurchase = async (req:Request, res:Response) => {
@@ -104,11 +97,7 @@ const getTotalPurchase = async (req:Request, res:Response) => {
             data : data ?? 0
         })
     } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: `${error}`,
-
-        })
+        handleErrorMessage(res, error)
     }
 }
 
@@ -133,7 +122,7 @@ const getSalesWeek = async (req:Request, res:Response) => {
             data=[
                 ...data,
                 {
-                    value: Math.round(parseInt(total._sum?.total+'' ?? 0) / 1000),
+                    value: Math.round(parseInt(total._sum?.total?.toString() ?? '0') / 1000),
                     label: dayDummy[index],
                     frontColor: color[index as keyof typeof color],
                 }
@@ -144,11 +133,7 @@ const getSalesWeek = async (req:Request, res:Response) => {
             data: data
         })
     } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: `${error}`,
-
-        })
+        handleErrorMessage(res, error)
     }
 }
 
@@ -164,13 +149,7 @@ const getStoreExpired = async (req:Request, res:Response) => {
             data: data?.expiredDate
         })
     } catch (error) {
-        console.log({error});
-        
-        res.status(500).json({
-            status: false,
-            message: `${error}`,
-
-        })
+        handleErrorMessage(res, error)
     }
 }
 
