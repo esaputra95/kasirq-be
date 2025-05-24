@@ -126,25 +126,27 @@ const postData = async (req: Request, res: Response) => {
                 
                 
                 for (const value of hpp.hpp) {
-                    await prisma.cogs.create({
-                        data: {
-                            id: uuidv4(),
-                            hppHistoryId: value.hppHistoryId,
-                            saleDetailId: idDetail,
-                            price: value.price,
-                            quantity: value.quantity
-                        }
-                    })
-                    await prisma.hppHistory.update({
-                        data: { 
-                            quantityUsed: {
-                                increment: value.quantity
+                    if(value.hppHistoryId){
+                        await prisma.cogs.create({
+                            data: {
+                                id: uuidv4(),
+                                hppHistoryId: value.hppHistoryId,
+                                saleDetailId: idDetail,
+                                price: value.price,
+                                quantity: value.quantity
                             }
-                        },
-                        where: {
-                            id: value.hppHistoryId
-                        }
-                    })
+                        })
+                        await prisma.hppHistory.update({
+                            data: { 
+                                quantityUsed: {
+                                    increment: value.quantity
+                                }
+                            },
+                            where: {
+                                id: value.hppHistoryId
+                            }
+                        })
+                    }
                 }
 
                 if (!increment.status) {
