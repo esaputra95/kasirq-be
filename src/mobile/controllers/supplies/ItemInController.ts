@@ -111,7 +111,7 @@ const postData = async (req: Request, res: Response) => {
                 await prisma.hppHistory.create({
                     data: {
                         id: uuidv4(),
-                        productConversionId: dataDetail[key].unitId,
+                        productId: key,
                         price: dataDetail[key].price / (conversion?.quantity ?? 1),
                         quantity: dataDetail[key].quantity * (conversion?.quantity ?? 1),
                         quantityUsed: 0,
@@ -223,7 +223,7 @@ const updateData = async (req:Request, res:Response) => {
                                     price: dataDetail[key].price ?? 0,
                                     quantity: dataDetail[key].quantity,
                                     quantityUsed: 0,
-                                    productConversionId: dataDetail[key].unitId,
+                                    productId: key,
                                     id: uuidv4(),
                                     storeId: createItemIn.storeId,
                                 }
@@ -265,12 +265,12 @@ const updateData = async (req:Request, res:Response) => {
                     if(!increment.status){
                         throw increment.message;
                     };
-                    await prisma.hppHistory.create({
-                        data: {
-                            id: uuidv4(),
-                            // productConversionId: 
-                        }
-                    })
+                    // await prisma.hppHistory.create({
+                    //     data: {
+                    //         id: uuidv4(),
+                    //         // productConversionId: 
+                    //     }
+                    // })
                 };
                 
                 return { createItemIn, createItemInDetails };

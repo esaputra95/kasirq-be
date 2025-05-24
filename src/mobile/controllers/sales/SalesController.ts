@@ -91,7 +91,7 @@ const postData = async (req: Request, res: Response) => {
 
             for (const key in dataDetail) {
                 const idDetail = uuidv4();
-                await prisma.saleDetails.create({
+                const saleDetail = await prisma.saleDetails.create({
                     data: {
                         id: idDetail,
                         saleId: salesData.id,
@@ -119,8 +119,11 @@ const postData = async (req: Request, res: Response) => {
                     prisma, 
                     storeId: data.storeId, 
                     quantityNeed: dataDetail[key].quantity, 
-                    productId: dataDetail[key]
+                    productId: key
                 });
+
+                console.log(JSON.stringify(hpp));
+                
                 
                 for (const value of hpp.hpp) {
                     await prisma.cogs.create({
@@ -162,12 +165,12 @@ const postData = async (req: Request, res: Response) => {
             remainder: (parseInt(data?.pay ?? 0)-(parseInt(data.subTotal ?? 0)-parseInt(data.discount??0)))
         });
     } catch (error) {
+        console.log({error});
+        
         res.status(500).json({
             status: 500,
             errors: error
         });
-    } finally {
-        await Model.$disconnect();
     }
 };
 
@@ -243,12 +246,12 @@ const updateData = async (req:Request, res:Response) => {
                     if(!increment.status){
                         throw increment.message;
                     };
-                    await prisma.hppHistory.create({
-                        data: {
-                            id: uuidv4(),
-                            // productConversionId: 
-                        }
-                    })
+                    // await prisma.hppHistory.create({
+                    //     data: {
+                    //         id: uuidv4(),
+                    //         // productConversionId: 
+                    //     }
+                    // })
                 };
                 
                 return { createsales, createsalesDetails };

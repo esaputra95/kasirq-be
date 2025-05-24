@@ -10,7 +10,6 @@ import getOwnerId from "#root/helpers/GetOwnerId";
 const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
     try {
         const query = req.query;
-        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
         // PAGING
         const take:number = parseInt(query.limit ?? 20 )
         const page:number = parseInt(query.page ?? 1 );
@@ -18,6 +17,12 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
         // FILTER
         let filter:any= []
         query.name ? filter = [...filter, {name: { contains: query.name }}] : null
+        console.log('hgf',res.locals.level);
+        
+        if(res.locals.level !== 'superadmin'){
+            const owner:any = await getOwnerId(res.locals.userId, res.locals.level);
+            filter = [...filter, {ownerId: owner?.id}]
+        }
         if(filter.length > 0){
             filter = {
                 OR: [
@@ -28,7 +33,6 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
         const data = await Model.products.findMany({
             where: {
                 ...filter,
-                ownerId: owner.id
             },
             include: {
                 stocks:{
@@ -60,7 +64,6 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
         const total = await Model.products.count({
             where: {
                 ...filter,
-                ownerId: owner.id
             }
         })
         res.status(200).json({
