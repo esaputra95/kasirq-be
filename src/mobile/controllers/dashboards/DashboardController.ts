@@ -75,6 +75,8 @@ const getMarginWeek = async (req:Request, res:Response) => {
                 }
             ];
         }
+        console.log({tpmData});
+        
         res.status(200).json({
             status: true,
             data: tpmData

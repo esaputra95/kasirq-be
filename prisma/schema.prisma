@@ -438,7 +438,7 @@ model productSellPrices {
 
 model cogs {
   id String @id @db.VarChar(36)
-  hppHistoryId String @db.VarChar(36)
+  hppHistoryId String? @db.VarChar(36)
   price Decimal?      @db.Decimal(14, 2)
   quantity Decimal?      @db.Decimal(14, 2)
   saleDetailId  String @db.VarChar(36)
