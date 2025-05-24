@@ -6,6 +6,7 @@ import { errorType } from "#root/helpers/errorType";
 import { ProductQueryInterface } from "#root/interfaces/masters/ProductInterface";
 import { v4 as uuidv4 } from 'uuid';
 import getOwnerId from "#root/helpers/GetOwnerId";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
 
 const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
     try {
@@ -129,14 +130,7 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
             }
         })
     } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+        handleErrorMessage(res, error)
     }
 }
 
@@ -534,6 +528,8 @@ const uploadImage = async (req:Request, res:Response) => {
             data: req?.file?.filename??''
         })
     } catch (error) {
+        console.log({error});
+        
         res.status(500).json({
             status: false,
             errors: `${error}`

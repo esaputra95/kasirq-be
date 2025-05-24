@@ -447,15 +447,17 @@ model cogs {
   updatedAt    DateTime? @db.DateTime(0)
   deletedAt    DateTime? @db.DateTime(0)
   
-  saleDetail saleDetails @relation(fields: [saleDetailId], references: [id])
+  saleDetail saleDetails? @relation(fields: [saleDetailId], references: [id])
 }
 
 model hppHistory {
   id           String    @id @db.VarChar(36)
   storeId      String?   @db.VarChar(36)
   transactionDetailId      String?   @db.VarChar(36)
-  productConversionId      String?   @db.VarChar(36)
+  date DateTime @default(now()) @db.DateTime()
+  productId String @db.VarChar(36)
   price        Float?    @db.Float
+  type String?
   quantity        Int?      @default(1) @db.Int()
   quantityUsed Int? @db.Int()
   status hpp_history? @default(available)

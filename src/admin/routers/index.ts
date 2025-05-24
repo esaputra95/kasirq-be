@@ -7,7 +7,8 @@ import {
     ProductCategoryRoute,
     ProductRoute,
     UserRoute,
-    AccountRoute
+    AccountRoute,
+    UserManagementRoute
 } from "#root/admin/routers/masters";
 import { AccessToken } from "#root/mobile/controllers/auth/middlewareController";
 import DashboardsRoute from "./dashboards";
@@ -20,6 +21,7 @@ AdminRoute.use('/members', AccessToken, MemberRoute);
 AdminRoute.use('/products', AccessToken, ProductRoute);
 AdminRoute.use('/product-categories', AccessToken, ProductCategoryRoute);
 AdminRoute.use('/users', AccessToken, UserRoute);
+AdminRoute.use('/user-managements', AccessToken, UserManagementRoute);
 AdminRoute.use('/bank-accounts', AccessToken, AccountRoute);
 AdminRoute.use('/dashboards', AccessToken, DashboardsRoute);
 
