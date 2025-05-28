@@ -34,7 +34,8 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
                 phone: true,
                 token: true,
                 username: true,
-                storeId: true
+                storeId: true,
+                verified: true
             },
             skip: skip,
             take: take
@@ -88,6 +89,8 @@ const postData = async (req:Request, res:Response) => {
         })
     } catch (error) {
         let message = errorType
+        console.log({message});
+        
         message.message.msg = `${error}`
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             message =  await handleValidationError(error)
