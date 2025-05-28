@@ -9,11 +9,13 @@ import {
     getFacture,
     getDataUpdate
 } from "#root/mobile/controllers/sales/SalesController"
+import validationMessage from "#root/validations/Validate";
+import SalesValidation from "#root/validations/sales/SalesValidation";
 
 const Route = express.Router()
 
 Route.get('/', getData);
-Route.post('/', postData);
+Route.post('/', validationMessage(SalesValidation), postData);
 Route.put('/:id', updateData);
 Route.delete('/:id', deleteData);
 Route.get('/select', getSelect);

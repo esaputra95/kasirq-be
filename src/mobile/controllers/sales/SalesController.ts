@@ -8,6 +8,7 @@ import { SalesQueryInterface } from "#root/interfaces/sales/SalesInterface";
 import moment from "moment";
 import { DecrementStock, GetHpp, IncrementStock } from "#root/helpers/stock";
 import formatter from "#root/helpers/formatCurrency";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
 
 const getData = async (req:Request<{}, {}, {}, SalesQueryInterface>, res:Response) => {
     try {
@@ -167,12 +168,7 @@ const postData = async (req: Request, res: Response) => {
             remainder: (parseInt(data?.pay ?? 0)-(parseInt(data.subTotal ?? 0)-parseInt(data.discount??0)))
         });
     } catch (error) {
-        console.log({error});
-        
-        res.status(500).json({
-            status: 500,
-            errors: error
-        });
+        handleErrorMessage(res, error)
     }
 };
 

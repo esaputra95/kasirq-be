@@ -8,7 +8,7 @@ const sendEmail = async (email:string, code:string, type:'register' | 'forgot-pa
             service: "gmail",
             auth: {
                 user: "ekosaputra.t.i@gmail.com",
-                pass: "hpql adsy nhxz mfnh",
+                pass: "hpql adsy nhsdz ddnh",
             },
         });
         // Define the email options
@@ -18,7 +18,7 @@ const sendEmail = async (email:string, code:string, type:'register' | 'forgot-pa
             body=`<body>
             <h1>Kasir Q</h1>
             <p>Selamat! Kamu sudah satu langkah lebih dekat untuk terdaftar di Kasir Q, jangan sampai ketinggalan! Klik link di bawah untuk mengaktifkan akun Kamu</p>
-            <a href='${process.env.BE_URL}/auth/verification?code=${code}'>Verifikasi disini</a>
+            <a href='${process.env.BE_URL || "https://kasirq.id"}/auth/verification?code=${code}'>Verifikasi disini</a>
             </body>`
         }else if(type==='forgot-password'){
             body=`<body>
@@ -32,7 +32,7 @@ const sendEmail = async (email:string, code:string, type:'register' | 'forgot-pa
             </body>`
         }
         const mailOptions: nodemailer.SendMailOptions = {
-            from: "itmasjidpedia@gmail.com",
+            from: "ekosaputra.t.i@gmail.com",
             to: email,
             subject: "Perifikasi Akun Kasir Q",
             text: ``,
@@ -48,6 +48,7 @@ const sendEmail = async (email:string, code:string, type:'register' | 'forgot-pa
         });
         // }
     } catch (error) {
+        console.log({error});
         
     }
 }
