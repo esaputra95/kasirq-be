@@ -274,6 +274,7 @@ model sales {
   createdAt            DateTime?     @default(now()) @db.DateTime(0)
   updatedAt            DateTime?     @default(now()) @db.DateTime(0)
   deletedAt            DateTime?     @db.DateTime(0)
+  transactionNumber Int @db.Int() @default(0)
   saleDetails          saleDetails[]
   members              members?      @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleMember")
   stores               stores?       @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleStore")

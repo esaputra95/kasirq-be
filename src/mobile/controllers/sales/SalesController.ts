@@ -9,6 +9,7 @@ import moment from "moment";
 import { DecrementStock, GetHpp, IncrementStock } from "#root/helpers/stock";
 import formatter from "#root/helpers/formatCurrency";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
+import { transactionNumber } from "#root/helpers/transactionNumber";
 
 const getData = async (req:Request<{}, {}, {}, SalesQueryInterface>, res:Response) => {
     try {
@@ -72,19 +73,21 @@ const postData = async (req: Request, res: Response) => {
         const dataDetail = data.detailItem;
         // Start transaction
         return Model.$transaction(async (prisma) => {
+            const invoice = await transactionNumber()
             const salesData = {
                 id: salesId,
                 date: moment().format(),
                 storeId: data.storeId,
                 accountCashId: data.accountId,
                 memberId: data.memberId,
-                invoice: uuidv4(),
+                invoice: invoice.invoice,
                 subTotal: parseInt(data.subTotal ?? 0),
                 total: parseInt(data.subTotal ?? 0)-parseInt(data.discount??0),
                 description: data.description,
                 userCreate: res.locals.userId,
                 discount: parseInt(data.discount??0),
                 payCash: parseInt(data.pay??0),
+                transactionNumber: invoice.transactionNumber
             };
             const createSales = await prisma.sales.create({
                 data: salesData,
