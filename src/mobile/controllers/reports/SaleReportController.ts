@@ -21,6 +21,9 @@ const getData = async (req:Request, res:Response) => {
                     lte: moment(req.query?.finish+' 23:59:00').format(),
                 },
                 ...filter
+            },
+            orderBy: {
+                date: 'desc'
             }
         });
         const total = await Model.sales.aggregate({

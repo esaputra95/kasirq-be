@@ -10,7 +10,7 @@ const SalesValidation = [
         .notEmpty().withMessage('pay wajib diisi'),
 
     body('storeId')
-        .isUUID().withMessage('storeId harus berupa UUID')
+        // .isUUID().withMessage('storeId harus berupa UUID')
         .notEmpty().withMessage('storeId wajib diisi'),
 
     body('detailItem')
