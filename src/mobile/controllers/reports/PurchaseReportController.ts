@@ -13,6 +13,9 @@ const getData = async (req:Request, res:Response) => {
                     gte: moment(req.query?.start+' 00:00:00').format(),
                     lte: moment(req.query?.finish+' 23:59:00').format(),
                 }
+            },
+            orderBy: {
+                createdAt: 'asc'
             }
         });
         const total = await Model.purchases.aggregate({

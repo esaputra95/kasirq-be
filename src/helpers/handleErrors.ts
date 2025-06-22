@@ -2,8 +2,6 @@ import { Prisma } from "@prisma/client";
 import { Response } from "express";
 
 export const handleErrorMessage = async (res: Response, error: any) => {
-  console.log({ error });
-
   let statusCode = 500;
   let message = {
     type: "field",
@@ -161,6 +159,15 @@ export const handleErrorMessage = async (res: Response, error: any) => {
           path: String(error?.meta?.target),
         };
         break;
+      
+      case "P2032":
+        message = {
+          ...message,
+          msg: `Expectation type ${String(error?.meta?.expected_type)} found ${String(error?.meta?.found)}`,
+          path: String(error?.meta?.field),
+        };
+        break;
+      
 
       // 🔹 Timeout error
       case "P2034":

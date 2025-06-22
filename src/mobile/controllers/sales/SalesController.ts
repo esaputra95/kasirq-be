@@ -33,6 +33,9 @@ const getData = async (req:Request<{}, {}, {}, SalesQueryInterface>, res:Respons
                 ...filter,
                 storeId: query.storeId
             },
+            orderBy:{
+                createdAt: 'desc'
+            },
             skip: skip,
             take: take
         });
@@ -55,14 +58,7 @@ const getData = async (req:Request<{}, {}, {}, SalesQueryInterface>, res:Respons
             }
         })
     } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+        handleErrorMessage(res, error)
     }
 }
 
@@ -111,6 +107,7 @@ const postData = async (req: Request, res: Response) => {
                         id: dataDetail[key].unitId
                     }
                 });
+console.log('quantity:',(dataDetail[key].quantity * (conversion?.quantity ?? 1)));
 
                 const increment = await DecrementStock(
                     prisma, 

@@ -22,9 +22,14 @@ const getData = async (req:Request, res:Response) => {
                 },
                 ...filter
             },
-            orderBy: {
-                date: 'desc'
-            }
+            orderBy: [
+                {
+                    date: 'desc',
+                }, 
+                {
+                    transactionNumber: 'desc'
+                }
+            ]
         });
         const total = await Model.sales.aggregate({
             _sum: {
