@@ -42,7 +42,7 @@ app.use('/suppliers', AccessToken, SupplierRoute)
 app.use('/members', AccessToken, MemberRoute)
 app.use('/payment-methods', AccessToken, AccountRoute)
 app.use('/item-ins', AccessToken, ItemInRoute)
-app.use('/sales', AccessToken, SalesRoute)
+app.use('/sales', SalesRoute)
 app.use('/reports', ReportRoute)
 app.use('/dashboards', AccessToken, DashboardRoute);
 

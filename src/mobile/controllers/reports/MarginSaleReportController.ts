@@ -1,3 +1,4 @@
+import { handleErrorMessage } from "#root/helpers/handleErrors";
 import Model from "#root/services/PrismaService";
 import { Request, Response } from "express";
 import moment from "moment";
@@ -23,6 +24,7 @@ const getData = async (req:Request, res:Response) => {
             WHERE 
                 sales.date BETWEEN ${moment(query?.start+' 00:00:00').format()} AND ${moment(query?.finish+' 00:00:00').format()}
             GROUP BY saleDetails.id
+            ORDER BY sales.createdAt DESC
         `;
 
         const total = results?.length > 0 ? results.reduce((total, val)=> (total??0) + (parseInt(val?.sell)-parseInt(val?.capital)), 0): 0
@@ -37,11 +39,7 @@ const getData = async (req:Request, res:Response) => {
             }
         })
     } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: `${error}`,
-
-        })
+        handleErrorMessage(res, error)
     }
 }
 
