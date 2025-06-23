@@ -9,6 +9,7 @@ import getOwnerId from "#root/helpers/GetOwnerId";
 
 const getData = async (req:Request<{}, {}, {}, AccountQueryInterface>, res:Response) => {
     try {
+        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
         const query = req.query;
         // PAGING
         const take:number = parseInt(query.limit ?? 20 )
@@ -26,14 +27,16 @@ const getData = async (req:Request<{}, {}, {}, AccountQueryInterface>, res:Respo
         }
         const data = await Model.account.findMany({
             where: {
-                ...filter
+                ...filter,
+                ownerId: owner.id
             },
             skip: skip,
             take: take
         });
         const total = await Model.account.count({
             where: {
-                ...filter
+                ...filter,
+                ownerId: owner.id
             }
         })
         res.status(200).json({

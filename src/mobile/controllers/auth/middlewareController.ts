@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 
 const AccessToken = async (req:Request, res:Response, next:NextFunction) => {
     try {
+        console.log('oke');
+        
         const authHeader = req.headers.authorization ?? '';
         if(!authHeader) throw new Error("");
         
