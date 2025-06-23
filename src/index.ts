@@ -37,13 +37,13 @@ app.use('/stores', AccessToken, StoreRoute)
 app.use('/categories', AccessToken, CategoryRoute)
 app.use('/brands', AccessToken, BrandRoute)
 app.use('/purchases', AccessToken, PurchaseRoute)
-app.use('/products', ProductRoute)
+app.use('/products', AccessToken, ProductRoute)
 app.use('/suppliers', AccessToken, SupplierRoute)
 app.use('/members', AccessToken, MemberRoute)
 app.use('/payment-methods', AccessToken, AccountRoute)
 app.use('/item-ins', AccessToken, ItemInRoute)
-app.use('/sales', SalesRoute)
-app.use('/reports', ReportRoute)
+app.use('/sales', AccessToken, SalesRoute)
+app.use('/reports', AccessToken, ReportRoute)
 app.use('/dashboards', AccessToken, DashboardRoute);
 
 app.use('/admin', AdminRoute);
