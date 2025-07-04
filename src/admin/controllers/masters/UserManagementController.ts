@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
 import getOwnerId from "#root/helpers/GetOwnerId";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
 
 const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response) => {
     try {
@@ -88,19 +89,7 @@ const postData = async (req:Request, res:Response) => {
             message: 'successful in created user data'
         })
     } catch (error) {
-        let message = errorType
-        console.log({message});
-        
-        message.message.msg = `${error}`
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+        handleErrorMessage(res, error)
     }
 }
 

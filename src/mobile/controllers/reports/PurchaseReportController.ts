@@ -15,7 +15,7 @@ const getData = async (req:Request, res:Response) => {
                 }
             },
             orderBy: {
-                createdAt: 'asc'
+                createdAt: 'desc'
             }
         });
         const total = await Model.purchases.aggregate({

@@ -6,6 +6,7 @@ import { errorType } from "#root/helpers/errorType";
 import { v4 as uuidv4 } from 'uuid';
 import { ProductQueryInterface } from "#root/interfaces/masters/ProductInterface";
 import getOwnerId from "#root/helpers/GetOwnerId";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
 
 const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
     try {
@@ -15,21 +16,20 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
         const page:number = parseInt(query.page ?? 1 );
         const skip:number = (page-1)*take
         // FILTER
-        let filter:any= []
-        query.name ? filter = [...filter, {name: { contains: query.name }}] : null
-        console.log('hgf',res.locals.level);
+        let filter:any= {}
+        query.name ? filter = {...filter, name: { contains: query.name }} : null
         
         if(res.locals.level !== 'superadmin'){
             const owner:any = await getOwnerId(res.locals.userId, res.locals.level);
-            filter = [...filter, {ownerId: owner?.id}]
+            filter = {...filter, ownerId: owner?.id}
         }
-        if(filter.length > 0){
-            filter = {
-                OR: [
-                    ...filter
-                ]
+
+        const owner = await Model.users.findMany({
+            where: {
+                id: res.locals.userId
             }
-        }
+        })
+        
         const data = await Model.products.findMany({
             where: {
                 ...filter,
@@ -136,19 +136,7 @@ const updateData = async (req:Request, res:Response) => {
             message: 'successful in updated Product data'
         })
     } catch (error) {
-        console.log({error});
-        
-        let message = errorType
-        message.message.msg = `${error}`
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+        handleErrorMessage(res, error)
     }
 }
 

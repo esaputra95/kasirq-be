@@ -35,7 +35,10 @@ const getData = async (req:Request<{}, {}, {}, BrandQueryInterface>, res:Respons
                 suppliers: true,
             },
             skip: skip,
-            take: take
+            take: take,
+            orderBy: {
+                createdAt: 'desc'
+            }
         });
         const total = await Model.purchases.count({
             where: {
