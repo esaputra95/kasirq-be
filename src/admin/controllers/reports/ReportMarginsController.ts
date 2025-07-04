@@ -2,11 +2,11 @@ import { Request, Response } from "express";
 import moment from "moment";
 import xlsx from "json-as-xlsx"
 import Model from "#root/services/PrismaService";
+import formatter from "#root/helpers/formatCurrency";
 
 const getData = async (req:Request, res:Response) => {
     try {
         const response = await modelData(req, res)
-        console.log({response});
         
         res.status(200).json({
             status: true,
@@ -110,35 +110,36 @@ const modelData = async (req: Request, res: Response) => {
         `;
         
         let newResponse:any=[];
+        let totalCapita = 0;
+        let totalSell = 0;
+        let totalMargin = 0;
         for (let index = 0; index < data.length; index++) {
+            totalCapita+=parseInt(data[index].capital??'0');
+            totalSell+=parseInt(data[index].sell??'0')
+            totalMargin+=parseInt(data[index].sell??'0')-parseInt(data[index].capital??'0')
             newResponse=[
                 ...newResponse,
                 [
                     (index+1),
                     data[index].invoice,
                     moment(data[index].date).format('DD/MM/YYYY'),
-                    parseInt(data[index].capital+''),
-                    parseInt(data[index].sell+''),
-                    parseInt(data[index].sell+'')-parseInt(data[index].capital+'')
+                    formatter.format(parseInt(data[index].sell??'0')),
+                    formatter.format(parseInt(data[index].capital??'0')),
+                    formatter.format(parseInt(data[index].sell??'0')-parseInt(data[index].capital??'0'))
                 ]
             ]
-            // const salesDetail = data[index].saleDetails ?? [];
-            // for (let iDetail = 0; iDetail < salesDetail.length; iDetail++) {
-            //     newResponse=[
-            //         ...newResponse,
-            //         [
-            //             '',
-            //             '',
-            //             '',
-            //             salesDetail[iDetail].products?.name ?? '',
-            //             salesDetail[iDetail].quantity,
-            //             salesDetail[iDetail].price,
-            //             (parseInt((salesDetail[iDetail].quantity??0)+'')*parseInt((salesDetail[iDetail].price??0)+''))
-            //         ]
-            //     ]
-            // }
         }
-        return newResponse;
+        return [
+            ...newResponse,
+            [
+                '',
+                'Total',
+                '',
+                formatter.format(totalSell),
+                formatter.format(totalCapita),
+                formatter.format(totalMargin)
+            ]
+        ];
     } catch (error) {
         return []
     }

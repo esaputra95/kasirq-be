@@ -5,7 +5,15 @@ import moment from "moment";
 const getData = async (req:Request, res:Response) => {
     try {
         let filter={};
-        req?.query?.accountId ? filter = {accountCashId: req?.query?.accountId}:null
+        const query = req.query;
+        query?.accountId ? filter = {accountCashId: req?.query?.accountId}:null
+        query?.storeId ? filter = {
+            ...filter,
+            storeId: query.storeId
+        } : null;
+        const start = moment(req.query?.start as string, 'YYYY-MM-DD').startOf('day').toDate();
+        const end = moment(req.query?.finish as string, 'YYYY-MM-DD').endOf('day').toDate();
+        
         const data = await Model.sales.findMany({
             include: {
                 members: true,
@@ -17,8 +25,8 @@ const getData = async (req:Request, res:Response) => {
             },
             where: {
                 date: {
-                    gte: moment(req.query?.start+' 00:00:00').format(),
-                    lte: moment(req.query?.finish+' 23:59:00').format(),
+                    gte: start,
+                    lte: end,
                 },
                 ...filter
             },
@@ -31,17 +39,25 @@ const getData = async (req:Request, res:Response) => {
                 }
             ]
         });
+
+        let totals=0
+        for (const element of data) {
+            totals+=Number(element.total)
+        }
+        
         const total = await Model.sales.aggregate({
             _sum: {
-                total: true
+                total: true,
             },
             where: {
                 date: {
-                    gte: new Date(req.query?.start as unknown as Date),
-                    lte: new Date(req.query?.finish as unknown as Date),
-                }
+                    gte: start,
+                    lte: end,
+                },
+                ...filter
             }
         })
+        
         res.status(200).json({
             status: true,
             message: 'Success get data sales report',

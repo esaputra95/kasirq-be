@@ -15,7 +15,7 @@ import DashboardsRoute from "./dashboards";
 const AdminRoute = express.Router()
 
 AdminRoute.use('/auth', AuthRoute);
-AdminRoute.use('/reports', ReportSalesRoute);
+AdminRoute.use('/reports', AccessToken, ReportSalesRoute);
 AdminRoute.use('/stores', AccessToken, StoreRoute);
 AdminRoute.use('/members', AccessToken, MemberRoute);
 AdminRoute.use('/products', AccessToken, ProductRoute);

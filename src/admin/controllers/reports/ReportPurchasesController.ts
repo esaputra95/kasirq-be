@@ -25,8 +25,6 @@ const xlsxData = async (req:Request, res:Response) => {
         const response = await modelData(req, res);
         let dataExcel:any=[];
         for (let index = 0; index < response.length; index++) {
-            console.log(response[index]);
-            
             dataExcel=[
                 ...dataExcel,
                 {
@@ -89,7 +87,6 @@ const xlsxData = async (req:Request, res:Response) => {
 const modelData = async (req: Request, res: Response) => {
     try {
         const body = req.query;
-        console.log({body});
         
         let filter={};
         body?.user ? filter = {
@@ -120,6 +117,9 @@ const modelData = async (req: Request, res: Response) => {
                     }
                 },
                 users: true
+            },
+            orderBy: {
+                createdAt: 'desc'
             }
         });
         

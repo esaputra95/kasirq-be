@@ -1,7 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { Response } from "express";
 
+/**
+ * Mengonversi berbagai error (Prisma, auth, dsb.) menjadi respons HTTP terstruktur.
+ */
 export const handleErrorMessage = async (res: Response, error: any) => {
+  
   let statusCode = 500;
   let message = {
     type: "field",
@@ -10,185 +14,191 @@ export const handleErrorMessage = async (res: Response, error: any) => {
     location: "body",
   };
 
+  /* 🔒― 401  */
   if (error instanceof UnauthorizedError) {
-    console.log({error});
-    
     statusCode = error.statusCode;
-    message = {
-      ...message,
-      msg: error.message,
-    };
+    message = { ...message, msg: error.message };
   }
+
+  /* 📄― Validasi skema Prisma (mis. field hilang) */
   if (error instanceof Prisma.PrismaClientValidationError) {
     statusCode = 400;
     const match = error.message.match(/Argument `(\w+)` is missing/);
-    const fieldName = match ? match[1] : "unknown field";
+    const fieldName = match ? match[1] : "field_tidak_diketahui";
     message = {
       ...message,
-      msg: `One or more fields contain invalid data.`,
+      msg: "Satu atau lebih field berisi data tidak valid.",
       path: fieldName,
     };
   }
+
+  /* 🔧― Error request Prisma */
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     statusCode = 400;
+
     switch (error.code) {
-      // 🔹 Unique constraint failed
+      /* Unik */
       case "P2002":
         message = {
           ...message,
-          msg: `The data you entered already exists. Please use a different value`,
+          msg: "Data yang Anda masukkan sudah ada. Silakan gunakan nilai lain.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Foreign key constraint failed
+      /* Foreign-key constraint */
       case "P2003":
         message = {
           ...message,
-          msg: `Related data not found or invalid. Please ensure your input is correct.`,
+          msg: "Tidak dapat menghapus karena masih ada data yang terkait.",
           path: String(error?.meta?.target ?? error?.meta?.field_name),
         };
         break;
 
-      // 🔹 Record not found
+      /* Record tidak ditemukan */
       case "P2025":
         message = {
           ...message,
-          msg: `The data you are trying to update or delete was not found.`,
+          msg: "Data yang ingin Anda ubah atau hapus tidak ditemukan.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Cannot delete or update due to relation constraints
+      /* Child masih terkait */
       case "P2014":
         message = {
           ...message,
-          msg: `This data cannot be deleted because it is still related to other data.`,
+          msg: "Data ini tidak dapat dihapus karena masih berelasi dengan data lain.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Value too long
+      /* Teks terlalu panjang */
       case "P2000":
         message = {
           ...message,
-          msg: `The input value is too long. Please enter a shorter value`,
+          msg: "Input terlalu panjang. Mohon masukkan nilai yang lebih pendek.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Record not found for WHERE condition
+      /* Data WHERE tidak ditemukan */
       case "P2001":
         message = {
           ...message,
-          msg: `The requested data was not found.`,
+          msg: "Data yang diminta tidak ditemukan.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Required value missing
+      /* Field wajib kosong */
       case "P2011":
         message = {
           ...message,
-          msg: `A required field is missing. Please check your input.`,
+          msg: "Field wajib belum diisi. Mohon lengkapi data.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Field has an invalid value
+      /* Format data salah */
       case "P2005":
         message = {
           ...message,
-          msg: `The data format is invalid. Please check your input and try again.`,
+          msg: "Format data tidak valid. Periksa kembali input Anda.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Query returned no results
+      /* Query tak menghasilkan data */
       case "P2016":
         message = {
           ...message,
-          msg: `Invalid query or no data found in the database.`,
+          msg: "Query tidak valid atau tidak ada data di database.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Invalid data for operation
+      /* Data tak valid untuk operasi */
       case "P2018":
         message = {
           ...message,
-          msg: `The data provided is not valid for this operation.`,
+          msg: "Data yang diberikan tidak valid untuk operasi ini.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Incorrect data format
+      /* Format data tidak cocok */
       case "P2020":
         message = {
           ...message,
-          msg: `The data format does not match the expected format in the database.`,
+          msg: "Format data tidak sesuai dengan skema database.",
           path: String(error?.meta?.target),
         };
         break;
 
-      // 🔹 Table or column does not exist
+      /* Tabel/kolom tidak ditemukan */
       case "P2021":
+        statusCode = 500;
         message = {
           ...message,
-          msg: `The requested table or column was not found in the database.`,
+          msg: "Tabel atau kolom yang diminta tidak ditemukan di database.",
           path: String(error?.meta?.target),
         };
-        statusCode = 500;
         break;
 
-      // 🔹 Transaction failed
+      /* Transaksi gagal */
       case "P2030":
+        statusCode = 500;
         message = {
           ...message,
-          msg: `Database transaction failed. Please try again.`,
+          msg: "Transaksi database gagal. Silakan coba lagi.",
           path: String(error?.meta?.target),
         };
-        statusCode = 500;
         break;
 
-      // 🔹 Constraint failed (check constraint)
+      /* Check constraint */
       case "P2022":
         message = {
           ...message,
-          msg: `The data does not meet the required validation constraints.`,
+          msg: "Data tidak memenuhi constraint validasi.",
           path: String(error?.meta?.target),
         };
         break;
-      
+
+      /* Tipe tidak sesuai ekspektasi */
       case "P2032":
         message = {
           ...message,
-          msg: `Expectation type ${String(error?.meta?.expected_type)} found ${String(error?.meta?.found)}`,
+          msg: `Ekspektasi tipe ${String(
+            error?.meta?.expected_type
+          )}, namun ditemukan ${String(error?.meta?.found)}.`,
           path: String(error?.meta?.field),
         };
         break;
-      
 
-      // 🔹 Timeout error
+      /* Timeout */
       case "P2034":
+        statusCode = 500;
         message = {
           ...message,
-          msg: `Database request timed out. Please try again later.`,
+          msg: "Permintaan ke database melebihi batas waktu. Coba beberapa saat lagi.",
           path: String(error?.meta?.target),
         };
-        statusCode = 500;
         break;
 
+      /* Lain-lain */
       default:
+        statusCode = 500;
         message = {
           ...message,
-          msg: `An unknown error has occurred.`,
+          msg: "Terjadi kesalahan yang tidak diketahui.",
           path: String(error?.meta?.target),
         };
-        statusCode = 500;
         break;
     }
   }
+
+  /* 🔙 Kirim respons JSON */
   res.status(statusCode).json({
     status: false,
     message: "error",
@@ -196,29 +206,13 @@ export const handleErrorMessage = async (res: Response, error: any) => {
   });
 };
 
-export const errorType = {
-  statusCode: 500,
-  message: "",
-  errors: [
-    {
-      type: "",
-      msg: "",
-      path: "",
-      location: "",
-    },
-  ],
-};
-
-const extractFieldFromError = (errorMessage: string): string | null => {
-  const match = errorMessage.match(/Argument `(\w+)`:/);
-  return match ? match[1] : null;
-};
+/* ---------- Util ---------- */
 
 export class UnauthorizedError extends Error {
   statusCode!: number;
-  constructor(message: string, statusCode = 500) {
+  constructor(message: string, statusCode = 401) {
     super(message);
     this.name = "UnauthorizedError";
-    this.statusCode = statusCode
+    this.statusCode = statusCode;
   }
 }

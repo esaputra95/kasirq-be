@@ -121,21 +121,15 @@ const GetHpp = async (
                 id:productId
             }
         })
-
-        console.log({checkProductStatus});
         
         if(checkProductStatus?.isStock){
             const hpp:hppHistory[] = await prisma.$queryRaw`
                 SELECT * FROM hppHistory WHERE quantity > quantityUsed AND storeId = ${storeId} AND productId = ${productId} ORDER BY date ASC
             `;
-
-            console.log('ini hpp :', hpp);
             
             let dataHpp:any=[];
             let getQuantity=quantityNeed
             for (const value of hpp) {
-                console.log({value});
-                
                 let q=0;
                 if(((value.quantity ?? 0)-(value.quantityUsed ?? 0)) >= getQuantity){
                     dataHpp=[
