@@ -107,7 +107,6 @@ const postData = async (req: Request, res: Response) => {
                         id: dataDetail[key].unitId
                     }
                 });
-console.log('quantity:',(dataDetail[key].quantity * (conversion?.quantity ?? 1)));
 
                 const increment = await DecrementStock(
                     prisma, 
@@ -122,8 +121,6 @@ console.log('quantity:',(dataDetail[key].quantity * (conversion?.quantity ?? 1))
                     quantityNeed: dataDetail[key].quantity, 
                     productId: key
                 });
-
-                console.log(JSON.stringify(hpp));
                 
                 
                 for (const value of hpp.hpp) {
@@ -424,6 +421,10 @@ const getFacture = async (req:Request, res:Response) => {
                 id:true,
                 date: true,
                 total: true,
+                subTotal:true,
+                payCash: true,
+                discount:true,
+                createdAt: true,
                 users: {
                     select: {
                         name: true
@@ -477,14 +478,23 @@ const getFacture = async (req:Request, res:Response) => {
                 }
             ]
         }
+        const payCash  = Number(data?.payCash   ?? 0);          // uang dibayar
+        const subTotal = Number(data?.subTotal  ?? 0);          // total sebelum diskon
+        const discount = Number(data?.discount  ?? 0);          // diskon
+
+        const totalBelanja = subTotal - discount;               // total akhir
+        const selisih      = payCash - totalBelanja;            // kembalian (+) atau kurang (-)
         res.status(200).json({
             status: true,
             message: 'successfully in get sales data',
             data: {
                 sales: {
-                    payCash: 0,
-                    date: data?.date,
-                    total: formatter.format(parseInt(data?.total+'') ?? 0),
+                    date: moment(data?.date).format('DD/MM/YYYY')+' '+moment(data?.createdAt).format('HH:mm'),
+                    total: formatter.format(parseInt(totalBelanja+'') ?? 0),
+                    subTotal: formatter.format(parseInt(subTotal+'') ?? 0),
+                    discount: formatter.format(parseInt(discount+'') ?? 0),
+                    payCash: formatter.format(parseInt(payCash+'') ?? 0),
+                    change: formatter.format(parseInt(selisih+'') ?? 0),
                     id: data?.id,
                     user: data?.users?.name,
                     salesDetails: newData

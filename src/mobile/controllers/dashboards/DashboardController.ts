@@ -43,6 +43,7 @@ const getMarginWeek = async (req:Request, res:Response) => {
     try {
         const query = req.query;
         const date = await getDatesOfCurrentWeek();
+        
         let tpmData:any=[]
         for (let index = 0; index < date.length; index++) {
             const results = await Model.$queryRaw`
@@ -75,8 +76,6 @@ const getMarginWeek = async (req:Request, res:Response) => {
                 }
             ];
         }
-        console.log({tpmData});
-        
         res.status(200).json({
             status: true,
             data: tpmData

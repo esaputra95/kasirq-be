@@ -1,6 +1,6 @@
 import Model from "#root/services/PrismaService";
 import { Request, Response } from "express";
-import { Prisma } from "@prisma/client";
+import { Prisma, products } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
 import { ProductQueryInterface } from "#root/interfaces/masters/ProductInterface";
@@ -121,7 +121,7 @@ const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Respo
             status: true,
             message: "successful in getting product data",
             data: {
-                product: data,
+                product: data.sort((a, b) => a.name.localeCompare(b.name)),
                 info:{
                     page: page,
                     limit: take,
@@ -219,6 +219,9 @@ const getProductSell = async (req:Request<{}, {}, {}, ProductQueryInterface>, re
                 sku: true,
                 isStock: true
             },
+            orderBy: {
+                name: 'asc'
+            },
             skip: skip,
             take: take
         });
@@ -257,18 +260,24 @@ const postData = async (req:Request, res:Response) => {
         const ownerId:any = await getOwnerId(res.locals.userId, res.locals.userType)
         if(!ownerId.status) throw new Error('Owner not found')
         const data = { ...req.body, ownerId: ownerId.id};
-        let dataProduct = {...data};
-        delete dataProduct.price;
-        delete dataProduct.storeId;
+        let dataProduct:products & {price?: number, storeId?: string, isStock?: any} = {...data};
         // delete dataProduct.isStock;
         const conversion = data.price;
         const productId = uuidv4();
         await Model.$transaction(async (prisma) => {
             const createProduct = await prisma.products.create({
                 data: {
-                    ...dataProduct,
+                    name: dataProduct?.name,
                     id: productId,
-                    isStock: dataProduct.isStock ? 1 : 0
+                    isStock: dataProduct.isStock ? 1 : 0,
+                    categoryId: dataProduct?.categoryId,
+                    barcode: dataProduct?.barcode,
+                    code: dataProduct?.code,
+                    brandId: dataProduct?.brandId,
+                    description: dataProduct?.description,
+                    image: dataProduct?.image,
+                    ownerId: ownerId?.id,
+                    sku: dataProduct?.sku
                 },
             });
             let createProductConversion:any
@@ -313,19 +322,7 @@ const postData = async (req:Request, res:Response) => {
             message: 'successful in created user data'
         })
     } catch (error) {
-        console.log({error});
-        
-        let message = errorType
-        message.message.msg = `${error}`
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+        handleErrorMessage(res, error)
     }
 }
 
@@ -335,7 +332,9 @@ const updateData = async (req: Request, res: Response) => {
         let dataProduct = { ...data };
         delete dataProduct.price;
         delete dataProduct.storeId;
+        delete dataProduct.idDelete
         const conversion = data.price;
+        
 
         // Mulai transaksi
         await Model.$transaction(async (prisma) => {
@@ -416,8 +415,14 @@ const updateData = async (req: Request, res: Response) => {
                     });
                 }
             }
+            for (const value of data.idDelete) {
+                await prisma.productConversions.delete({
+                    where:{
+                        id: value
+                    }
+                })
+            }
         });
-
         // Berhasil
         res.status(200).json({
             status: true,
@@ -425,22 +430,7 @@ const updateData = async (req: Request, res: Response) => {
         });
 
     } catch (error) {
-        let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
-    } finally {
-        // Tutup koneksi Prisma setelah semua selesai
-        await Model.$disconnect();
+        handleErrorMessage(res, error)
     }
 };
 
@@ -528,8 +518,6 @@ const uploadImage = async (req:Request, res:Response) => {
             data: req?.file?.filename??''
         })
     } catch (error) {
-        console.log({error});
-        
         res.status(500).json({
             status: false,
             errors: `${error}`

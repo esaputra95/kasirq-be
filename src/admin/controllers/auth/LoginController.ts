@@ -8,8 +8,6 @@ import { sign } from "jsonwebtoken";
 const Login = async (req: Request, res: Response) => {
     try {
         const data: LoginInterface = req.body;
-        console.log({ data });
-        
         const user = await Model.users.findFirst({
             where: {
                 email: data.email,
@@ -30,8 +28,6 @@ const Login = async (req: Request, res: Response) => {
         if (!match) {
             return res.status(401).json({ message: "Wrong username or password" });
         }
-        console.log({user});
-        
         const accessToken = sign({
             id: user.id,
             username: user.username,
@@ -41,7 +37,6 @@ const Login = async (req: Request, res: Response) => {
         
         return res.json({ token: accessToken });
     } catch (error) {
-        console.log({error});
         handleErrorMessage(res, error)
     }
 };

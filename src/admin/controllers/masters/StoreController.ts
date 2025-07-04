@@ -12,7 +12,6 @@ const getSelect = async (req:Request, res:Response) => {
         const owner:any = await getOwnerId(res.locals.userId, res.locals.level);
         let filter:any={};
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
-        console.log(res.locals.level);
         
         if(res.locals.level!=="owner" && res.locals.level!=="superadmin" && res.locals.level!=="admin") return res.status(401).json({status: false, data: []})
         if(res.locals.level==="owner"){

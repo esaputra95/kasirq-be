@@ -27,7 +27,7 @@ const getData = async (req:Request, res:Response) => {
             ORDER BY sales.createdAt DESC
         `;
 
-        const total = results?.length > 0 ? results.reduce((total, val)=> (total??0) + (parseInt(val?.sell)-parseInt(val?.capital)), 0): 0
+        const total = results?.length > 0 ? results.reduce((total, val)=> (total??0) + (parseInt(val?.sell??0)-parseInt(val?.capital??0)), 0): 0
         const discount = results?.length > 0 ? results.reduce((total, val)=> (total??0) + (parseInt(val?.discount)), 0): 0
 
         res.status(200).json({
