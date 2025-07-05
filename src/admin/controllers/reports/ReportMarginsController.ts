@@ -89,7 +89,7 @@ const xlsxData = async (req:Request, res:Response) => {
 const modelData = async (req: Request, res: Response) => {
     try {
         const body = req.query;
-
+        const storeId = body?.storeId ?? "123242343"
         const data:any[] = await Model.$queryRaw`
             SELECT 
                 saleDetails.quantity * saleDetails.price AS sell,
@@ -105,7 +105,7 @@ const modelData = async (req: Request, res: Response) => {
             LEFT JOIN 
                 sales ON sales.id = saleDetails.saleId
             WHERE 
-                sales.date BETWEEN ${moment(body?.startDate+' 00:00:00').format()} AND ${moment(body?.endDate+' 00:00:00').format()}
+                sales.date BETWEEN ${moment(body?.startDate+' 00:00:00').format()} AND ${moment(body?.endDate+' 00:00:00').format()} AND sales.storeId = ${storeId}
             GROUP BY saleDetails.id
         `;
         
