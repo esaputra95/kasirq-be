@@ -61,7 +61,7 @@ const getMarginWeek = async (req:Request, res:Response) => {
                     sales.date BETWEEN ${moment(date[index]+' 00:00:00').format()} AND ${moment(date[index]+' 23:59:00').format()}
                 AND sales.storeId = ${query.storeId}
                 GROUP BY saleDetails.id
-                `;
+            `;
             const loop = results as [];
             tpmData = [
                 ...tpmData,
