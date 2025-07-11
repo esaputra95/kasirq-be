@@ -3,11 +3,11 @@ import Model from "#root/services/PrismaService";
 import { Request, Response } from "express";
 import moment from "moment";
 
-const getData = async (req:Request, res:Response) => {
+const getData = async (req: Request, res: Response) => {
     try {
         const query = req.query;
-        
-        const results:any[] = await Model.$queryRaw`
+
+        const results: any[] = await Model.$queryRaw`
             SELECT 
                 saleDetails.quantity * saleDetails.price AS sell,
                 SUM(cogs.price * cogs.quantity) AS capital,
@@ -22,25 +22,43 @@ const getData = async (req:Request, res:Response) => {
             LEFT JOIN 
                 sales ON sales.id = saleDetails.saleId
             WHERE 
-                sales.date BETWEEN ${moment(query?.start+' 00:00:00').format()} AND ${moment(query?.finish+' 00:00:00').format()}
+                sales.date BETWEEN ${moment(
+                    query?.start + " 00:00:00"
+                ).format()} AND ${moment(query?.finish + " 00:00:00").format()}
+            AND sales.storeId = ${query.storeId}
             GROUP BY saleDetails.id
             ORDER BY sales.createdAt DESC
         `;
 
-        const total = results?.length > 0 ? results.reduce((total, val)=> (total??0) + (parseInt(val?.sell??0)-parseInt(val?.capital??0)), 0): 0
-        const discount = results?.length > 0 ? results.reduce((total, val)=> (total??0) + (parseInt(val?.discount)), 0): 0
+        const total =
+            results?.length > 0
+                ? results.reduce(
+                      (total, val) =>
+                          (total ?? 0) +
+                          (parseInt(val?.sell ?? 0) -
+                              parseInt(val?.capital ?? 0)),
+                      0
+                  )
+                : 0;
+        const discount =
+            results?.length > 0
+                ? results.reduce(
+                      (total, val) => (total ?? 0) + parseInt(val?.discount),
+                      0
+                  )
+                : 0;
 
         res.status(200).json({
             status: true,
             data: {
                 margin: results,
                 total: total,
-                discount: discount
-            }
-        })
+                discount: discount,
+            },
+        });
     } catch (error) {
-        handleErrorMessage(res, error)
+        handleErrorMessage(res, error);
     }
-}
+};
 
-export { getData }
+export { getData };
