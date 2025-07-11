@@ -19,9 +19,9 @@ const getSelect = async (req:Request, res:Response) => {
         }
         let dataOption:any=[];
         const data = await Model.stores.findMany({
-            where: {
-                ...filter,
-            }
+            // where: {
+            //     // ...filter,
+            // }
         });
         for (const value of data) {
             dataOption= [

@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import { SalesQueryInterface } from "#root/interfaces/sales/SalesInterface";
 import moment from "moment";
 import { DecrementStock, GetHpp, IncrementStock } from "#root/helpers/stock";
@@ -11,65 +11,70 @@ import formatter from "#root/helpers/formatCurrency";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
 
-const getData = async (req:Request<{}, {}, {}, SalesQueryInterface>, res:Response) => {
+const getData = async (
+    req: Request<{}, {}, {}, SalesQueryInterface>,
+    res: Response
+) => {
     try {
         const query = req.query;
         // PAGING
-        const take:number = parseInt(query.limit ?? 20 )
-        const page:number = parseInt(query.page ?? 1 );
-        const skip:number = (page-1)*take
+        const take: number = parseInt(query.limit ?? 20);
+        const page: number = parseInt(query.page ?? 1);
+        const skip: number = (page - 1) * take;
         // FILTER
-        let filter:any= []
-        query.invoice ? filter = [...filter, {name: { contains: query.invoice }}] : null
-        if(filter.length > 0){
+        let filter: any = [];
+        query.invoice
+            ? (filter = [...filter, { name: { contains: query.invoice } }])
+            : null;
+        if (filter.length > 0) {
             filter = {
-                OR: [
-                    ...filter
-                ]
-            }
+                OR: [...filter],
+            };
         }
         const data = await Model.sales.findMany({
             where: {
                 ...filter,
-                storeId: query.storeId
+                storeId: query.storeId,
             },
-            orderBy:{
-                createdAt: 'desc'
+            orderBy: {
+                createdAt: "desc",
             },
             skip: skip,
-            take: take
+            take: take,
         });
         const total = await Model.sales.count({
             where: {
-                ...filter
-            }
-        })
-        
+                ...filter,
+            },
+        });
+
         res.status(200).json({
             status: true,
             message: "successful in getting sales data",
             data: {
                 sales: data,
-                info:{
+                info: {
                     page: page,
                     limit: take,
-                    total: total
-                }
-            }
-        })
+                    total: total,
+                },
+            },
+        });
     } catch (error) {
-        handleErrorMessage(res, error)
+        handleErrorMessage(res, error);
     }
-}
+};
 
 const postData = async (req: Request, res: Response) => {
     const salesId = uuidv4();
     const data = req.body;
+    console.log(JSON.stringify(data));
+
     const transaction = async () => {
-        const dataDetail = data.detailItem;
+        const dataDetail = data.detailItem ?? [];
         // Start transaction
         return Model.$transaction(async (prisma) => {
-            const invoice = await transactionNumber()
+            const invoice = await transactionNumber();
             const salesData = {
                 id: salesId,
                 date: moment().format(),
@@ -78,12 +83,13 @@ const postData = async (req: Request, res: Response) => {
                 memberId: data.memberId,
                 invoice: invoice.invoice,
                 subTotal: parseInt(data.subTotal ?? 0),
-                total: parseInt(data.subTotal ?? 0)-parseInt(data.discount??0),
+                total:
+                    parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0),
                 description: data.description,
                 userCreate: res.locals.userId,
-                discount: parseInt(data.discount??0),
-                payCash: parseInt(data.pay??0),
-                transactionNumber: invoice.transactionNumber
+                discount: parseInt(data.discount ?? 0),
+                payCash: parseInt(data.pay ?? 0),
+                transactionNumber: invoice.transactionNumber,
             };
             const createSales = await prisma.sales.create({
                 data: salesData,
@@ -91,7 +97,7 @@ const postData = async (req: Request, res: Response) => {
 
             for (const key in dataDetail) {
                 const idDetail = uuidv4();
-                const saleDetail = await prisma.saleDetails.create({
+                await prisma.saleDetails.create({
                     data: {
                         id: idDetail,
                         saleId: salesData.id,
@@ -99,58 +105,63 @@ const postData = async (req: Request, res: Response) => {
                         productConversionId: dataDetail[key].unitId,
                         quantity: dataDetail[key].quantity ?? 1,
                         price: dataDetail[key].price ?? 0,
-                    }
+                    },
                 });
 
                 const conversion = await prisma.productConversions.findFirst({
                     where: {
-                        id: dataDetail[key].unitId
-                    }
+                        id: dataDetail[key].unitId,
+                    },
                 });
 
+                if (!conversion) {
+                    throw new Error(
+                        `Konversi produk dengan ID ${dataDetail[key].unitId} tidak ditemukan`
+                    );
+                }
+
                 const increment = await DecrementStock(
-                    prisma, 
+                    prisma,
                     key,
                     data.storeId,
                     dataDetail[key].quantity * (conversion?.quantity ?? 1)
                 );
-                
+
                 const hpp = await GetHpp({
-                    prisma, 
-                    storeId: data.storeId, 
-                    quantityNeed: dataDetail[key].quantity, 
-                    productId: key
+                    prisma,
+                    storeId: data.storeId,
+                    quantityNeed: dataDetail[key].quantity,
+                    productId: key,
                 });
-                
-                
+
                 for (const value of hpp.hpp) {
-                    if(value.hppHistoryId){
+                    if (value.hppHistoryId) {
                         await prisma.cogs.create({
                             data: {
                                 id: uuidv4(),
                                 hppHistoryId: value.hppHistoryId,
                                 saleDetailId: idDetail,
                                 price: value.price,
-                                quantity: value.quantity
-                            }
-                        })
+                                quantity: value.quantity,
+                            },
+                        });
                         await prisma.hppHistory.update({
-                            data: { 
+                            data: {
                                 quantityUsed: {
-                                    increment: value.quantity
-                                }
+                                    increment: value.quantity,
+                                },
                             },
                             where: {
-                                id: value.hppHistoryId
-                            }
-                        })
+                                id: value.hppHistoryId,
+                            },
+                        });
                     }
                 }
 
                 if (!increment.status) {
                     throw increment.message;
                 }
-            };
+            }
 
             return { createSales };
         });
@@ -160,21 +171,22 @@ const postData = async (req: Request, res: Response) => {
         await transaction();
         res.status(200).json({
             status: true,
-            message: 'Successful in created sales data',
+            message: "Successful in created sales data",
             data: salesId,
-            remainder: (parseInt(data?.pay ?? 0)-(parseInt(data.subTotal ?? 0)-parseInt(data.discount??0)))
+            remainder:
+                parseInt(data?.pay ?? 0) -
+                (parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0)),
         });
     } catch (error) {
-        handleErrorMessage(res, error)
+        handleErrorMessage(res, error);
     }
 };
 
-const updateData = async (req:Request, res:Response) => {
+const updateData = async (req: Request, res: Response) => {
     try {
-
-        const data = { ...req.body};
-        const dataDetail = data.detailItem
-        const salesId = req.params.id
+        const data = { ...req.body };
+        const dataDetail = data.detailItem;
+        const salesId = req.params.id;
         const transaction = async () => {
             // Mulai transaksi
             await Model.$transaction(async (prisma) => {
@@ -182,253 +194,256 @@ const updateData = async (req:Request, res:Response) => {
                     supplierId: data.supplierId,
                     discount: data.discount,
                     payCash: data.pay ?? 0,
-                    total: data.total ?? 0
-                }
+                    total: data.total ?? 0,
+                };
                 const createsales = await prisma.sales.update({
                     data: salesData,
                     where: {
-                        id: salesId
-                    }
+                        id: salesId,
+                    },
                 });
 
-                let createsalesDetails:any;
-                
+                let createsalesDetails: any;
+
                 for (const key in dataDetail) {
                     let idDetail = dataDetail[key].salesDetailId;
-                    if(idDetail){
-                        if(dataDetail[key].quantity===0){
+                    if (idDetail) {
+                        if (dataDetail[key].quantity === 0) {
                             await prisma.saleDetails.delete({
                                 where: {
-                                    id: idDetail
-                                }
-                            });
-                        }else{
-                            createsalesDetails = await prisma.saleDetails.update({
-                                data: {
-                                    quantity: dataDetail[key].quantity,
-                                    productConversionId: dataDetail[key].unitId,
-                                    price: dataDetail[key].price ?? 0,
+                                    id: idDetail,
                                 },
-                                where: {
-                                    id: idDetail
-                                }
                             });
+                        } else {
+                            createsalesDetails =
+                                await prisma.saleDetails.update({
+                                    data: {
+                                        quantity: dataDetail[key].quantity,
+                                        productConversionId:
+                                            dataDetail[key].unitId,
+                                        price: dataDetail[key].price ?? 0,
+                                    },
+                                    where: {
+                                        id: idDetail,
+                                    },
+                                });
                         }
                     } else {
                         idDetail = uuidv4();
-                        createsalesDetails = await prisma.saleDetails.create({data: {
-                            id: idDetail,
-                            saleId: salesId,
-                            productId: key,
-                            productConversionId: dataDetail[key].unitId,
-                            quantity: dataDetail[key].quantity ?? 1,
-                            price: dataDetail[key].price ?? 0,
-                        }});
+                        createsalesDetails = await prisma.saleDetails.create({
+                            data: {
+                                id: idDetail,
+                                saleId: salesId,
+                                productId: key,
+                                productConversionId: dataDetail[key].unitId,
+                                quantity: dataDetail[key].quantity ?? 1,
+                                price: dataDetail[key].price ?? 0,
+                            },
+                        });
                     }
-                    
-                    const conversion = await prisma.productConversions.findFirst({
-                        where: {
-                            id: dataDetail[key].unitId
-                        }
-                    });
+
+                    const conversion =
+                        await prisma.productConversions.findFirst({
+                            where: {
+                                id: dataDetail[key].unitId,
+                            },
+                        });
 
                     const increment = await IncrementStock(
-                        prisma, 
+                        prisma,
                         key,
                         data.storeId,
                         dataDetail[key].quantity * (conversion?.quantity ?? 1)
-                    )
-                    if(!increment.status){
+                    );
+                    if (!increment.status) {
                         throw increment.message;
-                    };
+                    }
                     // await prisma.hppHistory.create({
                     //     data: {
                     //         id: uuidv4(),
-                    //         // productConversionId: 
+                    //         // productConversionId:
                     //     }
                     // })
-                };
-                
+                }
+
                 return { createsales, createsalesDetails };
             });
-        }
-        
+        };
+
         transaction()
-        .catch((e) => {
-            throw new Error(e)
-        })
-        .finally(async () => {
-            await Model.$disconnect();
-        });
+            .catch((e) => {
+                throw new Error(e);
+            })
+            .finally(async () => {
+                await Model.$disconnect();
+            });
 
         res.status(200).json({
             status: true,
-            message: 'successful in updated sales data'
-        })
+            message: "successful in updated sales data",
+        });
     } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
+        let message = errorType;
+        message.message.msg = `${error}`;
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const deleteData = async (req:Request, res:Response)=> {
+const deleteData = async (req: Request, res: Response) => {
     try {
         const model = await Model.sales.findUnique({
             where: {
-                id: req.params.id
+                id: req.params.id,
             },
             include: {
-                saleDetails: true
-            }
+                saleDetails: true,
+            },
         });
         const detail = model?.saleDetails ?? [];
-        
+
         for (const value of detail) {
             const conversion = await Model.productConversions.findFirst({
                 where: {
-                    id: value.productConversionId ?? ''
-                }
+                    id: value.productConversionId ?? "",
+                },
             });
 
             await DecrementStock(
                 Model,
                 value.productId,
-                model?.storeId ?? '',
-                parseInt(value.quantity+'') * (conversion?.quantity ?? 1)
+                model?.storeId ?? "",
+                parseInt(value.quantity + "") * (conversion?.quantity ?? 1)
             );
         }
         await Model.sales.delete({
             where: {
-                id: req.params.id
-            }
+                id: req.params.id,
+            },
         });
 
         res.status(200).json({
             status: false,
-            message: 'successfully in deleted sales data'
-        })
+            message: "successfully in deleted sales data",
+        });
     } catch (error) {
         let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
+            status: 500,
+            message: { msg: `${error}` },
+        };
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const getDataById = async (req:Request, res:Response) => {
+const getDataById = async (req: Request, res: Response) => {
     try {
         const model = await Model.sales.findUnique({
             where: {
-                id: req.params.id
-            }
-        })
-        
-        if(!model) throw new Error('data not found')
+                id: req.params.id,
+            },
+        });
+
+        if (!model) throw new Error("data not found");
         res.status(200).json({
             status: true,
-            message: 'successfully in get sales data',
+            message: "successfully in get sales data",
             data: {
-                sales: model
-            }
-        })
+                sales: model,
+            },
+        });
     } catch (error) {
         let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
+            status: 500,
+            message: { msg: `${error}` },
+        };
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const getSelect = async (req:Request, res:Response) => {
+const getSelect = async (req: Request, res: Response) => {
     try {
-        let filter:any={};
-        req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
-        let dataOption:any=[];
+        let filter: any = {};
+        req.query.name
+            ? (filter = {
+                  ...filter,
+                  name: { contains: req.query?.name as string },
+              })
+            : null;
+        let dataOption: any = [];
         const data = await Model.sales.findMany({
             where: {
-                ...filter
+                ...filter,
             },
-            take:10
+            take: 10,
         });
         for (const value of data) {
-            dataOption= [
-                ...dataOption, {
+            dataOption = [
+                ...dataOption,
+                {
                     id: value.id,
-                    title: value.date
-                }
-            ]
+                    title: value.date,
+                },
+            ];
         }
         res.status(200).json({
             status: true,
-            message: 'successfully in get sales data',
+            message: "successfully in get sales data",
             data: {
-                sales: dataOption
-            }
-        })
+                sales: dataOption,
+            },
+        });
     } catch (error) {
         let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
+            status: 500,
+            message: { msg: `${error}` },
+        };
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const getFacture = async (req:Request, res:Response) => {
+const getFacture = async (req: Request, res: Response) => {
     try {
         const id = req.query.id as string;
         const storeId = req.query.storeId as string;
         const data = await Model.sales.findUnique({
             where: {
-                id: id??'',
+                id: id ?? "",
             },
             select: {
-                id:true,
+                id: true,
                 date: true,
                 total: true,
-                subTotal:true,
+                subTotal: true,
                 payCash: true,
-                discount:true,
+                discount: true,
                 createdAt: true,
                 users: {
                     select: {
-                        name: true
-                    }
+                        name: true,
+                    },
                 },
                 saleDetails: {
                     select: {
@@ -441,112 +456,117 @@ const getFacture = async (req:Request, res:Response) => {
                                 units: {
                                     select: {
                                         name: true,
-                                    }
-                                }
-                            }
+                                    },
+                                },
+                            },
                         },
                         products: {
                             select: {
-                                name: true
-                            }
-                        }
-                    }
-                }
-            }
+                                name: true,
+                            },
+                        },
+                    },
+                },
+            },
         });
 
         const store = await Model.stores.findUnique({
             where: {
-                id: storeId
+                id: storeId,
             },
             select: {
                 name: true,
-                address: true
-            }
-        })
+                address: true,
+            },
+        });
 
-        let newData:any=[];
-        const salesDetails = data?.saleDetails ?? []
+        let newData: any = [];
+        const salesDetails = data?.saleDetails ?? [];
         for (let index = 0; index < salesDetails.length; index++) {
-            newData=[
+            newData = [
                 ...newData,
                 {
                     product: salesDetails[index].products.name,
-                    quantity: formatter.format(parseInt(salesDetails[index].quantity+'') ?? 0),
-                    price: formatter.format(parseInt(salesDetails[index].price+'') ?? 0),
+                    quantity: formatter.format(
+                        parseInt(salesDetails[index].quantity + "") ?? 0
+                    ),
+                    price: formatter.format(
+                        parseInt(salesDetails[index].price + "") ?? 0
+                    ),
                     unit: salesDetails[index].productConversions?.units.name,
-                }
-            ]
+                },
+            ];
         }
-        const payCash  = Number(data?.payCash   ?? 0);          // uang dibayar
-        const subTotal = Number(data?.subTotal  ?? 0);          // total sebelum diskon
-        const discount = Number(data?.discount  ?? 0);          // diskon
+        const payCash = Number(data?.payCash ?? 0); // uang dibayar
+        const subTotal = Number(data?.subTotal ?? 0); // total sebelum diskon
+        const discount = Number(data?.discount ?? 0); // diskon
 
-        const totalBelanja = subTotal - discount;               // total akhir
-        const selisih      = payCash - totalBelanja;            // kembalian (+) atau kurang (-)
+        const totalBelanja = subTotal - discount; // total akhir
+        const selisih = payCash - totalBelanja; // kembalian (+) atau kurang (-)
         res.status(200).json({
             status: true,
-            message: 'successfully in get sales data',
+            message: "successfully in get sales data",
             data: {
                 sales: {
-                    date: moment(data?.date).format('DD/MM/YYYY')+' '+moment(data?.createdAt).format('HH:mm'),
-                    total: formatter.format(parseInt(totalBelanja+'') ?? 0),
-                    subTotal: formatter.format(parseInt(subTotal+'') ?? 0),
-                    discount: formatter.format(parseInt(discount+'') ?? 0),
-                    payCash: formatter.format(parseInt(payCash+'') ?? 0),
-                    change: formatter.format(parseInt(selisih+'') ?? 0),
+                    date:
+                        moment(data?.date).format("DD/MM/YYYY") +
+                        " " +
+                        moment(data?.createdAt).format("HH:mm"),
+                    total: formatter.format(parseInt(totalBelanja + "") ?? 0),
+                    subTotal: formatter.format(parseInt(subTotal + "") ?? 0),
+                    discount: formatter.format(parseInt(discount + "") ?? 0),
+                    payCash: formatter.format(parseInt(payCash + "") ?? 0),
+                    change: formatter.format(parseInt(selisih + "") ?? 0),
                     id: data?.id,
                     user: data?.users?.name,
-                    salesDetails: newData
+                    salesDetails: newData,
                 },
-                store
-            }
-        })
+                store,
+            },
+        });
     } catch (error) {
         let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
+            status: 500,
+            message: { msg: `${error}` },
+        };
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const getDataUpdate = async (req:Request, res:Response) => {
+const getDataUpdate = async (req: Request, res: Response) => {
     try {
         const data = await Model.sales.findUnique({
             where: {
-                id: req.params.id
+                id: req.params.id,
             },
             include: {
                 saleDetails: {
                     include: {
-                        products: true
-                    }
-                }
-            }
+                        products: true,
+                    },
+                },
+            },
         });
-        let newData:any={};
-        const dataDetail = data?.saleDetails ?? []
+        let newData: any = {};
+        const dataDetail = data?.saleDetails ?? [];
         for (const value of dataDetail) {
-            newData= {
+            newData = {
                 ...newData,
-                [value.productId] : {
+                [value.productId]: {
                     quantity: value.quantity,
                     unit: value.productConversionId,
                     price: value.price,
                     product: value.products,
                     salesId: value.saleId,
-                    salesDetailId: value.id
-                }
-            }
+                    salesDetailId: value.id,
+                },
+            };
         }
 
         res.status(200).json({
@@ -559,13 +579,13 @@ const getDataUpdate = async (req:Request, res:Response) => {
                     memberId: data?.memberId,
                 },
                 saleDetail: newData,
-                id: req.params.id
-            }
-        })
+                id: req.params.id,
+            },
+        });
     } catch (error) {
-        res.status(500)
+        res.status(500);
     }
-}
+};
 
 export {
     getData,
@@ -575,5 +595,5 @@ export {
     getDataById,
     getSelect,
     getFacture,
-    getDataUpdate
-}
+    getDataUpdate,
+};

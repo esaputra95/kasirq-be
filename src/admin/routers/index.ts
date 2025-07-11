@@ -8,7 +8,8 @@ import {
     ProductRoute,
     UserRoute,
     AccountRoute,
-    UserManagementRoute
+    UserManagementRoute,
+    SubscriptionStoreRoute
 } from "#root/admin/routers/masters";
 import { AccessToken } from "#root/mobile/controllers/auth/middlewareController";
 import DashboardsRoute from "./dashboards";
@@ -24,5 +25,6 @@ AdminRoute.use('/users', AccessToken, UserRoute);
 AdminRoute.use('/user-managements', AccessToken, UserManagementRoute);
 AdminRoute.use('/bank-accounts', AccessToken, AccountRoute);
 AdminRoute.use('/dashboards', AccessToken, DashboardsRoute);
+AdminRoute.use('/subscription-stores', AccessToken, SubscriptionStoreRoute);
 
 export default AdminRoute;

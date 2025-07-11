@@ -1,3 +1,5 @@
+import { user_verifed, users_level } from "@prisma/client";
+
 export interface UserInterface {
     id: string,
     name: string,
@@ -14,7 +16,9 @@ export interface UserInterface {
 
 export interface UserQueryInterface extends UserInterface {
     limit: string,
-    page: string
+    page: string,
+    level?: users_level
+    verified?: user_verifed
 }
 
 export interface UserBodyInterface {

@@ -23,6 +23,22 @@ model brands {
   @@index([userCreate], map: "brandUser")
 }
 
+model SubscriptionStore {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  storeId     String?  @db.VarChar(36)
+  startDate   DateTime? @db.Date
+  endDate     DateTime? @db.Date
+  userCreate  String?  @db.VarChar(36)
+  createdAt   DateTime @default(now()) @db.DateTime
+  updatedAt   DateTime @default(now()) @db.DateTime
+  deletedAt   DateTime? @db.DateTime
+
+  stores      stores?    @relation(fields: [storeId], references: [id])
+  users users? @relation(fields: [userCreate], references: [id])
+
+  @@map("subscriptionStore")
+}
+
 model categories {
   id                              String    @id @db.VarChar(36)
   ownerId                         String?   @db.VarChar(36)
@@ -302,6 +318,7 @@ model stores {
   sales          sales[]
   users          users            @relation(fields: [ownerId], references: [id], onDelete: Cascade, map: "storeUser")
   variants       variants[]
+  subscriptionStores SubscriptionStore[]
 
   @@index([ownerId], map: "storeUser")
 }
@@ -381,6 +398,7 @@ model users {
   units                                    units[]
   units_units_ownerIdTousers               units[]                @relation("units_ownerIdTousers")
   variants                                 variants[]
+  subscriptionsStores SubscriptionStore[]
 }
 
 model variants {

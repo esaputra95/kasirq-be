@@ -22,6 +22,8 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
         query.username ? filter = {...filter, username: { contains: query.username }} : null
         query.email ? filter = {...filter, email: { contains: query.email }} : null
         query.phone ? filter = {...filter, phone: { contains: query.phone }} : null
+        query.level ? filter ={...filter, level: query.level} : null
+        query.verified ? filter ={...filter, verified: query.verified} : null
         // query.storeId ? filter = {...filter, storeId: query.storeId} : null;
         const data = await Model.users.findMany({
             where: {
@@ -54,7 +56,8 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
                 info:{
                     page: page,
                     limit: take,
-                    total: total
+                    total: total,
+                    totalPage: Math.round(total/take)
                 }
             }
         })

@@ -22,6 +22,10 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
         query.email ? filter = {...filter, email: { contains: query.email }} : null
         query.phone ? filter = {...filter, phone: { contains: query.phone }} : null
         query.storeId ? filter = {...filter, storeId: query.storeId} : null;
+        query.level ? filter = {...filter, level: query.level} : null;
+
+        console.log({filter});
+        
         const data = await Model.users.findMany({
             where: {
                 ...filter,
