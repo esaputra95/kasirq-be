@@ -14,13 +14,16 @@ const getData = async (req: Request, res: Response) => {
                 sales.date,
                 sales.invoice,
                 saleDetails.id,
-                sales.discount
+                sales.discount,
+                products.name
             FROM 
                 saleDetails
             LEFT JOIN 
                 cogs ON cogs.saleDetailId = saleDetails.id
             LEFT JOIN 
                 sales ON sales.id = saleDetails.saleId
+            LEFT JOIN 
+                products ON products.id = saleDetails.productId
             WHERE 
                 sales.date BETWEEN ${moment(
                     query?.start + " 00:00:00"
