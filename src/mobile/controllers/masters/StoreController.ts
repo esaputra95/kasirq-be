@@ -35,7 +35,7 @@ const getSelect = async (_req: Request, res: Response) => {
         } else if (res.locals.level === "owner") {
             const data = await Model.stores.findMany({
                 where: {
-                    id: res.locals.userId ?? "",
+                    ownerId: res.locals.userId,
                     expiredDate: {
                         gte: moment().format(),
                     },
