@@ -50,6 +50,15 @@ const getSelect = async (_req: Request, res: Response) => {
                     },
                 ];
             }
+            for (const value of data) {
+                dataOption = [
+                    ...dataOption,
+                    {
+                        key: value.id,
+                        value: value.name,
+                    },
+                ];
+            }
         } else {
             const data = await Model.stores.findMany({
                 where: {
