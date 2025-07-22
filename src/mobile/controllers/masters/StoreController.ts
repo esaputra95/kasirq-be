@@ -32,33 +32,6 @@ const getSelect = async (_req: Request, res: Response) => {
                     },
                 ];
             }
-        } else if (res.locals.level === "owner") {
-            const data = await Model.stores.findMany({
-                where: {
-                    ownerId: res.locals.userId,
-                    expiredDate: {
-                        gte: moment().format(),
-                    },
-                },
-            });
-            for (const value of data) {
-                dataOption = [
-                    ...dataOption,
-                    {
-                        key: value.id,
-                        value: value.name,
-                    },
-                ];
-            }
-            for (const value of data) {
-                dataOption = [
-                    ...dataOption,
-                    {
-                        key: value.id,
-                        value: value.name,
-                    },
-                ];
-            }
         } else {
             const data = await Model.stores.findMany({
                 where: {
