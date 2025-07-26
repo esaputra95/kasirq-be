@@ -21,6 +21,21 @@ export const handleErrorMessage = async (res: Response, error: any) => {
         message = { ...message, msg: error.message };
     }
 
+    if (error instanceof ValidationError) {
+        return res.status(error.statusCode).json({
+            status: false,
+            message: "error",
+            errors: [
+                {
+                    type: "field",
+                    msg: error.message,
+                    path: error.path,
+                    location: "body",
+                },
+            ],
+        });
+    }
+
     /* 📄― Validasi skema Prisma (mis. field hilang) */
     if (error instanceof Prisma.PrismaClientValidationError) {
         statusCode = 400;
@@ -227,5 +242,20 @@ export class UnauthorizedError extends Error {
         super(message);
         this.name = "UnauthorizedError";
         this.statusCode = statusCode;
+    }
+}
+
+export class ValidationError extends Error {
+    statusCode: number;
+    path: string;
+
+    constructor(message: string, statusCode = 400, path = "") {
+        super(message);
+        this.name = "Valiation Error";
+        this.statusCode = statusCode;
+        this.path = path;
+
+        // Optional: hanya supaya error bisa ditangkap dengan `instanceof`
+        Object.setPrototypeOf(this, ValidationError.prototype);
     }
 }

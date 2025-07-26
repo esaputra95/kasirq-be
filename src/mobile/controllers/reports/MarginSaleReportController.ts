@@ -10,7 +10,7 @@ const getData = async (req: Request, res: Response) => {
         const results: any[] = await Model.$queryRaw`
             SELECT 
                 saleDetails.quantity * saleDetails.price AS sell,
-                SUM(cogs.price * cogs.quantity) AS capital,
+                SUM(COALESCE(cogs.price, 0) * COALESCE(cogs.quantity, 0)) AS capital,
                 sales.date,
                 sales.invoice,
                 saleDetails.id,
@@ -32,6 +32,8 @@ const getData = async (req: Request, res: Response) => {
             GROUP BY saleDetails.id
             ORDER BY sales.createdAt DESC
         `;
+
+        console.log(JSON.stringify(results));
 
         const total =
             results?.length > 0
