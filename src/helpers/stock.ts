@@ -78,8 +78,23 @@ const DecrementStock = async (
             where: {
                 productId: productId,
             },
+            select: {
+                id: true,
+                quantity: true,
+                products: {
+                    select: {
+                        isStock: true,
+                        id: true,
+                    },
+                },
+            },
         });
-
+        if (checkStock?.products?.isStock && checkStock.quantity < quantity) {
+            return {
+                status: false,
+                message: "Stok tidak cukup",
+            };
+        }
         if (!checkStock) {
             await prisma.stocks.create({
                 data: {
@@ -137,6 +152,30 @@ const GetHpp = async ({
             where: {
                 id: productId,
             },
+            select: {
+                id: true,
+                isStock: true,
+                productConversions: {
+                    select: {
+                        productPurchasePrices: {
+                            select: {
+                                price: true,
+                            },
+                        },
+                    },
+                },
+            },
+            // include: {
+            //     stocks: true,
+            //     productConversions: {
+            //         include: {
+            //             productPurchasePrices: true,
+            //         },
+            //         orderBy: {
+            //             quantity: "asc",
+            //         },
+            //     },
+            // },
         });
 
         if (checkProductStatus?.isStock) {
@@ -187,7 +226,9 @@ const GetHpp = async ({
                     {
                         hppHistoryId: null,
                         quantity: quantityNeed,
-                        price: 0,
+                        price:
+                            checkProductStatus?.productConversions?.[0]
+                                ?.productPurchasePrices?.[0].price ?? 0,
                     },
                 ],
             };
