@@ -6,9 +6,14 @@ import { errorType } from "#root/helpers/errorType";
 import { v4 as uuidv4 } from "uuid";
 import { SalesQueryInterface } from "#root/interfaces/sales/SalesInterface";
 import moment from "moment";
+import momentT from "moment-timezone";
+import "moment/locale/id";
 import { DecrementStock, GetHpp, IncrementStock } from "#root/helpers/stock";
 import formatter from "#root/helpers/formatCurrency";
-import { handleErrorMessage } from "#root/helpers/handleErrors";
+import {
+    handleErrorMessage,
+    ValidationError,
+} from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
 
 const getData = async (
@@ -120,12 +125,20 @@ const postData = async (req: Request, res: Response) => {
                     );
                 }
 
-                const increment = await DecrementStock(
+                const decrement = await DecrementStock(
                     prisma,
                     key,
                     data.storeId,
                     dataDetail[key].quantity * (conversion?.quantity ?? 1)
                 );
+
+                if (!decrement.status) {
+                    throw new ValidationError(
+                        JSON.stringify(decrement.message),
+                        400,
+                        "quantity"
+                    );
+                }
 
                 const hpp = await GetHpp({
                     prisma,
@@ -133,6 +146,8 @@ const postData = async (req: Request, res: Response) => {
                     quantityNeed: dataDetail[key].quantity,
                     productId: key,
                 });
+
+                console.log(JSON.stringify(hpp));
 
                 for (const value of hpp.hpp) {
                     if (value.hppHistoryId) {
@@ -143,6 +158,7 @@ const postData = async (req: Request, res: Response) => {
                                 saleDetailId: idDetail,
                                 price: value.price,
                                 quantity: value.quantity,
+                                createdAt: moment().format(),
                             },
                         });
                         await prisma.hppHistory.update({
@@ -155,11 +171,17 @@ const postData = async (req: Request, res: Response) => {
                                 id: value.hppHistoryId,
                             },
                         });
+                    } else {
+                        await prisma.cogs.create({
+                            data: {
+                                id: uuidv4(),
+                                saleDetailId: idDetail,
+                                price: value.price,
+                                quantity: value.quantity,
+                                createdAt: moment().format(),
+                            },
+                        });
                     }
-                }
-
-                if (!increment.status) {
-                    throw increment.message;
                 }
             }
 
@@ -511,7 +533,9 @@ const getFacture = async (req: Request, res: Response) => {
                     date:
                         moment(data?.date).format("DD/MM/YYYY") +
                         " " +
-                        moment(data?.createdAt).format("HH:mm"),
+                        momentT(data?.createdAt)
+                            .tz("Asia/Jakarta")
+                            .format("HH:mm"),
                     total: formatter.format(parseInt(totalBelanja + "") ?? 0),
                     subTotal: formatter.format(parseInt(subTotal + "") ?? 0),
                     discount: formatter.format(parseInt(discount + "") ?? 0),
