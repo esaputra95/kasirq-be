@@ -462,6 +462,7 @@ const getFacture = async (req: Request, res: Response) => {
                 payCash: true,
                 discount: true,
                 createdAt: true,
+                members: true,
                 users: {
                     select: {
                         name: true,
@@ -544,6 +545,7 @@ const getFacture = async (req: Request, res: Response) => {
                     id: data?.id,
                     user: data?.users?.name,
                     salesDetails: newData,
+                    member: data?.members?.name ?? '-'
                 },
                 store,
             },
