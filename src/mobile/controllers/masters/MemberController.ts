@@ -185,12 +185,14 @@ const getDataById = async (req:Request, res:Response) => {
 
 const getSelect = async (req:Request, res:Response) => {
     try {
+        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType)
         let filter:any={};
         req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
         let dataOption:any=[];
         const data = await Model.members.findMany({
             where: {
-                ...filter
+                ...filter,
+                ownerId: owner.id
             },
             take:10
         });
