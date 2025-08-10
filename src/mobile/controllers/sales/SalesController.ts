@@ -85,6 +85,7 @@ const postData = async (req: Request, res: Response) => {
                 date: moment().format(),
                 storeId: data.storeId,
                 accountCashId: data.accountId,
+                payMetodeId: data.accountId,
                 memberId: data.memberId,
                 invoice: invoice.invoice,
                 subTotal: parseInt(data.subTotal ?? 0),
@@ -463,6 +464,7 @@ const getFacture = async (req: Request, res: Response) => {
                 discount: true,
                 createdAt: true,
                 members: true,
+                invoice: true,
                 users: {
                     select: {
                         name: true,
@@ -490,6 +492,12 @@ const getFacture = async (req: Request, res: Response) => {
                         },
                     },
                 },
+                paymentMethod: {
+                    select:{
+                        id: true,
+                        name: true
+                    }
+                }
             },
         });
 
@@ -544,8 +552,10 @@ const getFacture = async (req: Request, res: Response) => {
                     change: formatter.format(parseInt(selisih + "") ?? 0),
                     id: data?.id,
                     user: data?.users?.name,
+                    member: data?.members?.name ?? 'Umum',
+                    paymentMethod: data?.paymentMethod?.name ?? 'Cash',
+                    invoice: data?.invoice,
                     salesDetails: newData,
-                    member: data?.members?.name ?? '-'
                 },
                 store,
             },

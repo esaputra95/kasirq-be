@@ -295,6 +295,7 @@ model sales {
   members              members?      @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleMember")
   stores               stores?       @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleStore")
   users                users?        @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleUser")
+  paymentMethod        account?        @relation(fields: [payMetodeId], references: [id],  map: "salePaymentMethod")
 
   @@index([memberId], map: "saleMember")
   @@index([storeId], map: "saleStore")
@@ -492,6 +493,7 @@ model account {
   createdAt DateTime? @db.DateTime(0)
   updatedAt DateTime? @db.DateTime(0)
   deletedAt DateTime? @db.DateTime(0)
+  sales sales[]
 }
 
 model debts {
