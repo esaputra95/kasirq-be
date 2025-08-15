@@ -96,7 +96,13 @@ const postData = async (req: Request, res: Response) => {
 
 const updateData = async (req: Request, res: Response) => {
     try {
-        const data = { ...req.body };
+        const ownerId: any = await getOwnerId(
+            res.locals.userId,
+            res.locals.userType
+        );
+        const data = { ...req.body, ownerId: ownerId.id };
+        delete data.storeId;
+        if (!ownerId.status) throw new Error("Owner not found");
         await Model.account.update({
             where: {
                 id: req.params.id,
@@ -108,6 +114,8 @@ const updateData = async (req: Request, res: Response) => {
             message: "successful in updated Account data",
         });
     } catch (error) {
+        console.log({ error });
+
         let message = errorType;
         message.message.msg = `${error}`;
         if (error instanceof Prisma.PrismaClientKnownRequestError) {

@@ -102,6 +102,7 @@ const postData = async (req: Request, res: Response) => {
             });
 
             for (const key in dataDetail) {
+                if(dataDetail[key].quantity===0) continue;
                 const idDetail = uuidv4();
                 await prisma.saleDetails.create({
                     data: {
@@ -147,8 +148,6 @@ const postData = async (req: Request, res: Response) => {
                     quantityNeed: dataDetail[key].quantity,
                     productId: key,
                 });
-
-                console.log(JSON.stringify(hpp));
 
                 for (const value of hpp.hpp) {
                     if (value.hppHistoryId) {
