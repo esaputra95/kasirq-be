@@ -73,7 +73,6 @@ const getData = async (
 const postData = async (req: Request, res: Response) => {
     const salesId = uuidv4();
     const data = req.body;
-    console.log(JSON.stringify(data));
 
     const transaction = async () => {
         const dataDetail = data.detailItem ?? [];
