@@ -102,7 +102,7 @@ const postData = async (req: Request, res: Response) => {
             });
 
             for (const key in dataDetail) {
-                if(dataDetail[key].quantity===0) continue;
+                if (dataDetail[key].quantity === 0) continue;
                 const idDetail = uuidv4();
                 await prisma.saleDetails.create({
                     data: {
@@ -463,6 +463,7 @@ const getFacture = async (req: Request, res: Response) => {
                 discount: true,
                 createdAt: true,
                 members: true,
+                description: true,
                 invoice: true,
                 users: {
                     select: {
@@ -492,11 +493,11 @@ const getFacture = async (req: Request, res: Response) => {
                     },
                 },
                 paymentMethod: {
-                    select:{
+                    select: {
                         id: true,
-                        name: true
-                    }
-                }
+                        name: true,
+                    },
+                },
             },
         });
 
@@ -551,10 +552,11 @@ const getFacture = async (req: Request, res: Response) => {
                     change: formatter.format(parseInt(selisih + "") ?? 0),
                     id: data?.id,
                     user: data?.users?.name,
-                    member: data?.members?.name ?? 'Umum',
-                    paymentMethod: data?.paymentMethod?.name ?? 'Cash',
+                    member: data?.members?.name ?? "Umum",
+                    paymentMethod: data?.paymentMethod?.name ?? "Cash",
                     invoice: data?.invoice,
                     salesDetails: newData,
+                    description: data?.description ?? "",
                 },
                 store,
             },
