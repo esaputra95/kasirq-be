@@ -286,6 +286,7 @@ model sales {
   accountDebitId       String?       @db.VarChar(36)
   accountCreditId      String?       @db.VarChar(36)
   accountDownPaymentId String?       @db.VarChar(36)
+  description          String?       @db.Text
   userCreate           String?       @db.VarChar(36)
   createdAt            DateTime?     @default(now()) @db.DateTime(0)
   updatedAt            DateTime?     @default(now()) @db.DateTime(0)
