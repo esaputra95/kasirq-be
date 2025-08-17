@@ -33,8 +33,6 @@ const getData = async (req: Request, res: Response) => {
             ORDER BY sales.createdAt DESC
         `;
 
-        console.log(JSON.stringify(results));
-
         const total =
             results?.length > 0
                 ? results.reduce(
