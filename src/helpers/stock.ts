@@ -89,6 +89,13 @@ const DecrementStock = async (
                 },
             },
         });
+        if (!checkStock?.products?.isStock) {
+            return {
+                status: true,
+                message:
+                    "Tidak dapat mengurangi stok produk ini karena tidak menggunakan stok",
+            };
+        }
         if (checkStock?.products?.isStock && checkStock.quantity < quantity) {
             return {
                 status: false,
