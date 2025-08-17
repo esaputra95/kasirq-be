@@ -24,7 +24,6 @@ const Login = async (req: Request, res: Response) => {
         });
         if (!user)
             throw new UnauthorizedError("Username or password incorrect", 401);
-        console.log({ user });
 
         const match = await compare(data.password, user.password);
         if (!match) {
@@ -43,8 +42,6 @@ const Login = async (req: Request, res: Response) => {
 
         return res.json({ token: accessToken });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };
@@ -154,7 +151,6 @@ const RequestCode = async (req: Request, rest: Response) => {
 const VerificationCode = async (req: Request, res: Response) => {
     try {
         const body = req.body;
-        console.log({ body });
         const data = await Model.users.findFirst({
             where: {
                 token: body.code,
@@ -166,15 +162,12 @@ const VerificationCode = async (req: Request, res: Response) => {
                 status: false,
                 message: "Code invalid",
             });
-        console.log({ data });
 
         res.status(200).json({
             status: true,
             message: "Code Valid",
         });
     } catch (error) {
-        console.log({ error });
-
         res.status(500).json({
             status: false,
             message: `${error}`,
@@ -205,8 +198,6 @@ const ForgotPassword = async (req: Request, res: Response) => {
             message: "success update password",
         });
     } catch (error) {
-        console.log({ error });
-
         res.status(500).json({
             status: false,
             message: `${error}`,

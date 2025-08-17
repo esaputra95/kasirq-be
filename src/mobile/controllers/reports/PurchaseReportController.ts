@@ -7,8 +7,6 @@ const getData = async (req: Request, res: Response) => {
         let filter = {};
         const query = req.query;
 
-        console.log("query", query);
-
         query?.storeId
             ? (filter = {
                   ...filter,
@@ -21,8 +19,6 @@ const getData = async (req: Request, res: Response) => {
                   supplierId: query.supplierId,
               })
             : null;
-
-        console.log("filter", filter);
 
         const data = await Model.purchases.findMany({
             include: {
