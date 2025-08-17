@@ -133,6 +133,8 @@ const postData = async (req: Request, res: Response) => {
                     dataDetail[key].quantity * (conversion?.quantity ?? 1)
                 );
 
+                console.log({ decrement });
+
                 if (!decrement.status) {
                     throw new ValidationError(
                         JSON.stringify(decrement.message),
