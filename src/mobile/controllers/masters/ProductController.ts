@@ -157,7 +157,7 @@ const getProductSell = async (
         const skip: number = (page - 1) * take;
         // FILTER
         let filter: any = [];
-        query.code
+        query.name
             ? (filter = [...filter, { name: { contains: query.code } }])
             : null;
         query.code
@@ -167,6 +167,8 @@ const getProductSell = async (
             filter = {
                 OR: [...filter],
             };
+        } else {
+            filter = [];
         }
         const data = await Model.products.findMany({
             where: {
@@ -259,6 +261,8 @@ const getProductSell = async (
             },
         });
     } catch (error) {
+        console.log({ error });
+
         let message = errorType;
         message.message.msg = `${error}`;
         res.status(500).json({

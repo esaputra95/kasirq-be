@@ -671,7 +671,8 @@ const getFacture = async (req: Request, res: Response) => {
                     product: purchaseDetails[index].products.name,
                     quantity: purchaseDetails[index].quantity,
                     price: purchaseDetails[index].price,
-                    unit: purchaseDetails[index].productConversions?.units.name,
+                    unit: purchaseDetails[index].productConversions?.units
+                        ?.name,
                 },
             ];
         }

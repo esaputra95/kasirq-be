@@ -10,6 +10,7 @@ import moment from "moment";
 import {
     handleErrorMessage,
     UnauthorizedError,
+    ValidationError,
 } from "#root/helpers/handleErrors";
 
 const Login = async (req: Request, res: Response) => {
@@ -49,6 +50,16 @@ const Login = async (req: Request, res: Response) => {
 const RegisterOwner = async (req: Request, res: Response) => {
     try {
         const body = req.body;
+        const checkEmail = await Model.users.findFirst({
+            where: {
+                email: body.email,
+            },
+        });
+
+        if (checkEmail) {
+            throw new ValidationError("Email already exists", 400, "email");
+        }
+
         const salt = await genSalt();
         body.password = await hash(body.password, salt);
         const token = Math.random().toString(36).substring(2, 7);
@@ -83,10 +94,7 @@ const RegisterOwner = async (req: Request, res: Response) => {
             data: data,
         });
     } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: `${error}`,
-        });
+        handleErrorMessage(res, error);
     }
 };
 

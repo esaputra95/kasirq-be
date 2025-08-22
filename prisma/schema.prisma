@@ -101,7 +101,7 @@ model productConversions {
   updatedAt            DateTime?              @default(now()) @db.DateTime(0)
   deletedAt            DateTime?              @db.DateTime(0)
   products products @relation(fields: [productId], references: [id])
-  units units @relation(fields: [unitId], references: [id])
+  units units? @relation(fields: [unitId], references: [id])
   productPurchasePrices productPurchasePrices[]
   productSellPrices productSellPrices[]
   itemInDetails        itemInDetails[]
