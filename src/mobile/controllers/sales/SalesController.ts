@@ -525,7 +525,7 @@ const getFacture = async (req: Request, res: Response) => {
                     price: formatter.format(
                         parseInt(salesDetails[index].price + "") ?? 0
                     ),
-                    unit: salesDetails[index].productConversions?.units.name,
+                    unit: salesDetails[index].productConversions?.units?.name,
                 },
             ];
         }
