@@ -157,7 +157,7 @@ const getProductSell = async (
         const skip: number = (page - 1) * take;
         // FILTER
         let filter: any = [];
-        query.name
+        query.code
             ? (filter = [...filter, { name: { contains: query.code } }])
             : null;
         query.code
