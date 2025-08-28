@@ -170,6 +170,9 @@ const GetHpp = async ({
                             },
                         },
                     },
+                    orderBy: {
+                        quantity: "asc",
+                    },
                 },
             },
             // include: {
