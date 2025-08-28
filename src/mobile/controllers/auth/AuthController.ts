@@ -20,11 +20,12 @@ const Login = async (req: Request, res: Response) => {
         const user = await Model.users.findFirst({
             where: {
                 email: data.email,
-                verified: "active",
             },
         });
         if (!user)
             throw new UnauthorizedError("Username or password incorrect", 401);
+        if (user.verified !== "active") 
+            throw new UnauthorizedError("Please verify your account", 401);
 
         const match = await compare(data.password, user.password);
         if (!match) {
