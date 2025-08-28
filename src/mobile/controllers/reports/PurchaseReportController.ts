@@ -23,6 +23,11 @@ const getData = async (req: Request, res: Response) => {
         const data = await Model.purchases.findMany({
             include: {
                 suppliers: true,
+                purchaseDetails: {
+                    include: {
+                        products: true,
+                    },
+                },
             },
             where: {
                 date: {
