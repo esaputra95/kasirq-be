@@ -147,7 +147,8 @@ const postData = async (req: Request, res: Response) => {
                 const hpp = await GetHpp({
                     prisma,
                     storeId: data.storeId,
-                    quantityNeed: dataDetail[key].quantity,
+                    quantityNeed:
+                        dataDetail[key].quantity * conversion?.quantity,
                     productId: key,
                 });
 
