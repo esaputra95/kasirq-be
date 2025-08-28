@@ -5,16 +5,14 @@ import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
-import getOwnerId from "#root/helpers/GetOwnerId";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 
-const getData = async (req: Request<{}, {}, {}, UserQueryInterface>, res: Response) => {
+const getData = async (
+    req: Request<{}, {}, {}, UserQueryInterface>,
+    res: Response
+) => {
     try {
         const q: Partial<UserQueryInterface> = req.query ?? {};
-
-        // resolve owner id (for cashier userType)
-        const ownerResult: any = await getOwnerId(res.locals.userId, res.locals.userType);
-        const ownerId = ownerResult?.id ?? null;
 
         // paging - ensure sensible defaults and safe parsing
         const limit = Math.max(1, Number(q.limit ?? 20));
@@ -23,7 +21,7 @@ const getData = async (req: Request<{}, {}, {}, UserQueryInterface>, res: Respon
 
         // build filter incrementally
         const filter: any = {};
-        if (ownerId) filter.ownerId = ownerId;
+        // if (ownerId) filter.ownerId = ownerId;
         if (q.name) filter.name = { contains: q.name };
         if (q.username) filter.username = { contains: q.username };
         if (q.email) filter.email = { contains: q.email };
@@ -32,14 +30,16 @@ const getData = async (req: Request<{}, {}, {}, UserQueryInterface>, res: Respon
         if (q.verified) filter.verified = q.verified;
         if (q.createdAt) {
             const created = new Date(q.createdAt as any);
-            if (!Number.isNaN(created.getTime())) filter.createdAt = { gte: created };
+            if (!Number.isNaN(created.getTime()))
+                filter.createdAt = { gte: created };
         }
 
         // ordering
-        const validSort = q.sort === 'asc' || q.sort === 'desc';
-        const orderBy = q.sortby && validSort
-            ? { [q.sortby]: q.sort as Prisma.SortOrder }
-            : { createdAt: 'desc' as Prisma.SortOrder };
+        const validSort = q.sort === "asc" || q.sort === "desc";
+        const orderBy =
+            q.sortby && validSort
+                ? { [q.sortby]: q.sort as Prisma.SortOrder }
+                : { createdAt: "desc" as Prisma.SortOrder };
 
         const data = await Model.users.findMany({
             where: filter,
@@ -65,7 +65,7 @@ const getData = async (req: Request<{}, {}, {}, UserQueryInterface>, res: Respon
 
         res.status(200).json({
             status: true,
-            message: 'successful in getting user data',
+            message: "successful in getting user data",
             data: {
                 UserManagement: data,
                 info: {
@@ -81,127 +81,117 @@ const getData = async (req: Request<{}, {}, {}, UserQueryInterface>, res: Respon
     }
 };
 
-const postData = async (req:Request, res:Response) => {
+const postData = async (req: Request, res: Response) => {
     try {
         const salt = await bcrypt.genSalt();
         const newPass = await bcrypt.hash(req.body.password, salt);
         const data = { ...req.body, password: newPass };
-        await Model.users.create({data: {
-            email: data.email,
-            username: data.email,
-            password: newPass,
-            storeId: data.storeId,
-            name: data.name,
-            level: data.level,
-            verified: 'active'
-        }});
+        await Model.users.create({
+            data: {
+                email: data.email,
+                username: data.email,
+                password: newPass,
+                storeId: data.storeId,
+                name: data.name,
+                level: data.level,
+                verified: "active",
+            },
+        });
         res.status(200).json({
             status: true,
-            message: 'successful in created user data'
-        })
+            message: "successful in created user data",
+        });
     } catch (error) {
-        handleErrorMessage(res, error)
+        handleErrorMessage(res, error);
     }
-}
+};
 
-const updateData = async (req:Request, res:Response) => {
+const updateData = async (req: Request, res: Response) => {
     try {
         const salt = await bcrypt.genSalt();
-        const data = { ...req.body};
-        if(!req.body.password){
-            delete data.password
-        }else{
+        const data = { ...req.body };
+        if (!req.body.password) {
+            delete data.password;
+        } else {
             data.password = await bcrypt.hash(req.body.password, salt);
         }
         await Model.users.update({
             where: {
-                id: req.params.id
+                id: req.params.id,
             },
-            data: data
+            data: data,
         });
         res.status(200).json({
             status: true,
-            message: 'successful in updated user data'
-        })
+            message: "successful in updated user data",
+        });
     } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
+        let message = errorType;
+        message.message.msg = `${error}`;
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const deleteData = async (req:Request, res:Response)=> {
+const deleteData = async (req: Request, res: Response) => {
     try {
         await Model.users.delete({
             where: {
-                id: req.params.id
-            }
-        })
+                id: req.params.id,
+            },
+        });
         res.status(200).json({
             status: false,
-            message: 'successfully in deleted user data'
-        })
+            message: "successfully in deleted user data",
+        });
     } catch (error) {
         let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
+            status: 500,
+            message: { msg: `${error}` },
+        };
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const getDataById = async (req:Request, res:Response) => {
+const getDataById = async (req: Request, res: Response) => {
     try {
         const model = await Model.users.findUnique({
             where: {
-                id: req.params.id
-            }
-        })
-        if(!model) throw new Error('data not found')
+                id: req.params.id,
+            },
+        });
+        if (!model) throw new Error("data not found");
         res.status(200).json({
             status: true,
-            message: 'successfully in get user data',
+            message: "successfully in get user data",
             data: {
-                UserManagement: model
-            }
-        })
+                UserManagement: model,
+            },
+        });
     } catch (error) {
         let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
+            status: 500,
+            message: { msg: `${error}` },
+        };
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-export {
-    getData,
-    postData,
-    updateData,
-    deleteData,
-    getDataById
-}
+export { getData, postData, updateData, deleteData, getDataById };
