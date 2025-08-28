@@ -8,27 +8,41 @@ import { errorType } from "#root/helpers/errorType";
 import getOwnerId from "#root/helpers/GetOwnerId";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 
-const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response) => {
+const getData = async (req: Request<{}, {}, {}, UserQueryInterface>, res: Response) => {
     try {
-        const query = req.query;
-        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType)
-        // PAGING
-        const take:number = parseInt(query.limit ?? 20 )
-        const page:number = parseInt(query.page ?? 1 );
-        const skip:number = (page-1)*take
-        // FILTER
-        let filter:any= {}
-        query.name ? filter = {...filter, name: { contains: query.name }} : null
-        query.username ? filter = {...filter, username: { contains: query.username }} : null
-        query.email ? filter = {...filter, email: { contains: query.email }} : null
-        query.phone ? filter = {...filter, phone: { contains: query.phone }} : null
-        query.level ? filter ={...filter, level: query.level} : null
-        query.verified ? filter ={...filter, verified: query.verified} : null
-        // query.storeId ? filter = {...filter, storeId: query.storeId} : null;
+        const q: Partial<UserQueryInterface> = req.query ?? {};
+
+        // resolve owner id (for cashier userType)
+        const ownerResult: any = await getOwnerId(res.locals.userId, res.locals.userType);
+        const ownerId = ownerResult?.id ?? null;
+
+        // paging - ensure sensible defaults and safe parsing
+        const limit = Math.max(1, Number(q.limit ?? 20));
+        const page = Math.max(1, Number(q.page ?? 1));
+        const skip = (page - 1) * limit;
+
+        // build filter incrementally
+        const filter: any = {};
+        if (ownerId) filter.ownerId = ownerId;
+        if (q.name) filter.name = { contains: q.name };
+        if (q.username) filter.username = { contains: q.username };
+        if (q.email) filter.email = { contains: q.email };
+        if (q.phone) filter.phone = { contains: q.phone };
+        if (q.level) filter.level = q.level;
+        if (q.verified) filter.verified = q.verified;
+        if (q.createdAt) {
+            const created = new Date(q.createdAt as any);
+            if (!Number.isNaN(created.getTime())) filter.createdAt = { gte: created };
+        }
+
+        // ordering
+        const validSort = q.sort === 'asc' || q.sort === 'desc';
+        const orderBy = q.sortby && validSort
+            ? { [q.sortby]: q.sort as Prisma.SortOrder }
+            : { createdAt: 'desc' as Prisma.SortOrder };
+
         const data = await Model.users.findMany({
-            where: {
-                ...filter,
-            },
+            where: filter,
             select: {
                 id: true,
                 name: true,
@@ -38,40 +52,34 @@ const getData = async (req:Request<{}, {}, {}, UserQueryInterface>, res:Response
                 token: true,
                 username: true,
                 storeId: true,
-                verified: true
+                verified: true,
+                createdAt: true,
+                updatedAt: true,
             },
-            skip: skip,
-            take: take
+            skip,
+            take: limit,
+            orderBy,
         });
-        const total = await Model.users.count({
-            where: {
-                ...filter,
-            }
-        })
+
+        const total = await Model.users.count({ where: filter });
+
         res.status(200).json({
             status: true,
-            message: "successful in getting user data",
+            message: 'successful in getting user data',
             data: {
                 UserManagement: data,
-                info:{
-                    page: page,
-                    limit: take,
-                    total: total,
-                    totalPage: Math.round(total/take)
-                }
-            }
-        })
+                info: {
+                    page,
+                    limit,
+                    total,
+                    totalPage: Math.ceil(total / limit),
+                },
+            },
+        });
     } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+        handleErrorMessage(res, error);
     }
-}
+};
 
 const postData = async (req:Request, res:Response) => {
     try {
