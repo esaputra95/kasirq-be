@@ -5,7 +5,6 @@ import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
-import getOwnerId from "#root/helpers/GetOwnerId";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 
 const getData = async (
@@ -14,13 +13,6 @@ const getData = async (
 ) => {
     try {
         const q: Partial<UserQueryInterface> = req.query ?? {};
-
-        // resolve owner id (for cashier userType)
-        // const ownerResult: any = await getOwnerId(
-        //     res.locals.userId,
-        //     res.locals.userType
-        // );
-        // const ownerId = ownerResult?.id ?? null;
 
         // paging - ensure sensible defaults and safe parsing
         const limit = Math.max(1, Number(q.limit ?? 20));
