@@ -44,6 +44,9 @@ const getData = async (
             orderBy: {
                 createdAt: "desc",
             },
+            include: {
+                members: true,
+            },
             skip: skip,
             take: take,
         });
@@ -132,8 +135,6 @@ const postData = async (req: Request, res: Response) => {
                     data.storeId,
                     dataDetail[key].quantity * (conversion?.quantity ?? 1)
                 );
-
-                console.log({ decrement });
 
                 if (!decrement.status) {
                     throw new ValidationError(

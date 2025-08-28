@@ -32,7 +32,22 @@ const getData = async (req: Request, res: Response) => {
             GROUP BY saleDetails.id
             ORDER BY sales.createdAt DESC
         `;
+        const totalSale =
+            results?.length > 0
+                ? results.reduce(
+                      (total, val) => (total ?? 0) + parseInt(val?.sell ?? 0),
+                      0
+                  )
+                : 0;
 
+        const totalCapital =
+            results?.length > 0
+                ? results.reduce(
+                      (total, val) =>
+                          (total ?? 0) + parseInt(val?.capital ?? 0),
+                      0
+                  )
+                : 0;
         const total =
             results?.length > 0
                 ? results.reduce(
@@ -54,6 +69,8 @@ const getData = async (req: Request, res: Response) => {
         res.status(200).json({
             status: true,
             data: {
+                totalSale,
+                totalCapital,
                 margin: results,
                 total: total,
                 discount: discount,

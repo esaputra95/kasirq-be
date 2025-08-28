@@ -38,7 +38,7 @@ const getData = async (req: Request, res: Response) => {
                 },
             },
             where: {
-                date: {
+                createdAt: {
                     gte: start,
                     lte: end,
                 },
