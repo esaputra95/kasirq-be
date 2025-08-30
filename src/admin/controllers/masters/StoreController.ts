@@ -1,5 +1,7 @@
+import { deleteStoreAndRelatedData } from "#root/helpers/deleteRelation";
 import { errorType } from "#root/helpers/errorType";
 import getOwnerId from "#root/helpers/GetOwnerId";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { StoreQueryInterface } from "#root/interfaces/masters/StoreInterface";
 import Model from "#root/services/PrismaService";
@@ -91,10 +93,15 @@ const getData = async (
                 OR: [...filter],
             };
         }
+        if (res.locals.level === "owner") {
+            filter = {
+                ...filter,
+                ownerId: owner.id,
+            };
+        }
         const data = await Model.stores.findMany({
             where: {
                 ...filter,
-                ownerId: owner.id,
             },
             skip: skip,
             take: take,
@@ -161,48 +168,33 @@ const updateData = async (req: Request, res: Response) => {
             where: {
                 id: req.params.id,
             },
-            data: data,
+            data: {
+                address: data.address,
+                expiredDate: data.expiredDate,
+                name: data.name,
+            },
         });
         res.status(200).json({
             status: true,
             message: "successful in updated Stores data",
         });
     } catch (error) {
-        let message = errorType;
-        message.message.msg = `${error}`;
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message = await handleValidationError(error);
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [message.message],
-        });
+        handleErrorMessage(res, error);
     }
 };
 
 const deleteData = async (req: Request, res: Response) => {
     try {
-        await Model.stores.delete({
-            where: {
-                id: req.params.id,
-            },
+        await Model.$transaction(async (prisma) => {
+            await deleteStoreAndRelatedData(prisma, req.params.id);
         });
+
         res.status(200).json({
-            status: false,
-            message: "successfully in deleted Member data",
+            status: true,
+            message: "Berhasil menghapus data store dan seluruh data terkait",
         });
     } catch (error) {
-        let message = {
-            status: 500,
-            message: { msg: `${error}` },
-        };
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message = await handleValidationError(error);
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [message.message],
-        });
+        handleErrorMessage(res, error);
     }
 };
 
@@ -237,4 +229,12 @@ const getDataById = async (req: Request, res: Response) => {
     }
 };
 
-export { getData, getDataById, postData, updateData, getSelect, deleteData };
+export {
+    getData,
+    getDataById,
+    postData,
+    updateData,
+    getSelect,
+    deleteData,
+    deleteStoreAndRelatedData,
+};
