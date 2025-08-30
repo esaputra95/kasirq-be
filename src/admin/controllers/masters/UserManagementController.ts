@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
+import { deleteUserAndRelatedData } from "#root/helpers/deleteRelation";
 
 const getData = async (
     req: Request<{}, {}, {}, UserQueryInterface>,
@@ -140,27 +141,16 @@ const updateData = async (req: Request, res: Response) => {
 
 const deleteData = async (req: Request, res: Response) => {
     try {
-        await Model.users.delete({
-            where: {
-                id: req.params.id,
-            },
+        await Model.$transaction(async (prisma) => {
+            await deleteUserAndRelatedData(prisma, req.params.id);
         });
+
         res.status(200).json({
-            status: false,
-            message: "successfully in deleted user data",
+            status: true,
+            message: "Berhasil menghapus user dan seluruh data terkait",
         });
     } catch (error) {
-        let message = {
-            status: 500,
-            message: { msg: `${error}` },
-        };
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message = await handleValidationError(error);
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [message.message],
-        });
+        handleErrorMessage(res, error);
     }
 };
 
