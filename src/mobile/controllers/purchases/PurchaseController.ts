@@ -486,45 +486,46 @@ const updateData = async (req: Request, res: Response) => {
 
 const deleteData = async (req: Request, res: Response) => {
     try {
-        const model = await Model.purchases.findUnique({
-            where: {
-                id: req.params.id,
-            },
-            include: {
-                purchaseDetails: true,
-            },
-        });
-        const detail = model?.purchaseDetails ?? [];
-
-        for (const value of detail) {
-            const conversion = await Model.productConversions.findFirst({
-                where: {
-                    id: value.productConversionId ?? "",
-                },
+        await Model.$transaction(async (prisma) => {
+            const model = await prisma.purchases.findUnique({
+                where: { id: req.params.id },
+                include: { purchaseDetails: true },
             });
 
-            await Model.hppHistory.deleteMany({
-                where: {
-                    transactionDetailId: value.id,
-                },
-            });
+            if (!model) {
+                throw new Error("data not found");
+            }
 
-            await DecrementStock(
-                Model,
-                value.productId,
-                model?.storeId ?? "",
-                parseInt(value.quantity + "") * (conversion?.quantity ?? 1)
-            );
-        }
-        await Model.purchases.delete({
-            where: {
-                id: req.params.id,
-            },
+            const detail = model.purchaseDetails ?? [];
+
+            for (const value of detail) {
+                const conversion = await prisma.productConversions.findFirst({
+                    where: { id: value.productConversionId ?? "" },
+                });
+
+                // Hapus HPP history yang terkait detail ini
+                await prisma.hppHistory.deleteMany({
+                    where: { transactionDetailId: value.id },
+                });
+
+                // Kembalikan stok sesuai konversi
+                await DecrementStock(
+                    prisma,
+                    value.productId,
+                    model.storeId ?? "",
+                    Number(value.quantity) * (conversion?.quantity ?? 1)
+                );
+            }
+
+            // Hapus header purchase (detail akan mengikuti kebijakan FK di DB)
+            await prisma.purchases.delete({
+                where: { id: req.params.id },
+            });
         });
 
         res.status(200).json({
-            status: false,
-            message: "successfully in deleted Brand data",
+            status: true,
+            message: "successfully deleted Purchase data",
         });
     } catch (error) {
         let message = {
