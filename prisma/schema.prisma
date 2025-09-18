@@ -86,6 +86,7 @@ model members {
   users                        users?       @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "memberUser")
   users_members_ownerIdTousers users?       @relation("members_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "members_ibfk_1")
   sales                        sales[]
+  salePending   salePending[]
 
   @@index([userCreate], map: "memberUser")
 }
@@ -110,6 +111,7 @@ model productConversions {
   purchaseDetails      purchaseDetails[]
   purchaseOrderDetails purchaseOrderDetails[]
   saleDetails          saleDetails[]
+  salePendingDetails salePendingDetails[]
 
   @@index([productId], map: "productConversionProduct")
   @@index([unitId], map: "productConversionUnit")
@@ -167,6 +169,7 @@ model products {
   purchaseDetails      purchaseDetails[]
   purchaseOrderDetails purchaseOrderDetails[]
   saleDetails          saleDetails[]
+  salePendingDetails   salePendingDetails[]
 
   @@index([ownerId], map: "productStore")
   @@index([userCreate], map: "productUser")
@@ -263,6 +266,32 @@ model saleDetails {
   @@index([userCreate], map: "saleDetailUser")
   @@index([productConversionId], map: "saleDetailVariant")
 }
+model salePendingDetails {
+  id                  String              @id @db.VarChar(36)
+  saleId              String              @db.VarChar(36)
+  productId           String              @db.VarChar(36)
+  productConversionId String?             @db.VarChar(36)
+  quantityOrder       Decimal?            @db.Decimal(14, 4)
+  quantity            Decimal?            @db.Decimal(14, 4)
+  price               Decimal?            @db.Decimal(14, 4)
+  discount            Decimal?            @db.Decimal(14, 4)
+  total               Decimal?            @db.Decimal(14, 4)
+  expiredDate         DateTime?           @db.Date
+  status              saleDetails_status? @default(ordered)
+  userCreate          String?             @db.VarChar(36)
+  createdAt           DateTime?           @default(now()) @db.DateTime(0)
+  updatedAt           DateTime?           @default(now()) @db.DateTime(0)
+  deletedAt           DateTime?           @db.DateTime(0)
+  products            products            @relation(fields: [productId], references: [id], onUpdate: Restrict, map: "saleDetailPendingProduct")
+  salePending               salePending               @relation(fields: [saleId], references: [id], onDelete: Cascade, map: "saleDetailPendingSale")
+  users               users?              @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleDetailPendingUser")
+  productConversions  productConversions? @relation(fields: [productConversionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salependingdetail_ibfk_1")
+
+  @@index([productId], map: "salePendingDetailProduct")
+  @@index([saleId], map: "salePendingDetailSale")
+  @@index([userCreate], map: "salePendingDetailUser")
+  @@index([productConversionId], map: "salePendingDetailVariant")
+}
 
 model sales {
   id                   String        @id @db.VarChar(36)
@@ -302,6 +331,43 @@ model sales {
   @@index([storeId], map: "saleStore")
   @@index([userCreate], map: "saleUser")
 }
+model salePending {
+  id                   String        @id @db.VarChar(36)
+  storeId              String?       @db.VarChar(36)
+  memberId             String?       @db.VarChar(36)
+  saleOrderId          String?       @db.VarChar(36)
+  date                 DateTime?     @db.Date
+  invoice              String?       @db.VarChar(100)
+  subTotal             Decimal?      @db.Decimal(14, 4)
+  tax                  Decimal?      @db.Decimal(14, 4)
+  discount             Decimal?      @db.Decimal(14, 4)
+  addtionalCost        Decimal?      @db.Decimal(14, 4)
+  shippingCost         Decimal?      @db.Decimal(14, 4)
+  total                Decimal?      @db.Decimal(14, 4)
+  downPayment          Decimal?      @db.Decimal(14, 4)
+  payCash              Decimal?      @db.Decimal(14, 4)
+  payCredit            Decimal?      @db.Decimal(14, 4)
+  payMetodeId          String?       @db.VarChar(36)
+  status               sales_status? @default(ordered)
+  accountCashId        String?       @db.VarChar(36)
+  accountDebitId       String?       @db.VarChar(36)
+  accountCreditId      String?       @db.VarChar(36)
+  accountDownPaymentId String?       @db.VarChar(36)
+  description          String?       @db.Text
+  userCreate           String?       @db.VarChar(36)
+  createdAt            DateTime?     @default(now()) @db.DateTime(0)
+  updatedAt            DateTime?     @default(now()) @db.DateTime(0)
+  deletedAt            DateTime?     @db.DateTime(0)
+  transactionNumber Int? @db.Int()
+  salePendingDetails          salePendingDetails[]
+  members              members?      @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingMember")
+  stores               stores?       @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingStore")
+  users                users?        @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingUser")
+
+  @@index([memberId], map: "salePendingMember")
+  @@index([storeId], map: "salePendingStore")
+  @@index([userCreate], map: "salePendingUser")
+}
 
 model stores {
   id             String           @id @db.VarChar(36)
@@ -318,6 +384,7 @@ model stores {
   purchaseOrders purchaseOrders[]
   purchases      purchases[]
   sales          sales[]
+  salePending salePending[]
   users          users            @relation(fields: [ownerId], references: [id], onDelete: Cascade, map: "storeUser")
   variants       variants[]
   subscriptionStores SubscriptionStore[]
@@ -401,6 +468,8 @@ model users {
   units_units_ownerIdTousers               units[]                @relation("units_ownerIdTousers")
   variants                                 variants[]
   subscriptionsStores SubscriptionStore[]
+  salePendingDetails salePendingDetails[]
+  salePending salePending[]
 }
 
 model variants {
@@ -692,6 +761,7 @@ enum products_consignmentType {
 enum sales_status {
   ordered
   finish
+  pending
 }
 
 enum users_level {
