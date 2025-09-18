@@ -1,6 +1,6 @@
 import Model from "#root/services/PrismaService";
 import { Request, Response } from "express";
-import { Prisma } from "@prisma/client";
+import { Prisma, sales_status } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
 import { v4 as uuidv4 } from "uuid";
@@ -36,9 +36,10 @@ const getData = async (
                 OR: [...filter],
             };
         }
-        const data = await Model.sales.findMany({
+        const data = await Model.salePending.findMany({
             where: {
                 ...filter,
+                status: "pending",
                 storeId: query.storeId,
             },
             orderBy: {
@@ -46,11 +47,20 @@ const getData = async (
             },
             include: {
                 members: true,
+                salePendingDetails: {
+                    include: {
+                        products: {
+                            include: {
+                                stocks: true,
+                            },
+                        },
+                    },
+                },
             },
             skip: skip,
             take: take,
         });
-        const total = await Model.sales.count({
+        const total = await Model.salePending.count({
             where: {
                 ...filter,
             },
@@ -58,7 +68,7 @@ const getData = async (
 
         res.status(200).json({
             status: true,
-            message: "successful in getting sales data",
+            message: "successful in getting sale pending data",
             data: {
                 sales: data,
                 info: {
@@ -83,7 +93,7 @@ const postData = async (req: Request, res: Response) => {
         return Model.$transaction(async (prisma) => {
             const invoice = await transactionNumber({
                 storeId: data.storeId,
-                module: "SALE",
+                module: "PENDING",
             });
             const salesData = {
                 id: salesId,
@@ -93,6 +103,7 @@ const postData = async (req: Request, res: Response) => {
                 payMetodeId: data.accountId,
                 memberId: data.memberId,
                 invoice: invoice.invoice,
+                status: "pending" as sales_status,
                 subTotal: parseInt(data.subTotal ?? 0),
                 total:
                     parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0),
@@ -102,25 +113,14 @@ const postData = async (req: Request, res: Response) => {
                 payCash: parseInt(data.pay ?? 0),
                 transactionNumber: invoice.transactionNumber,
             };
-            const createSales = await prisma.sales.create({
+            const createSales = await prisma.salePending.create({
                 data: salesData,
             });
-
-            if (data.salePendingId) {
-                await prisma.salePending.update({
-                    data: {
-                        status: "finish",
-                    },
-                    where: {
-                        id: data.salePendingId,
-                    },
-                });
-            }
 
             for (const key in dataDetail) {
                 if (dataDetail[key].quantity === 0) continue;
                 const idDetail = uuidv4();
-                await prisma.saleDetails.create({
+                await prisma.salePendingDetails.create({
                     data: {
                         id: idDetail,
                         saleId: salesData.id,
@@ -130,76 +130,6 @@ const postData = async (req: Request, res: Response) => {
                         price: dataDetail[key].price ?? 0,
                     },
                 });
-
-                const conversion = await prisma.productConversions.findFirst({
-                    where: {
-                        id: dataDetail[key].unitId,
-                    },
-                });
-
-                if (!conversion) {
-                    throw new Error(
-                        `Konversi produk dengan ID ${dataDetail[key].unitId} tidak ditemukan`
-                    );
-                }
-
-                const decrement = await DecrementStock(
-                    prisma,
-                    key,
-                    data.storeId,
-                    dataDetail[key].quantity * (conversion?.quantity ?? 1)
-                );
-
-                if (!decrement.status) {
-                    throw new ValidationError(
-                        JSON.stringify(decrement.message),
-                        400,
-                        "quantity"
-                    );
-                }
-
-                const hpp = await GetHpp({
-                    prisma,
-                    storeId: data.storeId,
-                    quantityNeed:
-                        dataDetail[key].quantity * conversion?.quantity,
-                    productId: key,
-                });
-
-                for (const value of hpp.hpp) {
-                    if (value.hppHistoryId) {
-                        await prisma.cogs.create({
-                            data: {
-                                id: uuidv4(),
-                                hppHistoryId: value.hppHistoryId,
-                                saleDetailId: idDetail,
-                                price: value.price,
-                                quantity: value.quantity,
-                                createdAt: moment().format(),
-                            },
-                        });
-                        await prisma.hppHistory.update({
-                            data: {
-                                quantityUsed: {
-                                    increment: value.quantity,
-                                },
-                            },
-                            where: {
-                                id: value.hppHistoryId,
-                            },
-                        });
-                    } else {
-                        await prisma.cogs.create({
-                            data: {
-                                id: uuidv4(),
-                                saleDetailId: idDetail,
-                                price: value.price,
-                                quantity: value.quantity,
-                                createdAt: moment().format(),
-                            },
-                        });
-                    }
-                }
             }
 
             return { createSales };
@@ -210,7 +140,7 @@ const postData = async (req: Request, res: Response) => {
         await transaction();
         res.status(200).json({
             status: true,
-            message: "Successful in created sales data",
+            message: "Successful in created sale pending data",
             data: salesId,
             remainder:
                 parseInt(data?.pay ?? 0) -
@@ -235,7 +165,7 @@ const updateData = async (req: Request, res: Response) => {
                     payCash: data.pay ?? 0,
                     total: data.total ?? 0,
                 };
-                const createsales = await prisma.sales.update({
+                const createsales = await prisma.salePending.update({
                     data: salesData,
                     where: {
                         id: salesId,
@@ -243,33 +173,17 @@ const updateData = async (req: Request, res: Response) => {
                 });
 
                 let createsalesDetails: any;
+                await prisma.salePendingDetails.deleteMany({
+                    where: {
+                        saleId: req.params.id,
+                    },
+                });
 
                 for (const key in dataDetail) {
-                    let idDetail = dataDetail[key].salesDetailId;
-                    if (idDetail) {
-                        if (dataDetail[key].quantity === 0) {
-                            await prisma.saleDetails.delete({
-                                where: {
-                                    id: idDetail,
-                                },
-                            });
-                        } else {
-                            createsalesDetails =
-                                await prisma.saleDetails.update({
-                                    data: {
-                                        quantity: dataDetail[key].quantity,
-                                        productConversionId:
-                                            dataDetail[key].unitId,
-                                        price: dataDetail[key].price ?? 0,
-                                    },
-                                    where: {
-                                        id: idDetail,
-                                    },
-                                });
-                        }
-                    } else {
-                        idDetail = uuidv4();
-                        createsalesDetails = await prisma.saleDetails.create({
+                    if (dataDetail[key].quantity === 0) continue;
+                    const idDetail = uuidv4();
+                    createsalesDetails = await prisma.salePendingDetails.create(
+                        {
                             data: {
                                 id: idDetail,
                                 saleId: salesId,
@@ -278,31 +192,8 @@ const updateData = async (req: Request, res: Response) => {
                                 quantity: dataDetail[key].quantity ?? 1,
                                 price: dataDetail[key].price ?? 0,
                             },
-                        });
-                    }
-
-                    const conversion =
-                        await prisma.productConversions.findFirst({
-                            where: {
-                                id: dataDetail[key].unitId,
-                            },
-                        });
-
-                    const increment = await IncrementStock(
-                        prisma,
-                        key,
-                        data.storeId,
-                        dataDetail[key].quantity * (conversion?.quantity ?? 1)
+                        }
                     );
-                    if (!increment.status) {
-                        throw increment.message;
-                    }
-                    // await prisma.hppHistory.create({
-                    //     data: {
-                    //         id: uuidv4(),
-                    //         // productConversionId:
-                    //     }
-                    // })
                 }
 
                 return { createsales, createsalesDetails };
