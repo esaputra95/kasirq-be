@@ -223,114 +223,221 @@ const postData = async (req: Request, res: Response) => {
 
 const updateData = async (req: Request, res: Response) => {
     try {
-        const data = { ...req.body };
-        const dataDetail = data.detailItem;
         const salesId = req.params.id;
-        const transaction = async () => {
-            // Mulai transaksi
-            await Model.$transaction(async (prisma) => {
-                const salesData = {
-                    supplierId: data.supplierId,
-                    discount: data.discount,
-                    payCash: data.pay ?? 0,
-                    total: data.total ?? 0,
-                };
-                const createsales = await prisma.sales.update({
-                    data: salesData,
-                    where: {
-                        id: salesId,
-                    },
-                });
+        const body = { ...req.body };
+        const detailInput = body.detailItem ?? {};
 
-                let createsalesDetails: any;
+        await Model.$transaction(async (prisma) => {
+            // Ambil data sales + detail lama
+            const existing = await prisma.sales.findUnique({
+                where: { id: salesId },
+                include: { saleDetails: true },
+            });
 
-                for (const key in dataDetail) {
-                    let idDetail = dataDetail[key].salesDetailId;
-                    if (idDetail) {
-                        if (dataDetail[key].quantity === 0) {
-                            await prisma.saleDetails.delete({
-                                where: {
-                                    id: idDetail,
-                                },
-                            });
-                        } else {
-                            createsalesDetails =
-                                await prisma.saleDetails.update({
-                                    data: {
-                                        quantity: dataDetail[key].quantity,
-                                        productConversionId:
-                                            dataDetail[key].unitId,
-                                        price: dataDetail[key].price ?? 0,
-                                    },
-                                    where: {
-                                        id: idDetail,
-                                    },
-                                });
+            if (!existing) throw new Error("sales data not found");
+
+            // --- Update header (totals) ---
+            const headerUpdate = {
+                discount: parseInt(body.discount ?? 0),
+                payCash: parseInt(body.pay ?? 0),
+                subTotal: parseInt(body.subTotal ?? 0),
+                total:
+                    parseInt(body.subTotal ?? 0) - parseInt(body.discount ?? 0),
+                memberId: body.memberId ?? existing.memberId,
+                description: body.description ?? existing.description,
+            } as const;
+
+            await prisma.sales.update({
+                where: { id: salesId },
+                data: headerUpdate,
+            });
+
+            // Index detail lama by id untuk memudahkan rekonsiliasi
+            const existingById = new Map(
+                (existing.saleDetails ?? []).map((d) => [d.id, d])
+            );
+
+            // Helper: hitung qty basis stok (konversi)
+            const getBaseQty = async (
+                conversionId: string | null,
+                qty: Prisma.Decimal | number
+            ) => {
+                const conv = conversionId
+                    ? await prisma.productConversions.findFirst({
+                          where: { id: conversionId },
+                          select: { quantity: true },
+                      })
+                    : null;
+                return Number(qty) * Number(conv?.quantity ?? 1);
+            };
+
+            // Proses semua item dari input (create/update/delete)
+            for (const productId in detailInput) {
+                const item = detailInput[productId];
+                const salesDetailId: string | undefined = item.salesDetailId;
+
+                // Jika ada id detail, berarti update/delete
+                if (salesDetailId) {
+                    const prev = existingById.get(salesDetailId);
+                    if (!prev) continue;
+
+                    // Jika quantity 0 => kembalikan stok lama & hapus
+                    if ((item.quantity ?? 0) === 0) {
+                        const prevBase = await getBaseQty(
+                            prev.productConversionId,
+                            prev.quantity ?? 0
+                        );
+
+                        const inc = await IncrementStock(
+                            prisma,
+                            prev.productId,
+                            existing.storeId ?? "",
+                            prevBase
+                        );
+                        if (!inc.status) {
+                            throw new Error(
+                                typeof inc.message === "string"
+                                    ? inc.message
+                                    : JSON.stringify(inc.message)
+                            );
                         }
-                    } else {
-                        idDetail = uuidv4();
-                        createsalesDetails = await prisma.saleDetails.create({
-                            data: {
-                                id: idDetail,
-                                saleId: salesId,
-                                productId: key,
-                                productConversionId: dataDetail[key].unitId,
-                                quantity: dataDetail[key].quantity ?? 1,
-                                price: dataDetail[key].price ?? 0,
-                            },
+
+                        await prisma.cogs.deleteMany({
+                            where: { saleDetailId: prev.id },
                         });
+                        await prisma.saleDetails.delete({
+                            where: { id: prev.id },
+                        });
+                        existingById.delete(salesDetailId);
+                        continue;
                     }
 
-                    const conversion =
-                        await prisma.productConversions.findFirst({
-                            where: {
-                                id: dataDetail[key].unitId,
-                            },
-                        });
-
-                    const increment = await IncrementStock(
-                        prisma,
-                        key,
-                        data.storeId,
-                        dataDetail[key].quantity * (conversion?.quantity ?? 1)
+                    // Update detail & sesuaikan stok berdasarkan selisih
+                    const newBase = await getBaseQty(
+                        item.unitId ?? null,
+                        item.quantity ?? 0
                     );
-                    if (!increment.status) {
-                        throw increment.message;
+                    const oldBase = await getBaseQty(
+                        prev.productConversionId,
+                        prev.quantity ?? 0
+                    );
+                    const diff = newBase - oldBase; // + berarti perlu kurangi stok, - berarti kembalikan stok
+
+                    await prisma.saleDetails.update({
+                        where: { id: prev.id },
+                        data: {
+                            productId,
+                            productConversionId: item.unitId,
+                            quantity: item.quantity ?? 1,
+                            price: item.price ?? 0,
+                        },
+                    });
+
+                    if (diff > 0) {
+                        const dec = await DecrementStock(
+                            prisma,
+                            productId,
+                            existing.storeId ?? "",
+                            diff
+                        );
+                        if (!dec.status) {
+                            throw new ValidationError(
+                                JSON.stringify(dec.message),
+                                400,
+                                "quantity"
+                            );
+                        }
+                    } else if (diff < 0) {
+                        const inc = await IncrementStock(
+                            prisma,
+                            productId,
+                            existing.storeId ?? "",
+                            Math.abs(diff)
+                        );
+                        if (!inc.status) {
+                            throw new Error(
+                                typeof inc.message === "string"
+                                    ? inc.message
+                                    : JSON.stringify(inc.message)
+                            );
+                        }
                     }
-                    // await prisma.hppHistory.create({
-                    //     data: {
-                    //         id: uuidv4(),
-                    //         // productConversionId:
-                    //     }
-                    // })
+
+                    // Catatan: perhitungan COGS/HPP untuk perubahan kuantitas
+                    // bisa ditambahkan di sini bila diperlukan (hapus & hitung ulang)
+
+                    existingById.delete(salesDetailId);
+                } else {
+                    // Detail baru
+                    if ((item.quantity ?? 0) === 0) continue;
+                    const idDetail = uuidv4();
+
+                    await prisma.saleDetails.create({
+                        data: {
+                            id: idDetail,
+                            saleId: salesId,
+                            productId,
+                            productConversionId: item.unitId,
+                            quantity: item.quantity ?? 1,
+                            price: item.price ?? 0,
+                        },
+                    });
+
+                    const base = await getBaseQty(
+                        item.unitId ?? null,
+                        item.quantity ?? 0
+                    );
+                    const dec = await DecrementStock(
+                        prisma,
+                        productId,
+                        body.storeId,
+                        base
+                    );
+                    if (!dec.status) {
+                        throw new ValidationError(
+                            JSON.stringify(dec.message),
+                            400,
+                            "quantity"
+                        );
+                    }
+
+                    // Catatan: Tambahkan pencatatan HPP/COGS baru jika diperlukan
+                }
+            }
+
+            // Sisa detail lama yang tidak ada lagi di input => hapus & kembalikan stok
+            for (const leftover of existingById.values()) {
+                const base = await getBaseQty(
+                    leftover.productConversionId,
+                    leftover.quantity ?? 1
+                );
+                const inc = await IncrementStock(
+                    prisma,
+                    leftover.productId,
+                    existing.storeId ?? "",
+                    base
+                );
+                if (!inc.status) {
+                    throw new Error(
+                        typeof inc.message === "string"
+                            ? inc.message
+                            : JSON.stringify(inc.message)
+                    );
                 }
 
-                return { createsales, createsalesDetails };
-            });
-        };
-
-        transaction()
-            .catch((e) => {
-                throw new Error(e);
-            })
-            .finally(async () => {
-                await Model.$disconnect();
-            });
+                await prisma.cogs.deleteMany({
+                    where: { saleDetailId: leftover.id },
+                });
+                await prisma.saleDetails.delete({ where: { id: leftover.id } });
+            }
+        });
 
         res.status(200).json({
             status: true,
             message: "successful in updated sales data",
         });
     } catch (error) {
-        let message = errorType;
-        message.message.msg = `${error}`;
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message = await handleValidationError(error);
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [message.message],
-        });
+        handleErrorMessage(res, error);
     }
 };
 
