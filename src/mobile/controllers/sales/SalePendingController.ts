@@ -52,6 +52,12 @@ const getData = async (
                         products: {
                             include: {
                                 stocks: true,
+                                productConversions: {
+                                    include: {
+                                        units: true,
+                                        productSellPrices: true,
+                                    },
+                                },
                             },
                         },
                     },
@@ -229,51 +235,14 @@ const deleteData = async (req: Request, res: Response) => {
     try {
         await Model.$transaction(async (prisma) => {
             // Ambil sales + detailnya di dalam transaksi
-            const model = await prisma.sales.findUnique({
+            const model = await prisma.salePending.findUnique({
                 where: { id: req.params.id },
-                include: { saleDetails: true },
             });
 
             if (!model) {
                 throw new Error("sales data not found");
             }
-
-            // Kembalikan stok untuk tiap detail berdasarkan konversi unit
-            for (const value of model.saleDetails) {
-                const conversion = await prisma.productConversions.findFirst({
-                    where: { id: value.productConversionId ?? "" },
-                    select: { quantity: true },
-                });
-
-                const qtyBase =
-                    Number(value.quantity) * Number(conversion?.quantity ?? 1);
-                const inc = await IncrementStock(
-                    prisma,
-                    value.productId,
-                    model.storeId ?? "",
-                    qtyBase
-                );
-
-                if (!inc.status) {
-                    // Jika helper mengembalikan status false, hentikan transaksi
-                    throw new Error(
-                        typeof inc.message === "string"
-                            ? inc.message
-                            : JSON.stringify(inc.message)
-                    );
-                }
-
-                // Hapus jejak COGS untuk detail ini (jika ada)
-                await prisma.cogs.deleteMany({
-                    where: { saleDetailId: value.id },
-                });
-            }
-
-            // Hapus detail penjualan terlebih dahulu, kemudian header
-            await prisma.saleDetails.deleteMany({
-                where: { saleId: model.id },
-            });
-            await prisma.sales.delete({ where: { id: model.id } });
+            await prisma.salePending.delete({ where: { id: model.id } });
         });
 
         res.status(200).json({
