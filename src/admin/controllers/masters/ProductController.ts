@@ -3,256 +3,265 @@ import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import { ProductQueryInterface } from "#root/interfaces/masters/ProductInterface";
 import getOwnerId from "#root/helpers/GetOwnerId";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 
-const getData = async (req:Request<{}, {}, {}, ProductQueryInterface>, res:Response) => {
+const getData = async (
+    req: Request<{}, {}, {}, ProductQueryInterface>,
+    res: Response
+) => {
     try {
         const query = req.query;
+
+        console.log({ query });
+
         // PAGING
-        const take:number = parseInt(query.limit ?? 20 )
-        const page:number = parseInt(query.page ?? 1 );
-        const skip:number = (page-1)*take
+        const take: number = parseInt(query.limit ?? 20);
+        const page: number = parseInt(query.page ?? 1);
+        const skip: number = (page - 1) * take;
         // FILTER
-        let filter:any= {}
-        query.name ? filter = {...filter, name: { contains: query.name }} : null
-        
-        if(res.locals.level !== 'superadmin'){
-            const owner:any = await getOwnerId(res.locals.userId, res.locals.level);
-            filter = {...filter, ownerId: owner?.id}
+        let filter: any = {};
+        query.name
+            ? (filter = { ...filter, name: { contains: query.name } })
+            : null;
+        let owner: any = {};
+        if (res.locals.level !== "superadmin") {
+            owner = await getOwnerId(res.locals.userId, res.locals.level);
+            filter = { ...filter, ownerId: owner?.id };
+        } else {
+            const store = await Model.stores.findUnique({
+                where: { id: query.storeId as string },
+            });
+            if (!store)
+                return res.status(400).json({
+                    status: false,
+                    errors: [{ msg: "Store not found" }],
+                });
+            owner = await Model.users.findUnique({
+                where: { id: store.ownerId },
+            });
         }
 
-        const owner = await Model.users.findMany({
-            where: {
-                id: res.locals.userId
-            }
-        })
-        
         const data = await Model.products.findMany({
             where: {
+                ownerId: owner.id,
                 ...filter,
             },
             include: {
-                stocks:{
+                stocks: {
                     where: {
-                        storeId: query.storeId as string
+                        storeId: query.storeId as string,
                     },
-                    select:{
+                    select: {
                         id: true,
                         quantity: true,
-                        storeId: true
-                    }
+                        storeId: true,
+                    },
                 },
                 categories: {
                     select: {
                         id: true,
                         name: true,
-                    }
+                    },
                 },
                 brands: {
                     select: {
                         id: true,
-                        name: true
-                    }
-                }
+                        name: true,
+                    },
+                },
             },
             skip: skip,
-            take: take
+            take: take,
         });
         const total = await Model.products.count({
             where: {
                 ...filter,
-            }
-        })
+            },
+        });
         res.status(200).json({
             status: true,
             message: "successful in getting Products data",
             data: {
                 product: data,
-                info:{
+                info: {
                     page: page,
                     limit: take,
-                    total: total
-                }
-            }
-        })
+                    total: total,
+                },
+            },
+        });
     } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
+        let message = errorType;
+        message.message.msg = `${error}`;
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const postData = async (req:Request, res:Response) => {
+const postData = async (req: Request, res: Response) => {
     try {
-        const ownerId:any = await getOwnerId(res.locals.userId, res.locals.userType)
-        if(!ownerId.status) throw new Error('Owner not found')
-        const data = { ...req.body, id: uuidv4(), ownerId: ownerId.id};
+        const ownerId: any = await getOwnerId(
+            res.locals.userId,
+            res.locals.userType
+        );
+        if (!ownerId.status) throw new Error("Owner not found");
+        const data = { ...req.body, id: uuidv4(), ownerId: ownerId.id };
         delete data.storeId;
-        await Model.products.create({data: data});
+        await Model.products.create({ data: data });
         res.status(200).json({
             status: true,
-            message: 'successful in created Product data'
-        })
+            message: "successful in created Product data",
+        });
     } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
+        let message = errorType;
+        message.message.msg = `${error}`;
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const updateData = async (req:Request, res:Response) => {
+const updateData = async (req: Request, res: Response) => {
     try {
-
-        const data = { ...req.body};
+        const data = { ...req.body };
         await Model.products.update({
             where: {
-                id: req.params.id
+                id: req.params.id,
             },
             data: {
                 id: data.id,
                 name: data.name,
                 ownerId: data.ownerId,
-                description: data.description
-            }
+                description: data.description,
+            },
         });
         res.status(200).json({
             status: true,
-            message: 'successful in updated Product data'
-        })
+            message: "successful in updated Product data",
+        });
     } catch (error) {
-        handleErrorMessage(res, error)
+        handleErrorMessage(res, error);
     }
-}
+};
 
-const deleteData = async (req:Request, res:Response)=> {
+const deleteData = async (req: Request, res: Response) => {
     try {
         await Model.products.delete({
             where: {
-                id: req.params.id
-            }
-        })
+                id: req.params.id,
+            },
+        });
         res.status(200).json({
             status: false,
-            message: 'successfully in deleted Product data'
-        })
+            message: "successfully in deleted Product data",
+        });
     } catch (error) {
         let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
+            status: 500,
+            message: { msg: `${error}` },
+        };
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const getDataById = async (req:Request, res:Response) => {
+const getDataById = async (req: Request, res: Response) => {
     try {
         const model = await Model.products.findUnique({
             where: {
-                id: req.params.id
-            }
-        })
-        
-        if(!model) throw new Error('data not found')
+                id: req.params.id,
+            },
+        });
+
+        if (!model) throw new Error("data not found");
         res.status(200).json({
             status: true,
-            message: 'successfully in get Product data',
+            message: "successfully in get Product data",
             data: {
-                product: model
-            }
-        })
+                product: model,
+            },
+        });
     } catch (error) {
         let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
+            status: 500,
+            message: { msg: `${error}` },
+        };
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-const getSelect = async (req:Request, res:Response) => {
+const getSelect = async (req: Request, res: Response) => {
     try {
-        let filter:any={};
-        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
-        req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
-        let dataOption:any=[];
+        let filter: any = {};
+        const owner: any = await getOwnerId(
+            res.locals.userId,
+            res.locals.userType
+        );
+        req.query.name
+            ? (filter = {
+                  ...filter,
+                  name: { contains: req.query?.name as string },
+              })
+            : null;
+        let dataOption: any = [];
         const data = await Model.products.findMany({
             where: {
                 // ...filter,
-                ownerId: owner.id
+                ownerId: owner.id,
             },
-            take:25
+            take: 25,
         });
-        
+
         for (const value of data) {
-            dataOption= [
-                ...dataOption, {
+            dataOption = [
+                ...dataOption,
+                {
                     value: value.id,
-                    label: value.name
-                }
-            ]
+                    label: value.name,
+                },
+            ];
         }
-        
+
         res.status(200).json({
             status: true,
-            message: 'successfully in get Product data',
+            message: "successfully in get Product data",
             data: {
-                product: dataOption
-            }
-        })
+                product: dataOption,
+            },
+        });
     } catch (error) {
         let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
+            status: 500,
+            message: { msg: `${error}` },
+        };
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
+            message = await handleValidationError(error);
         }
         res.status(500).json({
             status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+            errors: [message.message],
+        });
     }
-}
+};
 
-export {
-    getData,
-    postData,
-    updateData,
-    deleteData,
-    getDataById,
-    getSelect
-}
+export { getData, postData, updateData, deleteData, getDataById, getSelect };
