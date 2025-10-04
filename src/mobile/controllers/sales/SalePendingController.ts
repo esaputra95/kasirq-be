@@ -206,13 +206,9 @@ const updateData = async (req: Request, res: Response) => {
             });
         };
 
-        transaction()
-            .catch((e) => {
-                throw new Error(e);
-            })
-            .finally(async () => {
-                await Model.$disconnect();
-            });
+        transaction().catch((e) => {
+            throw new Error(e);
+        });
 
         res.status(200).json({
             status: true,
