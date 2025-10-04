@@ -26,6 +26,9 @@ const getData = async (
         query.name
             ? (filter = { ...filter, name: { contains: query.name } })
             : null;
+        query?.code
+            ? (filter = { ...filter, code: { contains: query.code } })
+            : null;
         let owner: any = {};
         if (res.locals.level !== "superadmin") {
             owner = await getOwnerId(res.locals.userId, res.locals.level);
@@ -87,9 +90,10 @@ const getData = async (
             data: {
                 product: data,
                 info: {
-                    page: page,
+                    page,
                     limit: take,
-                    total: total,
+                    total,
+                    totalPage: Math.ceil(total / take),
                 },
             },
         });

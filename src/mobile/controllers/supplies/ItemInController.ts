@@ -145,8 +145,6 @@ const postData = async (req: Request, res: Response) => {
             status: 500,
             errors: error,
         });
-    } finally {
-        await Model.$disconnect();
     }
 };
 
@@ -299,13 +297,9 @@ const updateData = async (req: Request, res: Response) => {
             });
         };
 
-        transaction()
-            .catch((e) => {
-                throw new Error(e);
-            })
-            .finally(async () => {
-                await Model.$disconnect();
-            });
+        transaction().catch((e) => {
+            throw new Error(e);
+        });
 
         res.status(200).json({
             status: true,
