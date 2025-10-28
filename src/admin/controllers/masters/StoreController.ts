@@ -7,6 +7,7 @@ import { StoreQueryInterface } from "#root/interfaces/masters/StoreInterface";
 import Model from "#root/services/PrismaService";
 import { Prisma } from "@prisma/client";
 import { Request, Response } from "express";
+import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
 
 const getSelect = async (req: Request, res: Response) => {
@@ -170,7 +171,7 @@ const updateData = async (req: Request, res: Response) => {
             },
             data: {
                 address: data.address,
-                expiredDate: data.expiredDate,
+                expiredDate: moment(data.expiredDate).format(),
                 name: data.name,
             },
         });

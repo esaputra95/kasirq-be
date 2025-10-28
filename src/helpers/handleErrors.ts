@@ -40,21 +40,22 @@ export const handleErrorMessage = async (res: Response, error: any) => {
     if (error instanceof Prisma.PrismaClientValidationError) {
         statusCode = 400;
 
-        const fieldMatch = error.message.match(/Argument `(\w+)`/);
-        const fieldName = fieldMatch ? fieldMatch[1] : "field_tidak_diketahui";
+        // Tangkap nama field dari pesan error
+        const fieldMatch = error.message.match(/argument\s+`([^`]+)`/i);
+        const fieldName = fieldMatch ? fieldMatch[1] : "unknown_field";
 
-        let msg = "Satu atau lebih field berisi data tidak valid.";
-
-        if (error.message.includes("Invalid value provided")) {
-            msg = "Tipe data tidak valid. Periksa kembali nilai yang dikirim.";
-        } else if (error.message.includes("is missing")) {
-            msg = `Field '${fieldName}' belum diisi.`;
-        }
+        // Tangkap detail pesan Prisma setelah "Invalid value for argument `xxx`:"
+        const detailMatch = error.message.match(
+            /Invalid value for argument `\w+`:\s*(.+)/
+        );
+        const detailMessage = detailMatch
+            ? detailMatch[1].trim()
+            : "Data tidak valid.";
 
         message = {
             ...message,
-            msg,
-            path: fieldName, // 👈 ini akan dikirim ke frontend sebagai nama field
+            msg: detailMessage,
+            path: fieldName,
         };
     }
 
