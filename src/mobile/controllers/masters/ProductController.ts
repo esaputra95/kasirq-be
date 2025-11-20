@@ -14,9 +14,10 @@ const getData = async (
 ) => {
     try {
         const query = req.query;
+
         const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.level
         );
 
         // PAGING
@@ -31,13 +32,15 @@ const getData = async (
         query.code
             ? (filter = [...filter, { code: { contains: query.code } }])
             : null;
-        // query.categoryId ? filter = [...filter, {categoriId: { contains: query.categoryId }}] : null;
-
         if (filter.length > 0) {
             filter = {
                 OR: [...filter],
             };
+        } else {
+            filter = [];
         }
+
+        console.log({ filter });
 
         const data = await Model.products.findMany({
             where: {
@@ -119,11 +122,13 @@ const getData = async (
             skip: skip,
             take: take,
         });
+
         const total = await Model.products.count({
             where: {
                 ...filter,
             },
         });
+
         res.status(200).json({
             status: true,
             message: "successful in getting product data",
@@ -149,7 +154,7 @@ const getProductSell = async (
         const query = req.query;
         const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.level
         );
         // PAGING
         const take: number = parseInt(query.limit ?? 20);
@@ -274,12 +279,12 @@ const getProductSell = async (
 
 const postData = async (req: Request, res: Response) => {
     try {
-        const ownerId: any = await getOwnerId(
+        const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.level
         );
-        if (!ownerId.status) throw new Error("Owner not found");
-        const data = { ...req.body, ownerId: ownerId.id };
+        if (!owner.status) throw new Error("Owner not found");
+        const data = { ...req.body, ownerId: owner.id };
         let dataProduct: products & {
             price?: number;
             storeId?: string;
@@ -300,7 +305,7 @@ const postData = async (req: Request, res: Response) => {
                     brandId: dataProduct?.brandId,
                     description: dataProduct?.description,
                     image: dataProduct?.image,
-                    ownerId: ownerId?.id,
+                    ownerId: owner?.id,
                     sku: dataProduct?.sku,
                 },
             });

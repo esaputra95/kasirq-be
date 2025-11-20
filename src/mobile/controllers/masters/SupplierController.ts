@@ -15,7 +15,7 @@ const getData = async (
         const query = req.query;
         const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.level
         );
         // PAGING
         const take: number = parseInt(query.limit ?? 20);
@@ -71,7 +71,7 @@ const postData = async (req: Request, res: Response) => {
     try {
         const ownerId: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.level
         );
         if (!ownerId.status) throw new Error("Owner not found");
         const data = { ...req.body, id: uuidv4(), ownerId: ownerId.id };
@@ -185,7 +185,7 @@ const getSelect = async (req: Request, res: Response) => {
     try {
         const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.level
         );
         let filter: any = {};
         req.query.name
