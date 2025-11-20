@@ -15,12 +15,13 @@ const getData = async (
         const query = req.query;
         const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.level
         );
         // PAGING
-        const take: number = parseInt(query.limit ?? 20);
+        const take = Number(query.limit) > 0 ? Number(query.limit) : 20;
         const page: number = parseInt(query.page ?? 1);
         const skip: number = (page - 1) * take;
+
         // FILTER
         let filter: any = [];
         query.name
@@ -45,6 +46,7 @@ const getData = async (
                 ownerId: owner.id,
             },
         });
+
         res.status(200).json({
             status: true,
             message: "successful in getting Member data",
@@ -69,12 +71,12 @@ const getData = async (
 
 const postData = async (req: Request, res: Response) => {
     try {
-        const ownerId: any = await getOwnerId(
+        const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.level
         );
-        if (!ownerId.status) throw new Error("Owner not found");
-        const data = { ...req.body, id: uuidv4(), ownerId: ownerId.id };
+        if (!owner.status) throw new Error("Owner not found");
+        const data = { ...req.body, id: uuidv4(), ownerId: owner.id };
         delete data.storeId;
         await Model.members.create({ data: data });
         res.status(200).json({
@@ -186,7 +188,7 @@ const getSelect = async (req: Request, res: Response) => {
     try {
         const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.level
         );
         let filter: any = {};
         req.query.name
