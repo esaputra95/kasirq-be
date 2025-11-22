@@ -102,9 +102,11 @@ const RegisterOwner = async (req: Request, res: Response) => {
 const Verification = async (req: Request, res: Response) => {
     try {
         const query = req.query;
+        console.log({query});
+        
         const user = await Model.users.findFirst({
             where: {
-                token: query.token + "",
+                token: decodeURIComponent(query.code as string),
             },
         });
 
@@ -119,7 +121,8 @@ const Verification = async (req: Request, res: Response) => {
             },
         });
 
-        res.sendFile(path.join(__dirname, "/../../../message.html"));
+        // res.sendFile(path.join(__dirname, "/../../../message.html"));
+        res.sendFile(path.join(__dirname, "/../../public/successActiveRegister.html"));
     } catch (error) {
         console.log({ error });
     }
