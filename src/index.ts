@@ -24,12 +24,22 @@ import { SalePendingRoute, SalesRoute } from "./mobile/routers/sales";
 import { ReportRoute } from "./mobile/routers/reports";
 import DashboardRoute from "#root/mobile/routers/dashboards/DashboardRoute";
 import AdminRoute from "./admin/routers";
+import sendEmail from "./helpers/sendEmail";
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json()); // Parse JSON requests
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.get('/send-email', async (req, res) => {
+    try {
+        // Test kirim ke email lain untuk verify domain sudah bekerja
+        await sendEmail('sahabatngaji.official@gmail.com', '123456', 'register');
+        res.send('Email sent successfully to sahabatngaji.official@gmail.com!');
+    } catch (error) {
+        res.status(500).send('Failed to send email: ' + error);
+    }
+})
 app.use("/auth", login);
 app.use("/users", AccessToken, user);
 app.use("/units", AccessToken, UnitRoute);
