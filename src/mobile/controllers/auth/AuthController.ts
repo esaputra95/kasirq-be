@@ -106,7 +106,7 @@ const Verification = async (req: Request, res: Response) => {
         
         const user = await Model.users.findFirst({
             where: {
-                token: decodeURIComponent(query.code as string),
+                token: query.code as string,
             },
         });
 

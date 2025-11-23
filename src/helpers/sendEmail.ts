@@ -1,24 +1,22 @@
-import * as nodemailer from "nodemailer";
+import { Resend } from 'resend';
 
 const sendEmail = async (email: string, code: string, type: 'register' | 'forgot-password'): Promise<void> => {
     try {
+        console.log("Email sent to:", email);
+        console.log("Email sent to:", code);
+        console.log("Email sent to:", type);
+        
         if (!email) throw new Error("Email not found");
 
-        // Use environment variables for email credentials
-        const emailUser = process.env.EMAIL_USER;
-        const emailPass = process.env.EMAIL_PASS;
+        // Use environment variables for Resend
+        const resendApiKey = process.env.RESEND_API_KEY;
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@kasirq.id';
 
-        if (!emailUser || !emailPass) {
-            throw new Error("Email credentials not configured in environment variables");
+        if (!resendApiKey) {
+            throw new Error("RESEND_API_KEY not configured in environment variables");
         }
 
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: emailUser,
-                pass: emailPass,
-            },
-        });
+        const resend = new Resend(resendApiKey);
 
         // Dynamic subject based on email type
         let subject: string;
@@ -36,7 +34,7 @@ const sendEmail = async (email: string, code: string, type: 'register' | 'forgot
                 <h1 style="color: #3056ff;">Kasir Q</h1>
                 <p>Selamat! Kamu sudah satu langkah lebih dekat untuk terdaftar di Kasir Q, jangan sampai ketinggalan!</p>
                 <p>Klik link di bawah untuk mengaktifkan akun Kamu:</p>
-                <a target="_blank" href='${process.env.BE_URL || "https://kasirq.id"}/auth/verification?code=${encodeURIComponent(code)}' 
+                <a target="_blank" href='${process.env.BE_URL || "https://kasirq.id"}/auth/verification?code=${code}' 
                    style="display: inline-block; padding: 10px 20px; background-color: #3056ff; color: white; text-decoration: none; border-radius: 5px;">
                     Verifikasi Akun
                 </a>
@@ -69,16 +67,20 @@ const sendEmail = async (email: string, code: string, type: 'register' | 'forgot
             throw new Error(`Unsupported email type: ${type}`);
         }
 
-        const mailOptions: nodemailer.SendMailOptions = {
-            from: emailUser,
+        // Send email using Resend
+        const { data, error } = await resend.emails.send({
+            from: fromEmail,
             to: email,
             subject: subject,
             html: body,
-        };
+        });
 
-        // Use async/await instead of callback for better error handling
-        const info = await transporter.sendMail(mailOptions);
-        console.log("Email sent successfully:", info.response);
+        if (error) {
+            console.error("Resend API error:", error);
+            throw new Error(`Failed to send email: ${error.message}`);
+        }
+
+        console.log("Email sent successfully via Resend:", data?.id);
     } catch (error) {
         console.error("Error sending email:", error);
         throw error; // Re-throw error so caller can handle it
