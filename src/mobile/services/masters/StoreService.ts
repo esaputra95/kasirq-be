@@ -1,0 +1,51 @@
+import Model from "#root/services/PrismaService";
+import moment from "moment";
+import { ValidationError } from "#root/helpers/handleErrors";
+
+/**
+ * Get stores for select dropdown based on user level
+ */
+export const getStoresForSelect = async (userId: string, userLevel: string) => {
+    let dataOption: any = [];
+
+    if (userLevel === "cashier") {
+        const user = await Model.users.findUnique({
+            where: { id: userId },
+        });
+
+        const stores = await Model.stores.findMany({
+            where: {
+                id: user?.storeId ?? "",
+                expiredDate: {
+                    gte: moment().format(),
+                },
+            },
+        });
+
+        dataOption = stores.map(store => ({
+            key: store.id,
+            value: store.name,
+        }));
+    } else {
+        const stores = await Model.stores.findMany({
+            where: {
+                ownerId: userId,
+                expiredDate: {
+                    gte: moment().format(),
+                },
+            },
+        });
+
+        dataOption = stores.map(store => ({
+            key: store.id,
+            value: store.name,
+        }));
+    }
+
+    return {
+        message: "successfully in get user data",
+        data: {
+            store: dataOption,
+        },
+    };
+};

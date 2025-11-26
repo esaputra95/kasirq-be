@@ -1,232 +1,91 @@
-import Model from "#root/services/PrismaService";
 import { Request, Response } from "express";
-import { Prisma } from "@prisma/client";
-import { handleValidationError } from "#root/helpers/handleValidationError";
-import { errorType } from "#root/helpers/errorType";
-import { v4 as uuidv4 } from 'uuid';
 import { BrandQueryInterface } from "#root/interfaces/masters/BrandInterface";
-import getOwnerId from "#root/helpers/GetOwnerId";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
+import * as BrandService from "#root/mobile/services/masters/BrandService";
 
-const getData = async (req:Request<{}, {}, {}, BrandQueryInterface>, res:Response) => {
+const getData = async (req: Request<{}, {}, {}, BrandQueryInterface>, res: Response) => {
     try {
-        const query = req.query;
-        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
-        // PAGING
-        const take:number = parseInt(query.limit ?? 20 )
-        const page:number = parseInt(query.page ?? 1 );
-        const skip:number = (page-1)*take
-        // FILTER
-        let filter:any= []
-        query.name ? filter = [...filter, {name: { contains: query.name }}] : null
-        if(filter.length > 0){
-            filter = {
-                OR: [
-                    ...filter
-                ]
-            }
-        }
-        const data = await Model.brands.findMany({
-            where: {
-                ...filter,
-                ownerId: owner.id
-            },
-            skip: skip,
-            take: take
+        const result = await BrandService.getBrands(
+            req.query,
+            res.locals.userId,
+            res.locals.userType
+        );
+        res.status(200).json({
+            status: true,
+            ...result,
         });
-        const total = await Model.brands.count({
-            where: {
-                ...filter,
-                ownerId: owner.id
-            }
-        })
-        
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+const postData = async (req: Request, res: Response) => {
+    try {
+        const result = await BrandService.createBrand(
+            req.body,
+            res.locals.userId,
+            res.locals.userType
+        );
         res.status(200).json({
             status: true,
-            message: "successful in getting Brand data",
-            data: {
-                Brand: data,
-                info:{
-                    page: page,
-                    limit: take,
-                    total: total
-                }
-            }
-        })
-    } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
-    }
-}
-
-const postData = async (req:Request, res:Response) => {
-    try {
-        const ownerId:any = await getOwnerId(res.locals.userId, res.locals.userType)
-        if(!ownerId.status) throw new Error('Owner not found')
-        const data = { ...req.body, id: uuidv4(), ownerId: ownerId.id};
-        delete data.storeId;
-        await Model.brands.create({data: data});
-        res.status(200).json({
-            status: true,
-            message: 'successful in created Brand data'
-        })
-    } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
-    }
-}
-
-const updateData = async (req:Request, res:Response) => {
-    try {
-        const data = { ...req.body};
-        await Model.brands.update({
-            where: {
-                id: req.params.id
-            },
-            data: {
-                id: data.id,
-                name: data.name,
-                description: data.description
-            }
+            ...result,
         });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+const updateData = async (req: Request, res: Response) => {
+    try {
+        const result = await BrandService.updateBrand(req.params.id, req.body);
         res.status(200).json({
             status: true,
-            message: 'successful in updated Brand data'
-        })
+            ...result,
+        });
     } catch (error) {
-        let message = errorType
-        message.message.msg = `${error}`
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+        handleErrorMessage(res, error);
     }
-}
+};
 
-const deleteData = async (req:Request, res:Response)=> {
+const deleteData = async (req: Request, res: Response) => {
     try {
-        await Model.brands.delete({
-            where: {
-                id: req.params.id
-            }
-        })
+        const result = await BrandService.deleteBrand(req.params.id);
         res.status(200).json({
             status: false,
-            message: 'successfully in deleted Brand data'
-        })
-    } catch (error) {
-        let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
-    }
-}
-
-const getDataById = async (req:Request, res:Response) => {
-    try {
-        const model = await Model.brands.findUnique({
-            where: {
-                id: req.params.id
-            }
-        })
-        
-        if(!model) throw new Error('data not found')
-        res.status(200).json({
-            status: true,
-            message: 'successfully in get Brand data',
-            data: {
-                Brand: model
-            }
-        })
-    } catch (error) {
-        let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
-    }
-}
-
-const getSelect = async (req:Request, res:Response) => {
-    try {
-        const owner:any = await getOwnerId(res.locals.userId, res.locals.userType);
-        let filter:any={};
-        req.query.name ? filter={...filter, name: { contains: req.query?.name as string}} : null
-        
-        let dataOption:any=[];
-        const data = await Model.brands.findMany({
-            where: {
-                ...filter,
-                ownerId: owner.id
-            }
+            ...result,
         });
-        for (const value of data) {
-            dataOption= [
-                ...dataOption, {
-                    value: value.id,
-                    label: value.name
-                }
-            ]
-        }
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+const getDataById = async (req: Request, res: Response) => {
+    try {
+        const result = await BrandService.getBrandById(req.params.id);
         res.status(200).json({
             status: true,
-            message: 'successfully in get Brand data',
-            data: {
-                brand: dataOption
-            }
-        })
+            ...result,
+        });
     } catch (error) {
-        let message = {
-            status:500,
-            message: { msg: `${error}` }
-        }
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message =  await handleValidationError(error)
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [
-                message.message
-            ]
-        })
+        handleErrorMessage(res, error);
     }
-}
+};
+
+const getSelect = async (req: Request, res: Response) => {
+    try {
+        const result = await BrandService.getBrandsForSelect(
+            req.query.name as string | undefined,
+            res.locals.userId,
+            res.locals.userType
+        );
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
 
 export {
     getData,
@@ -235,4 +94,4 @@ export {
     deleteData,
     getDataById,
     getSelect
-}
+};
