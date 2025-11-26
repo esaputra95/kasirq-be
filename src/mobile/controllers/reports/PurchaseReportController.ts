@@ -1,70 +1,21 @@
-import Model from "#root/services/PrismaService";
 import { Request, Response } from "express";
-import moment from "moment";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
+import * as PurchaseReportService from "#root/mobile/services/reports/PurchaseReportService";
 
 const getData = async (req: Request, res: Response) => {
     try {
-        let filter = {};
-        const query = req.query;
-
-        query?.storeId
-            ? (filter = {
-                  ...filter,
-                  storeId: query.storeId,
-              })
-            : null;
-        query?.supplierId
-            ? (filter = {
-                  ...filter,
-                  supplierId: query.supplierId,
-              })
-            : null;
-
-        const data = await Model.purchases.findMany({
-            include: {
-                suppliers: true,
-                purchaseDetails: {
-                    include: {
-                        products: true,
-                    },
-                },
-            },
-            where: {
-                date: {
-                    gte: moment(req.query?.start + " 00:00:00").format(),
-                    lte: moment(req.query?.finish + " 23:59:00").format(),
-                },
-                ...filter,
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
-        });
-        const total = await Model.purchases.aggregate({
-            _sum: {
-                total: true,
-            },
-            where: {
-                date: {
-                    gte: new Date(req.query?.start as unknown as Date),
-                    lte: new Date(req.query?.finish as unknown as Date),
-                },
-                ...filter,
-            },
+        const result = await PurchaseReportService.getPurchaseReport({
+            start: req.query.start as string,
+            finish: req.query.finish as string,
+            storeId: req.query.storeId as string | undefined,
+            supplierId: req.query.supplierId as string | undefined
         });
         res.status(200).json({
             status: true,
-            message: "Success get data purchase report",
-            data: {
-                purchase: data,
-                total,
-            },
+            ...result
         });
     } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: `${error}`,
-        });
+        handleErrorMessage(res, error);
     }
 };
 
