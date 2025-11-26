@@ -447,7 +447,23 @@ const deleteData = async (req: Request, res: Response) => {
             // Ambil sales + detailnya di dalam transaksi
             const model = await prisma.sales.findUnique({
                 where: { id: req.params.id },
-                include: { saleDetails: true },
+                select: {
+                    id: true,
+                    storeId: true,
+                    saleDetails: {
+                        select: {
+                            id: true,
+                            quantity: true,
+                            productConversionId: true,
+                            productId: true,
+                            products: {
+                                select: {
+                                    isStock: true,
+                                },
+                            },
+                        },
+                    },
+                },
             });
 
             if (!model) {
@@ -463,20 +479,21 @@ const deleteData = async (req: Request, res: Response) => {
 
                 const qtyBase =
                     Number(value.quantity) * Number(conversion?.quantity ?? 1);
-                const inc = await IncrementStock(
-                    prisma,
-                    value.productId,
-                    model.storeId ?? "",
-                    qtyBase
-                );
-
-                if (!inc.status) {
-                    // Jika helper mengembalikan status false, hentikan transaksi
-                    throw new Error(
-                        typeof inc.message === "string"
-                            ? inc.message
-                            : JSON.stringify(inc.message)
+                if (value.products.isStock) {
+                    const inc = await IncrementStock(
+                        prisma,
+                        value.productId,
+                        model.storeId ?? "",
+                        qtyBase
                     );
+                    if (!inc.status) {
+                        // Jika helper mengembalikan status false, hentikan transaksi
+                        throw new Error(
+                            typeof inc.message === "string"
+                                ? inc.message
+                                : JSON.stringify(inc.message)
+                        );
+                    }
                 }
 
                 // Hapus jejak COGS untuk detail ini (jika ada)
