@@ -1,177 +1,73 @@
-import getOwnerId from "#root/helpers/GetOwnerId";
+import { Request, Response } from "express";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
-import Model from "#root/services/PrismaService"
-import { Request, Response } from "express"
-import moment from "moment";
+import * as DashboardService from "#root/mobile/services/dashboards/DashboardService";
 
-const dayDummy = [
-    'Sen','Sel','Rab','Kam','Jum','Sab', 'Min'
-]
-const color = {
-    0: '#ce7d28',
-    1: '#df505b',
-    2: '#24c565',
-    3: '#14b7a8',
-    4: '#24d1ee',
-    5: '#3c84f7',
-    6: '#4f50e6'
-}
-
-
-const getTotalSales = async (req:Request, res:Response) => {
+const getTotalSales = async (req: Request, res: Response) => {
     try {
-        const query = req.query;
-        const data = await Model.sales.aggregate({
-            _sum: {
-                total: true
-            },
-            where:{
-                storeId: query.storeId as string
-            }
+        const { storeId } = req.query;
+        const result = await DashboardService.getTotalSales(storeId as string);
+        res.status(200).json({
+            status: true,
+            ...result
         });
-        res.status(200).json({
-            status: true,
-            message: 'Success get Total Sales',
-            data : data._sum.total ?? 0
-        })
     } catch (error) {
-        handleErrorMessage(res, error)
+        handleErrorMessage(res, error);
     }
-}
+};
 
-const getMarginWeek = async (req:Request, res:Response) => {
+const getMarginWeek = async (req: Request, res: Response) => {
     try {
-        const query = req.query;
-        const date = await getDatesOfCurrentWeek();
-        
-        let tpmData:any=[]
-        for (let index = 0; index < date.length; index++) {
-            const results = await Model.$queryRaw`
-                SELECT 
-                    saleDetails.quantity * saleDetails.price AS totals,
-                    SUM(cogs.price * cogs.quantity) AS total_cogs,
-                    sales.date
-                FROM 
-                    saleDetails
-                LEFT JOIN 
-                    cogs ON cogs.saleDetailId = saleDetails.id
-                LEFT JOIN 
-                    sales ON sales.id = saleDetails.saleId
-                WHERE 
-                    sales.date BETWEEN ${moment(date[index]+' 00:00:00').format()} AND ${moment(date[index]+' 23:59:00').format()}
-                AND sales.storeId = ${query.storeId}
-                GROUP BY saleDetails.id
-            `;
-            const loop = results as [];
-            tpmData = [
-                ...tpmData,
-                {
-                    value: Math.round(loop?.reduce((total: number, data: any) => {
-                        const totals = parseFloat(data?.totals ?? '0'); // Pastikan totals adalah number
-                        const totalCogs = data?.total_cogs ?? 0; // Jika total_cogs null, beri nilai 0
-                        return total + (totals - totalCogs);
-                    }, 0)/1000), // Nilai awal untuk reduce adalah 0
-                    label: dayDummy[index],
-                    frontColor: color[index as keyof typeof color],
-                }
-            ];
-        }
+        const { storeId } = req.query;
+        const result = await DashboardService.getMarginWeek(storeId as string);
         res.status(200).json({
             status: true,
-            data: tpmData
-        })
-    } catch (error) {
-        handleErrorMessage(res, error)
-    }
-}
-const getTotalPurchase = async (req:Request, res:Response) => {
-    try {
-        const ownerId:any = await getOwnerId(res.locals.userId, res.locals.userType)
-        const data = await Model.products.count({
-            where: {
-                ownerId: ownerId.id
-            }
+            ...result
         });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+const getTotalPurchase = async (req: Request, res: Response) => {
+    try {
+        const result = await DashboardService.getTotalProducts(
+            res.locals.userId,
+            res.locals.userType
+        );
         res.status(200).json({
             status: true,
-            message: 'Success get Total Product',
-            data : data ?? 0
-        })
-    } catch (error) {
-        handleErrorMessage(res, error)
-    }
-}
-
-const getSalesWeek = async (req:Request, res:Response) => {
-    try {
-        const query = req.query;
-        let data:any = [];
-        const date = await getDatesOfCurrentWeek();
-        for (let index = 0; index < date.length; index++) {
-            const total = await Model.sales.aggregate({
-                _sum: {
-                    total: true
-                },
-                where: {
-                    date: {
-                        gte: moment(date[index]+' 00:00:00').format(),
-                        lte: moment(date[index]+' 23:59:00').format(),
-                    },
-                    storeId: query.storeId as string
-                }
-            })
-            data=[
-                ...data,
-                {
-                    value: Math.round(parseInt(total._sum?.total?.toString() ?? '0') / 1000),
-                    label: dayDummy[index],
-                    frontColor: color[index as keyof typeof color],
-                }
-            ]
-        }
-        res.status(200).json({
-            status: true,
-            data: data
-        })
-    } catch (error) {
-        handleErrorMessage(res, error)
-    }
-}
-
-const getStoreExpired = async (req:Request, res:Response) => {
-    try {
-        const data = await Model.stores.findUnique({
-            where: {
-                id: req.query.storeId as string
-            }
+            ...result
         });
-        res.status(200).json({
-            status:true,
-            data: data?.expiredDate
-        })
     } catch (error) {
-        handleErrorMessage(res, error)
+        handleErrorMessage(res, error);
     }
-}
+};
 
-const getDatesOfCurrentWeek = async () => {
-    const today = new Date();
-    // Tentukan hari ini (0 = Minggu, 1 = Senin, ..., 6 = Sabtu)
-    const dayOfWeek = today.getDay(); 
-    // Temukan hari Senin dari minggu ini
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7)); // Geser ke hari Senin
-    // Buat array berisi tanggal dari Senin hingga Minggu
-    const weekDates = [];
-    for (let i = 0; i < 7; i++) {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + i);
-        // Format tanggal menjadi YYYY-M-D
-        const formattedDate = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-        weekDates.push(formattedDate);
+const getSalesWeek = async (req: Request, res: Response) => {
+    try {
+        const { storeId } = req.query;
+        const result = await DashboardService.getSalesWeek(storeId as string);
+        res.status(200).json({
+            status: true,
+            ...result
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
     }
-    return weekDates;
-}
+};
+
+const getStoreExpired = async (req: Request, res: Response) => {
+    try {
+        const { storeId } = req.query;
+        const result = await DashboardService.getStoreExpired(storeId as string);
+        res.status(200).json({
+           status: true,
+            ...result
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
 
 export {
     getTotalSales,
@@ -179,4 +75,4 @@ export {
     getSalesWeek,
     getMarginWeek,
     getStoreExpired
-}
+};
