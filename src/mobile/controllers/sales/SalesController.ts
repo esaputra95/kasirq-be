@@ -29,7 +29,7 @@ const getData = async (
         // FILTER
         let filter: any = [];
         query.invoice
-            ? (filter = [...filter, { name: { contains: query.invoice } }])
+            ? (filter = [...filter, { invoice: { contains: query.invoice } }])
             : null;
         if (filter.length > 0) {
             filter = {
