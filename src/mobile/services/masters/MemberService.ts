@@ -51,6 +51,7 @@ export const updateMember = async (id: string, memberData: any) => {
             name: memberData.name,
             address: memberData.address,
             level: parseInt(memberData.level + ""),
+            phone: memberData.phone,
         },
     });
     return { message: "successful in updated Member data" };
