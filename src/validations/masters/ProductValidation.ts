@@ -99,12 +99,6 @@ const ProductUpdateValidation = [
         .isLength({ min: 2, max: 255 })
         .withMessage("Product name should be between 2 and 255 characters"),
 
-    body("categoryId")
-        .exists({ checkFalsy: true })
-        .withMessage("Category ID is required")
-        .isString()
-        .withMessage("Category ID should be string"),
-
     body("storeId")
         .exists({ checkFalsy: true })
         .withMessage("Store ID is required")
@@ -161,14 +155,6 @@ const ProductUpdateValidation = [
         .withMessage("Quantity should be numeric")
         .custom((value) => value > 0)
         .withMessage("Quantity must be greater than 0"),
-
-    body("price.*.capital")
-        .exists({ checkFalsy: true })
-        .withMessage("Capital price is required")
-        .isNumeric()
-        .withMessage("Capital price should be numeric")
-        .custom((value) => value >= 0)
-        .withMessage("Capital price must be non-negative"),
 
     body("price.*.sell")
         .exists({ checkFalsy: true })
