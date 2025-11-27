@@ -612,7 +612,13 @@ const getFacture = async (req: Request, res: Response) => {
                 payCash: true,
                 discount: true,
                 createdAt: true,
-                members: true,
+                members: {
+                    select: {
+                        name: true,
+                        address: true,
+                        phone: true,
+                    },
+                },
                 description: true,
                 invoice: true,
                 users: {
@@ -703,6 +709,7 @@ const getFacture = async (req: Request, res: Response) => {
                     id: data?.id,
                     user: data?.users?.name,
                     member: data?.members?.name ?? "Umum",
+                    members: data?.members,
                     paymentMethod: data?.paymentMethod?.name ?? "Cash",
                     invoice: data?.invoice,
                     salesDetails: newData,
