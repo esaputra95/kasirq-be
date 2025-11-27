@@ -91,4 +91,27 @@ const getDataById = async (req: Request, res: Response) => {
     }
 };
 
-export { getData, postData, updateData, deleteData, getDataById, changePassword };
+const getDataCashiers = async (
+    req: Request<{}, {}, {}, UserQueryInterface>,
+    res: Response
+) => {
+    try {
+        const result = await UserService.getUserCashiers(req.query);
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+export {
+    getData,
+    postData,
+    updateData,
+    deleteData,
+    getDataById,
+    changePassword,
+    getDataCashiers,
+};
