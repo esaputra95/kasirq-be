@@ -8,12 +8,8 @@ import { SalesQueryInterface } from "#root/interfaces/sales/SalesInterface";
 import moment from "moment";
 import momentT from "moment-timezone";
 import "moment/locale/id";
-import { DecrementStock, GetHpp, IncrementStock } from "#root/helpers/stock";
 import formatter from "#root/helpers/formatCurrency";
-import {
-    handleErrorMessage,
-    ValidationError,
-} from "#root/helpers/handleErrors";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
 
 const getData = async (
@@ -28,8 +24,11 @@ const getData = async (
         const skip: number = (page - 1) * take;
         // FILTER
         let filter: any = [];
-        query.invoice
-            ? (filter = [...filter, { name: { contains: query.invoice } }])
+        query.description
+            ? (filter = [
+                  ...filter,
+                  { description: { contains: query.description } },
+              ])
             : null;
         if (filter.length > 0) {
             filter = {
