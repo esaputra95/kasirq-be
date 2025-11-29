@@ -1,6 +1,6 @@
 import Model from "#root/services/PrismaService";
 import { Request, Response } from "express";
-import { Prisma } from "@prisma/client";
+import { Prisma, sales } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
 import { v4 as uuidv4 } from "uuid";
@@ -85,7 +85,8 @@ const postData = async (req: Request, res: Response) => {
                 storeId: data.storeId,
                 module: "SALE",
             });
-            const salesData = {
+            const salesData: Prisma.salesUncheckedCreateInput = {
+                salePeopleId: data.salePeopleId,
                 id: salesId,
                 date: moment().format(),
                 storeId: data.storeId,
@@ -93,13 +94,14 @@ const postData = async (req: Request, res: Response) => {
                 payMetodeId: data.accountId,
                 memberId: data.memberId,
                 invoice: invoice.invoice,
-                subTotal: parseInt(data.subTotal ?? 0),
+                subTotal: parseFloat(data.subTotal ?? 0),
                 total:
-                    parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0),
+                    parseFloat(data.subTotal ?? 0) -
+                    parseFloat(data.discount ?? 0),
                 description: data.description,
                 userCreate: res.locals.userId,
-                discount: parseInt(data.discount ?? 0),
-                payCash: parseInt(data.pay ?? 0),
+                discount: parseFloat(data.discount ?? 0),
+                payCash: parseFloat(data.pay ?? 0),
                 transactionNumber: invoice.transactionNumber,
             };
             const createSales = await prisma.sales.create({

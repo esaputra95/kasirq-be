@@ -8,7 +8,6 @@ const getOwnerId = async (id: string, userType: string) => {
                     id: id,
                 },
             });
-            console.log({ user });
 
             const store = await Model.stores.findFirst({
                 where: {

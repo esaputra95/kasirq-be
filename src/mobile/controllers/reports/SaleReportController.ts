@@ -10,9 +10,8 @@ const getData = async (req: Request, res: Response) => {
             accountId: req.query.accountId as string | undefined,
             storeId: req.query.storeId as string | undefined,
             memberId: req.query.memberId as string | undefined,
+            salePeopleId: req.query.salePeopleId as string | undefined,
         });
-
-        console.log(JSON.stringify(result));
 
         res.status(200).json({
             status: true,

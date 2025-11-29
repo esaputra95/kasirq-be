@@ -12,6 +12,7 @@ import {
     CategoryRoute,
     MemberRoute,
     ProductRoute,
+    SalesPeopleRoute,
     StoreRoute,
     SupplierRoute,
     UnitRoute,
@@ -31,15 +32,19 @@ app.use(cors());
 app.use(bodyParser.json()); // Parse JSON requests
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get('/send-email', async (req, res) => {
+app.get("/send-email", async (req, res) => {
     try {
         // Test kirim ke email lain untuk verify domain sudah bekerja
-        await sendEmail('sahabatngaji.official@gmail.com', '123456', 'register');
-        res.send('Email sent successfully to sahabatngaji.official@gmail.com!');
+        await sendEmail(
+            "sahabatngaji.official@gmail.com",
+            "123456",
+            "register"
+        );
+        res.send("Email sent successfully to sahabatngaji.official@gmail.com!");
     } catch (error) {
-        res.status(500).send('Failed to send email: ' + error);
+        res.status(500).send("Failed to send email: " + error);
     }
-})
+});
 app.use("/auth", login);
 app.use("/users", AccessToken, user);
 app.use("/units", AccessToken, UnitRoute);
@@ -56,6 +61,7 @@ app.use("/sales", AccessToken, SalesRoute);
 app.use("/sale-pending", AccessToken, SalePendingRoute);
 app.use("/reports", AccessToken, ReportRoute);
 app.use("/dashboards", AccessToken, DashboardRoute);
+app.use("/sales-people", AccessToken, SalesPeopleRoute);
 
 app.use("/admin", AdminRoute);
 

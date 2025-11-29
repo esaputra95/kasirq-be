@@ -7,12 +7,14 @@ export const getSaleReport = async (filters: {
     accountId?: string;
     storeId?: string;
     memberId?: string;
+    salePeopleId?: string;
 }) => {
     let filter: any = {};
 
     if (filters.accountId) filter.accountCashId = filters.accountId;
     if (filters.storeId) filter.storeId = filters.storeId;
     if (filters.memberId) filter.memberId = filters.memberId;
+    if (filters.salePeopleId) filter.salePeopleId = filters.salePeopleId;
 
     const start = moment(filters.start, "YYYY-MM-DD").startOf("day").toDate();
     const end = moment(filters.finish, "YYYY-MM-DD").endOf("day").toDate();
@@ -22,6 +24,7 @@ export const getSaleReport = async (filters: {
             include: {
                 members: true,
                 saleDetails: { include: { products: true } },
+                salePeoples: true,
             },
             where: {
                 createdAt: { gte: start, lte: end },

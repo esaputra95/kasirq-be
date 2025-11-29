@@ -1,19 +1,21 @@
-import { Resend } from 'resend';
+import { Resend } from "resend";
 
-const sendEmail = async (email: string, code: string, type: 'register' | 'forgot-password'): Promise<void> => {
+const sendEmail = async (
+    email: string,
+    code: string,
+    type: "register" | "forgot-password"
+): Promise<void> => {
     try {
-        console.log("Email sent to:", email);
-        console.log("Email sent to:", code);
-        console.log("Email sent to:", type);
-        
         if (!email) throw new Error("Email not found");
 
         // Use environment variables for Resend
         const resendApiKey = process.env.RESEND_API_KEY;
-        const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@kasirq.id';
+        const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@kasirq.id";
 
         if (!resendApiKey) {
-            throw new Error("RESEND_API_KEY not configured in environment variables");
+            throw new Error(
+                "RESEND_API_KEY not configured in environment variables"
+            );
         }
 
         const resend = new Resend(resendApiKey);
@@ -34,7 +36,9 @@ const sendEmail = async (email: string, code: string, type: 'register' | 'forgot
                 <h1 style="color: #3056ff;">Kasir Q</h1>
                 <p>Selamat! Kamu sudah satu langkah lebih dekat untuk terdaftar di Kasir Q, jangan sampai ketinggalan!</p>
                 <p>Klik link di bawah untuk mengaktifkan akun Kamu:</p>
-                <a target="_blank" href='${process.env.BE_URL || "https://kasirq.id"}/auth/verification?code=${code}' 
+                <a target="_blank" href='${
+                    process.env.BE_URL || "https://kasirq.id"
+                }/auth/verification?code=${code}' 
                    style="display: inline-block; padding: 10px 20px; background-color: #3056ff; color: white; text-decoration: none; border-radius: 5px;">
                     Verifikasi Akun
                 </a>
@@ -43,7 +47,7 @@ const sendEmail = async (email: string, code: string, type: 'register' | 'forgot
                 </p>
             </body>
             </html>`;
-        } else if (type === 'forgot-password') {
+        } else if (type === "forgot-password") {
             subject = "Reset Password Kasir Q";
             body = `<!DOCTYPE html>
             <html>
@@ -76,15 +80,11 @@ const sendEmail = async (email: string, code: string, type: 'register' | 'forgot
         });
 
         if (error) {
-            console.error("Resend API error:", error);
             throw new Error(`Failed to send email: ${error.message}`);
         }
-
-        console.log("Email sent successfully via Resend:", data?.id);
     } catch (error) {
-        console.error("Error sending email:", error);
-        throw error; // Re-throw error so caller can handle it
+        throw error;
     }
-}
+};
 
 export default sendEmail;
