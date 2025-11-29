@@ -14,9 +14,6 @@ const getData = async (
 ) => {
     try {
         const query = req.query;
-
-        console.log({ query });
-
         // PAGING
         const take: number = parseInt(query.limit ?? 20);
         const page: number = parseInt(query.page ?? 1);

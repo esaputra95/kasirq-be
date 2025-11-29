@@ -33,7 +33,6 @@ const Verification = async (req: Request, res: Response) => {
             path.join(__dirname, "/../../public/successActiveRegister.html")
         );
     } catch (error) {
-        console.log({ error });
         res.status(400).send("Invalid verification token");
     }
 };
