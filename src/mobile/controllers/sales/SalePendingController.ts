@@ -169,6 +169,7 @@ const updateData = async (req: Request, res: Response) => {
                     discount: data.discount,
                     payCash: data.pay ?? 0,
                     total: data.total ?? 0,
+                    description: data?.description,
                 };
                 const createsales = await prisma.salePending.update({
                     data: salesData,
@@ -178,27 +179,42 @@ const updateData = async (req: Request, res: Response) => {
                 });
 
                 let createsalesDetails: any;
-                await prisma.salePendingDetails.deleteMany({
-                    where: {
-                        saleId: req.params.id,
-                    },
-                });
 
                 for (const key in dataDetail) {
                     if (dataDetail[key].quantity === 0) continue;
                     const idDetail = uuidv4();
-                    createsalesDetails = await prisma.salePendingDetails.create(
-                        {
-                            data: {
-                                id: idDetail,
-                                saleId: salesId,
+                    const findDetail =
+                        await prisma.salePendingDetails.findFirst({
+                            where: {
                                 productId: key,
-                                productConversionId: dataDetail[key].unitId,
-                                quantity: dataDetail[key].quantity ?? 1,
-                                price: dataDetail[key].price ?? 0,
+                                saleId: salesId,
                             },
-                        }
-                    );
+                        });
+
+                    if (findDetail) {
+                        await prisma.salePendingDetails.update({
+                            data: {
+                                quantity:
+                                    parseInt(findDetail.quantity + "") +
+                                    parseInt(dataDetail[key].quantity + ""),
+                            },
+                            where: {
+                                id: findDetail.id,
+                            },
+                        });
+                    } else {
+                        createsalesDetails =
+                            await prisma.salePendingDetails.create({
+                                data: {
+                                    id: idDetail,
+                                    saleId: salesId,
+                                    productId: key,
+                                    productConversionId: dataDetail[key].unitId,
+                                    quantity: dataDetail[key].quantity ?? 1,
+                                    price: dataDetail[key].price ?? 0,
+                                },
+                            });
+                    }
                 }
 
                 return { createsales, createsalesDetails };
