@@ -5,8 +5,6 @@ import { Response } from "express";
  * Mengonversi berbagai error (Prisma, auth, dsb.) menjadi respons HTTP terstruktur.
  */
 export const handleErrorMessage = async (res: Response, error: any) => {
-    console.log({ error });
-
     let statusCode = 500;
     let message = {
         type: "field",

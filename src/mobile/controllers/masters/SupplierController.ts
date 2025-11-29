@@ -13,8 +13,6 @@ const getData = async (
             res.locals.userId,
             res.locals.level
         );
-        console.log({ result });
-
         res.status(200).json({ status: true, ...result });
     } catch (error) {
         handleErrorMessage(res, error);
@@ -66,8 +64,6 @@ const getDataById = async (req: Request, res: Response) => {
 
 const getSelect = async (req: Request, res: Response) => {
     try {
-        console.log("query : ", req.query);
-
         const result = await SupplierService.getSuppliersForSelect(
             req.query.name as string | undefined,
             res.locals.userId,
