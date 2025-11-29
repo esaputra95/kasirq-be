@@ -19,9 +19,6 @@ export const getSalesPeople = async (
         filter.length > 0
             ? { OR: filter, ownerId: owner.id }
             : { ownerId: owner.id };
-
-    console.log(JSON.stringify(whereClause));
-
     const [data, total] = await Promise.all([
         Model.salesPeoples.findMany({ where: whereClause, skip, take }),
         Model.salesPeoples.count({ where: whereClause }),
