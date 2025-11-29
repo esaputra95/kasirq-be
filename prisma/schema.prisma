@@ -321,6 +321,8 @@ model sales {
   updatedAt            DateTime?     @default(now()) @db.DateTime(0)
   deletedAt            DateTime?     @db.DateTime(0)
   transactionNumber Int? @db.Int()
+  salePeopleId String? @db.VarChar(36)
+  salePeoples salesPeoples? @relation(fields: [salePeopleId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePeopleSale") 
   saleDetails          saleDetails[]
   members              members?      @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleMember")
   stores               stores?       @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleStore")
@@ -411,6 +413,25 @@ model suppliers {
   @@index([userCreate], map: "supplierUser")
 }
 
+model salesPeoples {
+  id                                 String    @id @db.VarChar(36)
+  ownerId                            String?   @db.VarChar(36)
+  name                               String    @db.VarChar(150)
+  phone                              String?   @db.VarChar(20)
+  email                              String?   @db.VarChar(50)
+  userCreate                         String?   @db.VarChar(36)
+  createdAt                          DateTime? @default(now()) @db.DateTime(0)
+  updatedAt                          DateTime? @default(now()) @db.DateTime(0)
+  deletedAt                          DateTime? @db.DateTime(0)
+  users                              users?    @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salesPeopleUser")
+  sales                              sales[]
+  users_salesPeople_ownerIdTousers   users?    @relation("salesPeople_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "salespeople_ibfk_1")
+
+  @@index([ownerId], map: "salesPeopleOwner")
+  @@index([userCreate], map: "salesPeopleUser")
+}
+
+
 model units {
   id                         String    @id @db.VarChar(36)
   ownerId                    String    @db.VarChar(36)
@@ -464,6 +485,8 @@ model users {
   stores                                   stores[]
   suppliers                                suppliers[]
   suppliers_suppliers_ownerIdTousers       suppliers[]            @relation("suppliers_ownerIdTousers")
+  salesPeople                              salesPeoples[]
+  salesPeople_salesPeople_ownerIdTousers   salesPeoples[]          @relation("salesPeople_ownerIdTousers")
   units                                    units[]
   units_units_ownerIdTousers               units[]                @relation("units_ownerIdTousers")
   variants                                 variants[]
