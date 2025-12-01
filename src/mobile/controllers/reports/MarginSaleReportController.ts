@@ -7,11 +7,11 @@ const getData = async (req: Request, res: Response) => {
         const result = await MarginSaleReportService.getMarginSaleReport({
             start: req.query.start as string,
             finish: req.query.finish as string,
-            storeId: req.query.storeId as string
+            storeId: req.query.storeId as string,
         });
         res.status(200).json({
             status: true,
-            ...result
+            ...result,
         });
     } catch (error) {
         handleErrorMessage(res, error);
