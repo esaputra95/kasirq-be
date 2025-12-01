@@ -11,7 +11,13 @@ export const getSaleReport = async (filters: {
 }) => {
     let filter: any = {};
 
-    if (filters.accountId) filter.accountCashId = filters.accountId;
+    if (filters.accountId) {
+        if (filters.accountId === "cash") {
+            filter.accountCashId = null;
+        } else {
+            filter.accountCashId = filters.accountId;
+        }
+    }
     if (filters.storeId) filter.storeId = filters.storeId;
     if (filters.memberId) filter.memberId = filters.memberId;
     if (filters.salePeopleId) filter.salePeopleId = filters.salePeopleId;
