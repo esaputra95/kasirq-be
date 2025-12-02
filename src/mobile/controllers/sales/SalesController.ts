@@ -656,6 +656,12 @@ const getFacture = async (req: Request, res: Response) => {
                         name: true,
                     },
                 },
+                salePeoples: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
             },
         });
 
@@ -716,6 +722,7 @@ const getFacture = async (req: Request, res: Response) => {
                     invoice: data?.invoice,
                     salesDetails: newData,
                     description: data?.description ?? "",
+                    salePeople: data?.salePeoples?.name,
                 },
                 store,
             },
