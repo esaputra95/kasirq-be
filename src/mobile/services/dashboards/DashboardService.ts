@@ -1,143 +1,191 @@
 import Model from "#root/services/PrismaService";
 import getOwnerId from "#root/helpers/GetOwnerId";
-import moment from "moment";
+import moment from "moment-timezone";
 
-const dayDummy = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-const color = {
-    0: '#ce7d28',
-    1: '#df505b',
-    2: '#24c565',
-    3: '#14b7a8',
-    4: '#24d1ee',
-    5: '#3c84f7',
-    6: '#4f50e6'
+// Default timezone
+moment.tz.setDefault("Asia/Jakarta");
+
+const dayDummy = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+const color: Record<number, string> = {
+    0: "#ce7d28",
+    1: "#df505b",
+    2: "#24c565",
+    3: "#14b7a8",
+    4: "#24d1ee",
+    5: "#3c84f7",
+    6: "#4f50e6",
+};
+
+// Utility: Parse date safely
+const makeDate = (date: string, time: string) => {
+    const parsed = moment(`${date} ${time}`, "YYYY-MM-DD HH:mm:ss", true);
+
+    if (!parsed.isValid()) {
+        console.error("⚠ Invalid date detected:", `${date} ${time}`);
+        return null;
+    }
+
+    return parsed;
+};
+
+// Utility: Ensure fallback when invalid
+const safeDate = (parsed: any, fallback: moment.Moment) => {
+    return parsed ? parsed.toDate() : fallback.toDate();
 };
 
 /**
  * Get total sales for a store
  */
 export const getTotalSales = async (storeId: string) => {
-    const data = await Model.sales.aggregate({
-        _sum: { total: true },
-        where: { storeId }
-    });
+    try {
+        const data = await Model.sales.aggregate({
+            _sum: { total: true },
+            where: { storeId },
+        });
 
-    return {
-        message: 'Success get Total Sales',
-        data: data._sum.total ?? 0
-    };
+        return {
+            message: "Success get Total Sales",
+            data: data._sum.total ?? 0,
+        };
+    } catch (error) {
+        console.error("getTotalSales crashed:", error);
+        return { message: "Failed", data: 0 };
+    }
 };
 
 /**
  * Get margin/profit per week
  */
 export const getMarginWeek = async (storeId: string) => {
-    const date = await getDatesOfCurrentWeek();
-    let tmpData: any = [];
+    try {
+        const dates = await getDatesOfCurrentWeek();
+        const result: any[] = [];
 
-    for (let index = 0; index < date.length; index++) {
-        const results = await Model.$queryRaw`
-            SELECT 
-                saleDetails.quantity * saleDetails.price AS totals,
-                SUM(cogs.price * cogs.quantity) AS total_cogs,
-                sales.date
-            FROM 
-                saleDetails
-            LEFT JOIN 
-                cogs ON cogs.saleDetailId = saleDetails.id
-            LEFT JOIN 
-                sales ON sales.id = saleDetails.saleId
-            WHERE 
-                sales.date BETWEEN ${moment(date[index] + ' 00:00:00').format()} AND ${moment(date[index] + ' 23:59:00').format()}
-            AND sales.storeId = ${storeId}
-            GROUP BY saleDetails.id
-        `;
+        for (let i = 0; i < dates.length; i++) {
+            const start = makeDate(dates[i], "00:00:00");
+            const end = makeDate(dates[i], "23:59:59");
 
-        const loop = results as [];
-        tmpData.push({
-            value: Math.round(loop?.reduce((total: number, data: any) => {
-                const totals = parseFloat(data?.totals ?? '0');
-                const totalCogs = data?.total_cogs ?? 0;
+            const startSafe = safeDate(start, moment());
+            const endSafe = safeDate(end, moment());
+
+            const rows = await Model.$queryRaw`
+        SELECT 
+          saleDetails.quantity * saleDetails.price AS totals,
+          SUM(cogs.price * cogs.quantity) AS total_cogs,
+          sales.date
+        FROM saleDetails
+        LEFT JOIN cogs ON cogs.saleDetailId = saleDetails.id
+        LEFT JOIN sales ON sales.id = saleDetails.saleId
+        WHERE sales.date BETWEEN ${startSafe} AND ${endSafe}
+          AND sales.storeId = ${storeId}
+        GROUP BY saleDetails.id;
+      `;
+
+            const value = (rows as any[])?.reduce((total, row) => {
+                const totals = parseFloat(row?.totals ?? "0");
+                const totalCogs = row?.total_cogs ?? 0;
                 return total + (totals - totalCogs);
-            }, 0) / 1000),
-            label: dayDummy[index],
-            frontColor: color[index as keyof typeof color]
-        });
-    }
+            }, 0);
 
-    return { data: tmpData };
+            result.push({
+                value: Math.round(value / 1000),
+                label: dayDummy[i],
+                frontColor: color[i] as any,
+            });
+        }
+
+        return { data: result };
+    } catch (error) {
+        console.error("getMarginWeek crashed:", error);
+        return { data: [], error: true };
+    }
 };
 
 /**
  * Get total product count
  */
 export const getTotalProducts = async (userId: string, userType: string) => {
-    const ownerId: any = await getOwnerId(userId, userType);
-    const data = await Model.products.count({
-        where: { ownerId: ownerId.id }
-    });
+    try {
+        const ownerId: any = await getOwnerId(userId, userType);
+        const data = await Model.products.count({
+            where: { ownerId: ownerId.id },
+        });
 
-    return {
-        message: 'Success get Total Product',
-        data: data ?? 0
-    };
+        return {
+            message: "Success get Total Product",
+            data: data ?? 0,
+        };
+    } catch (error) {
+        console.error("getTotalProducts crashed:", error);
+        return { data: 0 };
+    }
 };
 
 /**
  * Get sales per week
  */
 export const getSalesWeek = async (storeId: string) => {
-    const date = await getDatesOfCurrentWeek();
-    let data: any = [];
+    try {
+        const dates = await getDatesOfCurrentWeek();
+        const result: any[] = [];
 
-    for (let index = 0; index < date.length; index++) {
-        const total = await Model.sales.aggregate({
-            _sum: { total: true },
-            where: {
-                date: {
-                    gte: moment(date[index] + ' 00:00:00').format(),
-                    lte: moment(date[index] + ' 23:59:00').format()
+        for (let i = 0; i < dates.length; i++) {
+            const start = makeDate(dates[i], "00:00:00");
+            const end = makeDate(dates[i], "23:59:59");
+
+            const startSafe = safeDate(start, moment());
+            const endSafe = safeDate(end, moment());
+
+            const total = await Model.sales.aggregate({
+                _sum: { total: true },
+                where: {
+                    date: { gte: startSafe, lte: endSafe },
+                    storeId,
                 },
-                storeId
-            }
-        });
+            });
 
-        data.push({
-            value: Math.round(parseInt(total._sum?.total?.toString() ?? '0') / 1000),
-            label: dayDummy[index],
-            frontColor: color[index as keyof typeof color]
-        });
+            result.push({
+                value: Math.round(
+                    parseInt(total._sum?.total?.toString() ?? "0") / 1000
+                ),
+                label: dayDummy[i],
+                frontColor: color[i],
+            });
+        }
+
+        return { data: result };
+    } catch (error) {
+        console.error("getSalesWeek crashed:", error);
+        return { data: [], error: true };
     }
-
-    return { data };
 };
 
 /**
- * Get store expiration date
+ * Store Expiration Date
  */
 export const getStoreExpired = async (storeId: string) => {
-    const data = await Model.stores.findUnique({
-        where: { id: storeId }
-    });
+    try {
+        const data = await Model.stores.findUnique({
+            where: { id: storeId },
+        });
 
-    return { data: data?.expiredDate };
+        return { data: data?.expiredDate };
+    } catch (error) {
+        console.error("getStoreExpired crashed:", error);
+        return { data: null };
+    }
 };
 
 /**
- * Get dates of current week (Monday to Sunday)
+ * Get dates of current week
  */
 const getDatesOfCurrentWeek = async () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7));
+    const today = moment();
+    const monday = today.clone().startOf("week").add(1, "day"); // Monday start
 
-    const weekDates = [];
+    const weekDates: string[] = [];
     for (let i = 0; i < 7; i++) {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + i);
-        const formattedDate = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-        weekDates.push(formattedDate);
+        weekDates.push(monday.clone().add(i, "day").format("YYYY-MM-DD"));
     }
     return weekDates;
 };
