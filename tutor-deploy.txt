@@ -1,0 +1,31 @@
+🔥 Deployment Workflow yang Aman & Rapi
+
+➡️ masuk ke server
+➡️ pull from GitHub
+➡️ build ulang frontend
+➡️ pastikan permission tetap benar
+➡️ restart nginx bila perlu
+
+Berikut perintah step-by-step:
+
+🧩 Untuk Frontend (report.kasirq.id)
+
+Masuk ke folder project:
+
+cd /home/kasirq/projects/report.kasirq.id
+git pull
+npm install --production
+npm run build
+
+sudo chmod -R o+r /home/kasirq/projects/report.kasirq.id/dist
+
+🔐 Permission Rules (PENTING)
+
+Tidak perlu ulang lagi command ini setiap deploy — hanya sekali saja:
+sudo chmod o+rx /home
+sudo chmod o+rx /home/kasirq
+sudo chmod o+rx /home/kasirq/projects
+sudo chmod o+rx /home/kasirq/projects/report.kasirq.id
+
+Yang perlu tiap deploy hanya:
+sudo chmod -R o+r dist

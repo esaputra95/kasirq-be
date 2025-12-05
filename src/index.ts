@@ -11,6 +11,7 @@ import {
     BrandRoute,
     CategoryRoute,
     MemberRoute,
+    NotificationRoute,
     ProductRoute,
     SalesPeopleRoute,
     StoreRoute,
@@ -62,6 +63,7 @@ app.use("/sale-pending", AccessToken, SalePendingRoute);
 app.use("/reports", AccessToken, ReportRoute);
 app.use("/dashboards", AccessToken, DashboardRoute);
 app.use("/sales-people", AccessToken, SalesPeopleRoute);
+app.use("/notifications", AccessToken, NotificationRoute);
 
 app.use("/admin", AdminRoute);
 

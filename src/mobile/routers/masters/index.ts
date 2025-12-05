@@ -8,3 +8,4 @@ export { default as SupplierRoute } from "./SupplierRoute";
 export { default as SalesPeopleRoute } from "./SalesPeopleRoute";
 export { default as MemberRoute } from "./MemberRoute";
 export { default as AccountRoute } from "./AccountRoute";
+export { default as NotificationRoute } from "./NotificationRoute";

@@ -244,3 +244,53 @@ export const getUserCashiers = async (query: UserQueryInterface) => {
         },
     };
 };
+
+export const postDeviceToken = async (
+    userId: string,
+    deviceToken: string,
+    platform: "android" | "ios"
+) => {
+    // Check if token already exists
+    const existingToken = await Model.deviceTokens.findUnique({
+        where: { token: deviceToken },
+    });
+
+    if (existingToken) {
+        // Update existing token (reactivate and update lastUsedAt)
+        await Model.deviceTokens.update({
+            where: { token: deviceToken },
+            data: {
+                lastUsedAt: new Date(),
+                isActive: true,
+                userId: userId, // Update userId in case device switched accounts
+            },
+        });
+    } else {
+        // Create new device token
+        await Model.deviceTokens.create({
+            data: {
+                userId: userId,
+                token: deviceToken,
+                platform: platform,
+                lastUsedAt: new Date(),
+                isActive: true,
+            },
+        });
+    }
+
+    return {
+        message: "successfully registered device token",
+    };
+};
+
+// non active device token
+export const deleteDeviceToken = async (token: string) => {
+    await Model.deviceTokens.update({
+        where: { token },
+        data: { isActive: false },
+    });
+
+    return {
+        message: "successfully non active device token",
+    };
+};
