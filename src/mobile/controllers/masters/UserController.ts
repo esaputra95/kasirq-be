@@ -106,6 +106,35 @@ const getDataCashiers = async (
     }
 };
 
+const postDeviceToken = async (req: Request, res: Response) => {
+    try {
+        const result = await UserService.postDeviceToken(
+            req.body.userId,
+            req.body.token,
+            req.body.platform || "android" // Default to android if not specified
+        );
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+// Delete atau non active device token
+const deleteDeviceToken = async (req: Request, res: Response) => {
+    try {
+        const result = await UserService.deleteDeviceToken(req.params.id);
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
 export {
     getData,
     postData,
@@ -114,4 +143,6 @@ export {
     getDataById,
     changePassword,
     getDataCashiers,
+    postDeviceToken,
+    deleteDeviceToken,
 };

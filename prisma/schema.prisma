@@ -493,6 +493,8 @@ model users {
   subscriptionsStores SubscriptionStore[]
   salePendingDetails salePendingDetails[]
   salePending salePending[]
+  notificationRecipients notificationRecipients[]
+  deviceTokens deviceTokens[]
 }
 
 model variants {
@@ -747,6 +749,48 @@ model purchaseOrders {
   @@index([storeId], map: "purchaseStore")
   @@index([supplierId], map: "purchaseSupplier")
   @@index([userCreate], map: "purchaseUser")
+}
+
+model notifications {
+  id          String              @id @default(uuid()) @db.VarChar(36)
+  title       String?             @db.VarChar(255)
+  body        String              @db.Text()
+  type        String?             @db.VarChar(50)
+  createdAt   DateTime            @default(now()) @db.DateTime(0)
+  screen      String?             @db.VarChar(50)
+  referenceId String?             @db.VarChar(36)
+  metadata    Json?
+  recipients  notificationRecipients[]
+}
+
+model notificationRecipients {
+  id             String        @id @default(uuid()) @db.VarChar(36)
+  notificationId String        @db.VarChar(36)
+  userId         String        @db.VarChar(36)
+  isRead         Boolean       @default(false)
+  readAt         DateTime?     @db.DateTime(0)
+  createdAt      DateTime      @default(now()) @db.DateTime(0)
+
+  notification   notifications  @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user           users          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model deviceTokens {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  userId     String   @db.VarChar(36)
+  token      String   @unique @db.VarChar(255)
+  platform   Platform
+  lastUsedAt DateTime @default(now())
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Platform {
+  android
+  ios
 }
 
 enum products_status {
