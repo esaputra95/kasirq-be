@@ -91,8 +91,6 @@ const getData = async (
             },
         });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };
@@ -121,9 +119,6 @@ const postData = async (req: Request, res: Response) => {
                 recipients: true, // Include recipients to get their IDs
             },
         });
-
-        console.log({ userIds });
-
         // Send FCM notification to devices
         if (userIds && userIds.length > 0) {
             // Fetch all recipients with their device tokens
@@ -155,16 +150,6 @@ const postData = async (req: Request, res: Response) => {
 
             for (const recipient of recipients) {
                 // Skip if user has no device tokens
-                if (
-                    !recipient.user.deviceTokens ||
-                    recipient.user.deviceTokens.length === 0
-                ) {
-                    console.log(
-                        `⚠️ User ${recipient.userId} has no active device tokens`
-                    );
-                    continue;
-                }
-
                 // Send to all devices of this user
                 for (const deviceToken of recipient.user.deviceTokens) {
                     const promise = (async () => {
@@ -177,9 +162,6 @@ const postData = async (req: Request, res: Response) => {
                                     notificationId: recipient.id, // Use recipient ID
                                     type: type || "GENERAL",
                                 }
-                            );
-                            console.log(
-                                `✅ Sent to user ${recipient.userId} on ${deviceToken.platform} (recipientId: ${recipient.id})`
                             );
                         } catch (error) {
                             console.error(
@@ -202,8 +184,6 @@ const postData = async (req: Request, res: Response) => {
             message: "successful in created Notification data",
         });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };
