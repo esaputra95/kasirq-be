@@ -1,8 +1,8 @@
 import Model from "#root/services/PrismaService";
 
-const getOwnerId = async (id: string, userType: string) => {
+const getOwnerId = async (id: string, level: string) => {
     try {
-        if (userType === "cashier") {
+        if (level === "cashier") {
             const user = await Model.users.findUnique({
                 where: {
                     id: id,

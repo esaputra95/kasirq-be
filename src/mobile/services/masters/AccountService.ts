@@ -19,6 +19,8 @@ export const getAccounts = async (
         filter.length > 0
             ? { OR: filter, ownerId: owner.id }
             : { ownerId: owner.id };
+    console.log({ owner });
+
     const [data, total] = await Promise.all([
         Model.account.findMany({ where: whereClause, skip, take }),
         Model.account.count({ where: whereClause }),
@@ -78,6 +80,8 @@ export const getAccountsForSelect = async (
     userType: string
 ) => {
     const owner: any = await getOwnerId(userId, userType);
+    console.log({ owner });
+
     let filter: any = {};
     if (name) filter = { ...filter, name: { contains: name } };
     const data = await Model.account.findMany({
