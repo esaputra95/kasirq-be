@@ -112,6 +112,7 @@ model productConversions {
   purchaseOrderDetails purchaseOrderDetails[]
   saleDetails          saleDetails[]
   salePendingDetails salePendingDetails[]
+  stockOpnameDetails stockOpnameDetails[]
 
   @@index([productId], map: "productConversionProduct")
   @@index([unitId], map: "productConversionUnit")
@@ -170,6 +171,7 @@ model products {
   purchaseOrderDetails purchaseOrderDetails[]
   saleDetails          saleDetails[]
   salePendingDetails   salePendingDetails[]
+  stockOpnameDetails stockOpnameDetails[]
 
   @@index([ownerId], map: "productStore")
   @@index([userCreate], map: "productUser")
@@ -390,6 +392,7 @@ model stores {
   users          users            @relation(fields: [ownerId], references: [id], onDelete: Cascade, map: "storeUser")
   variants       variants[]
   subscriptionStores SubscriptionStore[]
+  stockOpnames stockOpname[]
 
   @@index([ownerId], map: "storeUser")
 }
@@ -495,6 +498,8 @@ model users {
   salePending salePending[]
   notificationRecipients notificationRecipients[]
   deviceTokens deviceTokens[]
+  stockOpnames stockOpname[]
+  stockOpnameDetails stockOpnameDetails[]
 }
 
 model variants {
@@ -786,6 +791,61 @@ model deviceTokens {
   updatedAt  DateTime @updatedAt
 
   user       users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model stockOpname {
+  id              String                @id @db.VarChar(36)
+  storeId         String                @db.VarChar(36)
+  date            DateTime              @db.Date
+  invoice         String                @unique @db.VarChar(100)
+  description     String?               @db.Text
+  status          stockOpname_status?   @default(pending)
+  adjustmentTotal Decimal?              @db.Decimal(14, 4)
+  userCreate      String?               @db.VarChar(36)
+  createdAt       DateTime?             @default(now()) @db.DateTime(0)
+  updatedAt       DateTime?             @default(now()) @db.DateTime(0)
+  deletedAt       DateTime?             @db.DateTime(0)
+
+  // Relations
+  stores          stores                @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameStore")
+  users           users?                @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameUser")
+  stockOpnameDetails         stockOpnameDetails[]
+
+  @@index([storeId], map: "stockOpnameStoreIndex")
+  @@index([userCreate], map: "stockOpnameUserIndex")
+  @@map("stockOpname")
+}
+
+model stockOpnameDetails {
+  id                  String              @id @db.VarChar(36)
+  stockOpnameId       String              @db.VarChar(36)
+  productId           String              @db.VarChar(36)
+  productConversionId String?             @db.VarChar(36)
+  systemQuantity      Decimal?            @db.Decimal(14, 4)
+  actualQuantity      Decimal             @db.Decimal(14, 4)
+  differenceQuantity  Decimal?            @db.Decimal(14, 4)
+  differenceValue     Decimal?            @db.Decimal(14, 4)
+  description         String?             @db.Text
+  userCreate          String?             @db.VarChar(36)
+  createdAt           DateTime?           @default(now()) @db.DateTime(0)
+  updatedAt           DateTime?           @default(now()) @db.DateTime(0)
+  deletedAt           DateTime?           @db.DateTime(0)
+
+  // Relations
+  stockOpname         stockOpname         @relation(fields: [stockOpnameId], references: [id], onDelete: Cascade, map: "stockOpnameDetailHeader")
+  products            products            @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameDetailProduct")
+  productConversions  productConversions? @relation(fields: [productConversionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameDetailConversion")
+  users               users?              @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameDetailUser")
+
+  @@index([stockOpnameId], map: "stockOpnameDetailHeaderIndex")
+  @@index([productId], map: "stockOpnameDetailProductIndex")
+  @@map("stockOpnameDetails")
+}
+
+enum stockOpname_status {
+  pending
+  completed
+  canceled
 }
 
 enum Platform {

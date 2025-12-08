@@ -21,7 +21,7 @@ import {
 } from "./mobile/routers/masters";
 import { AccessToken } from "./mobile/controllers/auth/middlewareController";
 import { PurchaseRoute } from "./mobile/routers/purrchases";
-import { ItemInRoute } from "./mobile/routers/supplies";
+import { ItemInRoute, StockOpnameRoute } from "./mobile/routers/supplies";
 import { SalePendingRoute, SalesRoute } from "./mobile/routers/sales";
 import { ReportRoute } from "./mobile/routers/reports";
 import DashboardRoute from "#root/mobile/routers/dashboards/DashboardRoute";
@@ -58,6 +58,7 @@ app.use("/suppliers", AccessToken, SupplierRoute);
 app.use("/members", AccessToken, MemberRoute);
 app.use("/payment-methods", AccessToken, AccountRoute);
 app.use("/item-ins", AccessToken, ItemInRoute);
+app.use("/stock-opnames", AccessToken, StockOpnameRoute);
 app.use("/sales", AccessToken, SalesRoute);
 app.use("/sale-pending", AccessToken, SalePendingRoute);
 app.use("/reports", AccessToken, ReportRoute);
