@@ -132,7 +132,6 @@ export const createStockOpname = async (
 
         // Loop details
         for (const detail of data.details) {
-            console.log({ detail });
             const detailId = uuidv4();
             // Get current stock
             const currentStock = await prisma.stocks.findFirst({

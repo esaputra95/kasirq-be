@@ -35,8 +35,6 @@ const postData = async (req: Request, res: Response) => {
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };
@@ -51,8 +49,6 @@ const updateData = async (req: Request, res: Response) => {
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };
