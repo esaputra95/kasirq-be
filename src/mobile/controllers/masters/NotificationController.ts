@@ -55,11 +55,7 @@ const getData = async (req: Request, res: Response) => {
  */
 const getDataById = async (req: Request, res: Response) => {
     try {
-        const userId = res.locals.userId;
         const notificationId = req.params.id;
-
-        console.log({ notificationId });
-
         const model = await Model.notificationRecipients.findFirst({
             where: {
                 id: notificationId,
@@ -69,7 +65,6 @@ const getDataById = async (req: Request, res: Response) => {
             },
         });
 
-        console.log({ model });
         if (!model) {
             return res.status(404).json({
                 status: false,

@@ -21,7 +21,6 @@ const makeDate = (date: string, time: string) => {
     const parsed = moment(`${date} ${time}`, "YYYY-MM-DD HH:mm:ss", true);
 
     if (!parsed.isValid()) {
-        console.error("⚠ Invalid date detected:", `${date} ${time}`);
         return null;
     }
 
@@ -48,7 +47,6 @@ export const getTotalSales = async (storeId: string) => {
             data: data._sum.total ?? 0,
         };
     } catch (error) {
-        console.error("getTotalSales crashed:", error);
         return { message: "Failed", data: 0 };
     }
 };
@@ -96,7 +94,6 @@ export const getMarginWeek = async (storeId: string) => {
 
         return { data: result };
     } catch (error) {
-        console.error("getMarginWeek crashed:", error);
         return { data: [], error: true };
     }
 };
@@ -116,7 +113,6 @@ export const getTotalProducts = async (userId: string, userType: string) => {
             data: data ?? 0,
         };
     } catch (error) {
-        console.error("getTotalProducts crashed:", error);
         return { data: 0 };
     }
 };
@@ -155,7 +151,6 @@ export const getSalesWeek = async (storeId: string) => {
 
         return { data: result };
     } catch (error) {
-        console.error("getSalesWeek crashed:", error);
         return { data: [], error: true };
     }
 };
@@ -171,7 +166,6 @@ export const getStoreExpired = async (storeId: string) => {
 
         return { data: data?.expiredDate };
     } catch (error) {
-        console.error("getStoreExpired crashed:", error);
         return { data: null };
     }
 };

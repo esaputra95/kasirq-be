@@ -25,10 +25,8 @@ export async function sendNotificationToDevice(
 
     try {
         const response = await admin.messaging().send(message);
-        console.log("Notification sent successfully:", response);
         return response;
     } catch (error) {
-        console.error("Error sending notification:", error);
         throw error; // Re-throw untuk caller bisa handle
     }
 }
