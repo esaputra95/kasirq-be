@@ -31,8 +31,14 @@ const StockOpnameValidation = [
         .withMessage("Product ID must be a string"),
 
     body("details.*.actualQuantity")
-        .exists({ checkFalsy: true })
+        .exists()
         .withMessage("Actual quantity is required for each detail")
+        .custom((value) => {
+            if (value === undefined || value === null || value === "") {
+                throw new Error("Actual quantity cannot be empty");
+            }
+            return true;
+        })
         .isNumeric()
         .withMessage("Actual quantity must be a number"),
 

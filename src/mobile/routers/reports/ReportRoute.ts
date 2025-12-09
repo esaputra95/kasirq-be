@@ -3,11 +3,13 @@ import { getData as getDataPurchase } from "#root/mobile/controllers/reports/Pur
 import { getData as getDataSale } from "#root/mobile/controllers/reports/SaleReportController";
 import { getData as getDataMarginSale } from "#root/mobile/controllers/reports/MarginSaleReportController";
 import { getData as getDataBestSeller } from "#root/mobile/controllers/reports/BestSellerReportController";
+import { getData as getDataStockOpname } from "#root/mobile/controllers/reports/StockOpnameReportController";
 const Route = express.Router();
 
 Route.get("/purchase-reports", getDataPurchase);
 Route.get("/sale-reports", getDataSale);
 Route.get("/margin-sale-reports", getDataMarginSale);
 Route.get("/best-seller-reports", getDataBestSeller);
+Route.get("/stock-opname-reports", getDataStockOpname);
 
 export default Route;
