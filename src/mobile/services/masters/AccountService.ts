@@ -80,8 +80,6 @@ export const getAccountsForSelect = async (
     userType: string
 ) => {
     const owner: any = await getOwnerId(userId, userType);
-    console.log({ owner });
-
     let filter: any = {};
     if (name) filter = { ...filter, name: { contains: name } };
     const data = await Model.account.findMany({

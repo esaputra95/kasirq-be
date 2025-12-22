@@ -22,7 +22,7 @@ export const getStoresForSelect = async (userId: string, userLevel: string) => {
             },
         });
 
-        dataOption = stores.map(store => ({
+        dataOption = stores.map((store) => ({
             key: store.id,
             value: store.name,
         }));
@@ -36,9 +36,10 @@ export const getStoresForSelect = async (userId: string, userLevel: string) => {
             },
         });
 
-        dataOption = stores.map(store => ({
+        dataOption = stores.map((store) => ({
             key: store.id,
             value: store.name,
+            defaultCashId: store.defaultCashId,
         }));
     }
 
@@ -47,5 +48,21 @@ export const getStoresForSelect = async (userId: string, userLevel: string) => {
         data: {
             store: dataOption,
         },
+    };
+};
+
+export const updateStore = async (id: string, storeData: any) => {
+    const data = { ...storeData };
+    delete data.storeId;
+    await Model.stores.update({ where: { id }, data });
+    return { message: "successful in updated Store data" };
+};
+
+export const getStoreById = async (id: string) => {
+    const store = await Model.stores.findUnique({ where: { id } });
+    if (!store) throw new ValidationError("data not found", 404, "store");
+    return {
+        message: "successfully in get Store data",
+        data: { Store: store },
     };
 };

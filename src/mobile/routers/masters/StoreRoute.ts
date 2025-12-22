@@ -1,7 +1,13 @@
 import express from "express";
-import { getSelect } from "#root/mobile/controllers/masters/StoreController"
-const login = express.Router()
+import {
+    getSelect,
+    updateData,
+    getDataById,
+} from "#root/mobile/controllers/masters/StoreController";
+const router = express.Router();
 
-login.get('/select', getSelect);
+router.get("/select", getSelect);
+router.get("/:id", getDataById);
+router.put("/:id", updateData);
 
-export default login
+export default router;
