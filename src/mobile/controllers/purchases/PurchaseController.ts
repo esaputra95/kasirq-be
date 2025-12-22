@@ -72,6 +72,11 @@ const getData = async (
     }
 };
 
+import {
+    createCashflowEntry,
+    revertCashflowByReference,
+} from "#root/mobile/services/accountancy/CashflowService";
+
 const postData = async (req: Request, res: Response) => {
     const purchaseId = uuidv4();
 
@@ -94,10 +99,42 @@ const postData = async (req: Request, res: Response) => {
                 invoice: uuidv4(),
                 payCash: data.pay ?? 0,
                 total: data.total ?? 0,
+                accountCashId: data.accountId, // Simpan akun kas yang digunakan
             };
+
+            // LOGIC DEFAULT ACCOUNT
+            if (!purchaseData.accountCashId) {
+                const store = await prisma.stores.findUnique({
+                    where: { id: data.storeId },
+                    select: { defaultCashId: true },
+                });
+                if (store?.defaultCashId) {
+                    purchaseData.accountCashId = store.defaultCashId;
+                }
+            }
+
             const createPurchase = await prisma.purchases.create({
                 data: purchaseData,
             });
+
+            // ---------------------------------------------------
+            // INTEGRASI CASHFLOW (OUT)
+            // ---------------------------------------------------
+            // INTEGRASI CASHFLOW (OUT)
+            // ---------------------------------------------------
+            if (parseFloat(data.pay ?? 0) > 0 && purchaseData.accountCashId) {
+                await createCashflowEntry(prisma, {
+                    storeId: data.storeId,
+                    kasId: purchaseData.accountCashId,
+                    type: "OUT",
+                    amount: parseFloat(data.pay ?? 0),
+                    description: `Pembelian Supplier ${data.supplierId}`, // Bisa diganti nama supplier kalau ada
+                    referenceId: createPurchase.id,
+                    referenceType: "PURCHASE",
+                    userCreate: res.locals.userId,
+                    transactionDate: new Date(),
+                });
+            }
 
             for (const key in dataDetail) {
                 const idDetail = uuidv4();
@@ -161,178 +198,7 @@ const postData = async (req: Request, res: Response) => {
     }
 };
 
-// const updateData = async (req: Request, res: Response) => {
-//     const data = { ...req.body };
-//     const dataDetail = data.detailItem;
-//     const purchaseId = req.params.id;
-//     const transaction = async () => {
-//         // Mulai transaksi
-//         await Model.$transaction(async (prisma) => {
-//             const purchaseData = {
-//                 supplierId: data.supplierId,
-//                 discount: data.discount,
-//                 payCash: data.pay ?? 0,
-//                 total: data.total ?? 0,
-//             };
-//             const createPurchase = await prisma.purchases.update({
-//                 data: purchaseData,
-//                 where: {
-//                     id: purchaseId,
-//                 },
-//             });
-
-//             let createPurchaseDetails: any;
-
-//             for (const key in dataDetail) {
-//                 console.log(dataDetail[key]);
-
-//                 const oldConversion =
-//                     await prisma.productConversions.findUnique({
-//                         where: {
-//                             id:
-//                                 dataDetail[key].oldUnitId ??
-//                                 dataDetail[key].unitId,
-//                         },
-//                     });
-//                 const newConversion =
-//                     await prisma.productConversions.findUnique({
-//                         where: {
-//                             id: dataDetail[key].unitId,
-//                         },
-//                     });
-//                 let idDetail = dataDetail[key].purchaseDetailId;
-//                 if (idDetail) {
-//                     if (dataDetail[key].quantity === 0) {
-//                         await prisma.purchaseDetails.delete({
-//                             where: {
-//                                 id: idDetail,
-//                             },
-//                         });
-//                         await prisma.hppHistory.deleteMany({
-//                             where: {
-//                                 transactionDetailId: idDetail,
-//                             },
-//                         });
-//                         const conversion =
-//                             await prisma.productConversions.findFirst({
-//                                 where: {
-//                                     id: dataDetail[key].unitId,
-//                                 },
-//                             });
-//                         await DecrementStock(
-//                             prisma,
-//                             key,
-//                             data.storeId,
-//                             (conversion?.quantity ?? 1) *
-//                                 dataDetail[key].quantity
-//                         );
-//                     } else {
-//                         createPurchaseDetails =
-//                             await prisma.purchaseDetails.update({
-//                                 data: {
-//                                     quantity: dataDetail[key].quantity,
-//                                     productConversionId: dataDetail[key].unitId,
-//                                     price: dataDetail[key].price ?? 0,
-//                                 },
-//                                 where: {
-//                                     id: idDetail,
-//                                 },
-//                             });
-//                         await prisma.hppHistory.deleteMany({
-//                             where: {
-//                                 transactionDetailId: idDetail,
-//                             },
-//                         });
-//                         await prisma.hppHistory.create({
-//                             data: {
-//                                 price: Number(dataDetail[key].price) ?? 0,
-//                                 quantity: dataDetail[key].quantity,
-//                                 quantityUsed: 0,
-//                                 productId: key,
-//                                 id: uuidv4(),
-//                                 storeId: createPurchase.storeId,
-//                             },
-//                         });
-
-//                         const quantityStock =
-//                             (newConversion?.quantity ?? 0) *
-//                                 dataDetail[0]?.quantity -
-//                             (oldConversion?.quantity ?? 0) *
-//                                 dataDetail[0]?.oldQuantity;
-//                         await IncrementStock(
-//                             prisma,
-//                             key,
-//                             data.storeId,
-//                             quantityStock
-//                         );
-//                     }
-//                 } else {
-//                     idDetail = uuidv4();
-//                     createPurchaseDetails = await prisma.purchaseDetails.create(
-//                         {
-//                             data: {
-//                                 id: idDetail,
-//                                 purchaseId: purchaseId,
-//                                 productId: key,
-//                                 productConversionId: dataDetail[key].unitId,
-//                                 quantity: dataDetail[key].quantity ?? 1,
-//                                 price: dataDetail[key].price ?? 0,
-//                             },
-//                         }
-//                     );
-
-//                     const conversion =
-//                         await prisma.productConversions.findFirst({
-//                             where: {
-//                                 id: dataDetail[key].unitId,
-//                             },
-//                         });
-
-//                     const increment = await IncrementStock(
-//                         prisma,
-//                         key,
-//                         data.storeId,
-//                         dataDetail[key].quantity * (conversion?.quantity ?? 1)
-//                     );
-//                     if (!increment.status) {
-//                         throw increment.message;
-//                     }
-
-//                     await prisma.hppHistory.create({
-//                         data: {
-//                             id: uuidv4(),
-//                             productId: key,
-//                             price:
-//                                 dataDetail[key].price /
-//                                 (conversion?.quantity ?? 1),
-//                             quantity:
-//                                 dataDetail[key].quantity *
-//                                 (conversion?.quantity ?? 1),
-//                             quantityUsed: 0,
-//                             storeId: createPurchase.storeId,
-//                             transactionDetailId: idDetail,
-//                         },
-//                     });
-//                 }
-//             }
-
-//             return { createPurchase, createPurchaseDetails };
-//         });
-//     };
-//     try {
-//         await transaction();
-//         res.status(200).json({
-//             status: true,
-//             message: "Successful in created sales data",
-//             data: purchaseId,
-//             remainder:
-//                 parseInt(data?.pay ?? 0) -
-//                 (parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0)),
-//         });
-//     } catch (error) {
-//         handleErrorMessage(res, error);
-//     }
-// };
+// ... (kode komentar yang ada sebelumnya dilewati di sini)
 
 const updateData = async (req: Request, res: Response) => {
     const data = { ...req.body };
@@ -341,11 +207,59 @@ const updateData = async (req: Request, res: Response) => {
 
     const transaction = async () => {
         await Model.$transaction(async (prisma) => {
+            // Ambil purchase lama untuk data referensi
+            const existing = await prisma.purchases.findUnique({
+                where: { id: purchaseId },
+            });
+
+            if (!existing) throw new Error("Purchase not found");
+
+            // ---------------------------------------------------
+            // INTEGRASI CASHFLOW (UPDATE)
+            // ---------------------------------------------------
+            // 1. Revert cashflow lama
+            await revertCashflowByReference(
+                prisma,
+                purchaseId,
+                "PURCHASE",
+                existing.storeId ?? ""
+            );
+
+            // 2. Buat cashflow baru (jika ada pembayaran)
+            let accountCashId = data.accountId ?? existing.accountCashId;
+
+            // Logic Default Account jika tidak ada akun sama sekali
+            if (!accountCashId && existing.storeId) {
+                const store = await prisma.stores.findUnique({
+                    where: { id: existing.storeId },
+                    select: { defaultCashId: true },
+                });
+                if (store?.defaultCashId) {
+                    accountCashId = store.defaultCashId;
+                }
+            }
+            const payAmount = parseFloat(data.pay ?? 0);
+
+            if (payAmount > 0 && accountCashId) {
+                await createCashflowEntry(prisma, {
+                    storeId: existing.storeId ?? "",
+                    kasId: accountCashId,
+                    type: "OUT",
+                    amount: payAmount,
+                    description: `Update Pembelian Supplier ${data.supplierId}`,
+                    referenceId: purchaseId,
+                    referenceType: "PURCHASE",
+                    userCreate: res.locals.userId,
+                    transactionDate: existing.date || new Date(), // Fix lint: null is not date
+                });
+            }
+
             const purchaseData = {
                 supplierId: data.supplierId,
                 discount: data.discount,
                 payCash: data.pay ?? 0,
                 total: data.total ?? 0,
+                accountCashId: accountCashId, // Update akun kas
             };
 
             const updatePurchase = await prisma.purchases.update({
@@ -496,6 +410,16 @@ const deleteData = async (req: Request, res: Response) => {
                 throw new Error("data not found");
             }
 
+            // ---------------------------------------------------
+            // INTEGRASI CASHFLOW (DELETE)
+            // ---------------------------------------------------
+            await revertCashflowByReference(
+                prisma,
+                model.id,
+                "PURCHASE",
+                model.storeId ?? ""
+            );
+
             const detail = model.purchaseDetails ?? [];
 
             for (const value of detail) {
@@ -526,6 +450,7 @@ const deleteData = async (req: Request, res: Response) => {
         res.status(200).json({
             status: true,
             message: "successfully deleted Purchase data",
+            data: req.params.id,
         });
     } catch (error) {
         let message = {

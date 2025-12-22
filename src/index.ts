@@ -27,25 +27,21 @@ import { ReportRoute } from "./mobile/routers/reports";
 import DashboardRoute from "#root/mobile/routers/dashboards/DashboardRoute";
 import AdminRoute from "./admin/routers";
 import sendEmail from "./helpers/sendEmail";
+import {
+    CashflowRoute,
+    ExpenseCategoryRoute,
+    ExpenseRoute,
+    TransferRoute,
+    CashInRoute,
+    CashOutRoute,
+} from "./mobile/routers/accountancy";
+import { enhanceStore } from "./services/enhanceStore";
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json()); // Parse JSON requests
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.get("/send-email", async (req, res) => {
-    try {
-        // Test kirim ke email lain untuk verify domain sudah bekerja
-        await sendEmail(
-            "sahabatngaji.official@gmail.com",
-            "123456",
-            "register"
-        );
-        res.send("Email sent successfully to sahabatngaji.official@gmail.com!");
-    } catch (error) {
-        res.status(500).send("Failed to send email: " + error);
-    }
-});
 app.use("/auth", login);
 app.use("/users", AccessToken, user);
 app.use("/units", AccessToken, UnitRoute);
@@ -66,8 +62,18 @@ app.use("/dashboards", AccessToken, DashboardRoute);
 app.use("/sales-people", AccessToken, SalesPeopleRoute);
 app.use("/notifications", AccessToken, NotificationRoute);
 
+// Accountancy Routes
+app.use("/cashflows", AccessToken, CashflowRoute);
+app.use("/expense-categories", AccessToken, ExpenseCategoryRoute);
+app.use("/expenses", AccessToken, ExpenseRoute);
+app.use("/transfers", AccessToken, TransferRoute);
+app.use("/cash-ins", AccessToken, CashInRoute);
+app.use("/cash-outs", AccessToken, CashOutRoute);
+
 app.use("/admin", AdminRoute);
 
 app.use("/images", express.static(path.join(__dirname, "/public")));
+
+app.get("/enhance-store", enhanceStore);
 
 app.listen(3001, () => console.log("server run ip 127.0.0.1:3001"));

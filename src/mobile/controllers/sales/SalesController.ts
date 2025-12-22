@@ -1,8 +1,7 @@
 import Model from "#root/services/PrismaService";
 import { Request, Response } from "express";
-import { Prisma, sales } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { handleValidationError } from "#root/helpers/handleValidationError";
-import { errorType } from "#root/helpers/errorType";
 import { v4 as uuidv4 } from "uuid";
 import { SalesQueryInterface } from "#root/interfaces/sales/SalesInterface";
 import moment from "moment";
@@ -73,6 +72,11 @@ const getData = async (
     }
 };
 
+import {
+    createCashflowEntry,
+    revertCashflowByReference,
+} from "#root/mobile/services/accountancy/CashflowService";
+
 const postData = async (req: Request, res: Response) => {
     const salesId = uuidv4();
     const data = req.body;
@@ -104,9 +108,42 @@ const postData = async (req: Request, res: Response) => {
                 payCash: parseFloat(data.pay ?? 0),
                 transactionNumber: invoice.transactionNumber,
             };
+
+            // LOGIC DEFAULT ACCOUNT
+            if (!salesData.accountCashId) {
+                const store = await prisma.stores.findUnique({
+                    where: { id: data.storeId },
+                    select: { defaultCashId: true },
+                });
+                if (store?.defaultCashId) {
+                    salesData.accountCashId = store.defaultCashId;
+                    salesData.payMetodeId = store.defaultCashId;
+                }
+            }
+
             const createSales = await prisma.sales.create({
                 data: salesData,
             });
+
+            // Re-assign accountId for cashflow logic below
+            const finalAccountId = salesData.accountCashId;
+
+            // INTEGRASI CASHFLOW (IN)
+            const cashflowAmount =
+                parseFloat(data.subTotal ?? 0) - parseFloat(data.discount ?? 0);
+            if (cashflowAmount > 0 && finalAccountId) {
+                await createCashflowEntry(prisma, {
+                    storeId: data.storeId,
+                    kasId: finalAccountId,
+                    type: "IN",
+                    amount: cashflowAmount,
+                    description: `Penjualan Invoice #${invoice.invoice}`,
+                    referenceId: createSales.id,
+                    referenceType: "SALE",
+                    userCreate: res.locals.userId,
+                    transactionDate: new Date(),
+                });
+            }
 
             if (data.salePendingId) {
                 await prisma.salePending.update({
@@ -219,6 +256,8 @@ const postData = async (req: Request, res: Response) => {
                 (parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0)),
         });
     } catch (error) {
+        console.log({ error });
+
         handleErrorMessage(res, error);
     }
 };
@@ -238,6 +277,49 @@ const updateData = async (req: Request, res: Response) => {
 
             if (!existing) throw new Error("sales data not found");
 
+            // ---------------------------------------------------
+            // INTEGRASI CASHFLOW (UPDATE)
+            // ---------------------------------------------------
+            // 1. Revert cashflow lama
+            await revertCashflowByReference(
+                prisma,
+                salesId,
+                "SALE",
+                existing.storeId ?? ""
+            );
+
+            // 2. Buat cashflow baru (jika ada pembayaran)
+            // Prioritas accountId dari body, fallback ke existing
+            let accountCashId = body.accountId ?? existing.accountCashId;
+
+            // Logic Default Account jika tidak ada akun sama sekali
+            if (!accountCashId && existing.storeId) {
+                const store = await prisma.stores.findUnique({
+                    where: { id: existing.storeId },
+                    select: { defaultCashId: true },
+                });
+                if (store?.defaultCashId) {
+                    accountCashId = store.defaultCashId;
+                }
+            }
+
+            const payAmount =
+                parseFloat(body.subTotal ?? 0) - parseFloat(body.discount ?? 0);
+
+            if (payAmount > 0 && accountCashId) {
+                await createCashflowEntry(prisma, {
+                    storeId: existing.storeId ?? "",
+                    kasId: accountCashId,
+                    type: "IN",
+                    amount: payAmount,
+                    description: `Update Penjualan Invoice #${existing.invoice}`,
+                    referenceId: salesId,
+                    referenceType: "SALE",
+                    userCreate: res.locals.userId,
+                    transactionDate: existing.createdAt || new Date(), // Gunakan tanggal asli transaksi
+                });
+            }
+
             // --- Update header (totals) ---
             const headerUpdate = {
                 discount: parseInt(body.discount ?? 0),
@@ -247,6 +329,9 @@ const updateData = async (req: Request, res: Response) => {
                     parseInt(body.subTotal ?? 0) - parseInt(body.discount ?? 0),
                 memberId: body.memberId ?? existing.memberId,
                 description: body.description ?? existing.description,
+                // Update accountCashId jika berubah
+                accountCashId: accountCashId,
+                payMetodeId: accountCashId, // asumsi sama
             } as const;
 
             await prisma.sales.update({
@@ -439,6 +524,8 @@ const updateData = async (req: Request, res: Response) => {
             message: "successful in updated sales data",
         });
     } catch (error) {
+        console.log({ error });
+
         handleErrorMessage(res, error);
     }
 };
@@ -471,6 +558,16 @@ const deleteData = async (req: Request, res: Response) => {
             if (!model) {
                 throw new Error("sales data not found");
             }
+
+            // ---------------------------------------------------
+            // INTEGRASI CASHFLOW (DELETE)
+            // ---------------------------------------------------
+            await revertCashflowByReference(
+                prisma,
+                model.id,
+                "SALE",
+                model.storeId ?? ""
+            );
 
             // Kembalikan stok untuk tiap detail berdasarkan konversi unit
             for (const value of model.saleDetails) {

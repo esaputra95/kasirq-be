@@ -393,8 +393,16 @@ model stores {
   variants       variants[]
   subscriptionStores SubscriptionStore[]
   stockOpnames stockOpname[]
+  accounts account[]
+  expenseCategories expenseCategory[]
+  expenses expense[]
+  cashflows cashflow[]
+
+  defaultCashId String? @db.VarChar(36)
+  defaultCash account? @relation("StoreDefaultCash", fields: [defaultCashId], references: [id])
 
   @@index([ownerId], map: "storeUser")
+  @@index([defaultCashId], map: "storeDefaultCash")
 }
 
 model suppliers {
@@ -500,6 +508,7 @@ model users {
   deviceTokens deviceTokens[]
   stockOpnames stockOpname[]
   stockOpnameDetails stockOpnameDetails[]
+  expenses expense[]
 }
 
 model variants {
@@ -586,14 +595,21 @@ model hppHistory {
 model account {
   id        String    @id @db.VarChar(36)
   ownerId   String    @db.VarChar(36)
+  storeId String? @db.VarChar(36)
   name      String?   @db.VarChar(255)
   balance   Decimal?  @db.Decimal(13, 4)
+  currentBalance Decimal? @db.Decimal(13, 4)
   type      String?   @db.VarChar(10)
   image String? @db.Text()
   createdAt DateTime? @db.DateTime(0)
   updatedAt DateTime? @db.DateTime(0)
   deletedAt DateTime? @db.DateTime(0)
   sales sales[]
+  expenses expense[]
+  stores stores[]
+  cashflows cashflow[] @relation("FromAccount")
+  toCashflows cashflow[] @relation("ToAccount")
+  defaultForStores stores[] @relation("StoreDefaultCash")
 }
 
 model debts {
@@ -840,6 +856,72 @@ model stockOpnameDetails {
   @@index([stockOpnameId], map: "stockOpnameDetailHeaderIndex")
   @@index([productId], map: "stockOpnameDetailProductIndex")
   @@map("stockOpnameDetails")
+}
+
+model cashflow {
+  id            String    @id @default(uuid()) @db.VarChar(36)
+  kasId         String    @db.VarChar(36)
+  toKasId       String?   @db.VarChar(36) 
+  type          String    @db.VarChar(10) // 'IN' | 'OUT' | 'TRANSFER'
+  amount        Decimal   @db.Decimal(12,2)
+  description   String?   @db.VarChar(255)
+  referenceId   String?   @db.VarChar(36) // ID transaksi penjualan/pembelian
+  referenceType String?   @db.VarChar(50) // "SALE", "EXPENSE", dll
+  transactionDate DateTime @default(now()) 
+  storeId       String    @db.VarChar(36)
+
+  userCreate    String?   @db.VarChar(36)
+  createdAt     DateTime  @default(now())
+  deletedAt     DateTime?
+
+  account           account @relation("FromAccount", fields: [kasId], references: [id])
+  toAccount         account? @relation("ToAccount", fields: [toKasId], references: [id])
+  store             stores  @relation(fields: [storeId], references: [id])
+
+  @@map("cashflow")
+  @@index([kasId])
+}
+
+model expenseCategory {
+  id        String     @id @default(uuid()) @db.VarChar(36)
+  storeId   String     @db.VarChar(36)
+  name      String     @db.VarChar(100)
+  description      String?    @db.Text
+
+  store     stores     @relation(fields: [storeId], references: [id])
+  expenses  expense[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now())
+  deletedAt DateTime?
+
+  @@map("expenseCategory")
+  @@index([storeId])
+}
+
+model expense {
+  id                 String           @id @default(uuid()) @db.VarChar(36)
+  storeId            String           @db.VarChar(36)
+  accountId       String           @db.VarChar(36)
+  expenseCategoryId  String           @db.VarChar(36)
+  amount             Decimal          @db.Decimal(14, 2)
+  description        String?          @db.Text
+  expenseDate        DateTime         @db.Date
+  userCreate         String?          @db.VarChar(36)
+
+  store              stores           @relation(fields: [storeId], references: [id])
+  account         account       @relation(fields: [accountId], references: [id])
+  category           expenseCategory  @relation(fields: [expenseCategoryId], references: [id])
+  user               users?           @relation(fields: [userCreate], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  @@map("expense")
+  @@index([storeId])
+  @@index([accountId])
+  @@index([expenseCategoryId])
 }
 
 enum stockOpname_status {
