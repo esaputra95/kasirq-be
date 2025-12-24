@@ -297,8 +297,13 @@ const deleteData = async (req: Request, res: Response) => {
  */
 const getDataById = async (req: Request, res: Response) => {
     try {
-        const model = await Model.sales.findUnique({
+        console.log("dsii");
+
+        const model = await Model.salePending.findUnique({
             where: { id: req.params.id },
+            include: {
+                salePendingDetails: true,
+            },
         });
 
         if (!model) {
@@ -316,6 +321,8 @@ const getDataById = async (req: Request, res: Response) => {
             },
         });
     } catch (error) {
+        console.log({ error });
+
         handleErrorMessage(res, error);
     }
 };

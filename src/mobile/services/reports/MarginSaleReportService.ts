@@ -26,26 +26,48 @@ export const getMarginSaleReport = async (filters: {
         WHERE 
             sales.date BETWEEN ${moment(filters.start + " 00:00:00").format()} 
             AND ${moment(filters.finish + " 00:00:00").format()}
-        AND sales.storeId = ${filters.storeId}
+        AND sales.storeId COLLATE utf8mb4_unicode_ci = ${
+            filters.storeId
+        } COLLATE utf8mb4_unicode_ci
         GROUP BY saleDetails.id
         ORDER BY sales.createdAt DESC
     `;
 
-    const totalSale = results?.length > 0
-        ? results.reduce((total, val) => (total ?? 0) + parseInt(val?.sell ?? 0), 0)
-        : 0;
+    const totalSale =
+        results?.length > 0
+            ? results.reduce(
+                  (total, val) => (total ?? 0) + parseInt(val?.sell ?? 0),
+                  0
+              )
+            : 0;
 
-    const totalCapital = results?.length > 0
-        ? results.reduce((total, val) => (total ?? 0) + parseInt(val?.capital ?? 0), 0)
-        : 0;
+    const totalCapital =
+        results?.length > 0
+            ? results.reduce(
+                  (total, val) => (total ?? 0) + parseInt(val?.capital ?? 0),
+                  0
+              )
+            : 0;
 
-    const total = results?.length > 0
-        ? results.reduce((total, val) => (total ?? 0) + (parseInt(val?.sell ?? 0) - parseInt(val?.capital ?? 0)), 0)
-        : 0;
+    const total =
+        results?.length > 0
+            ? results.reduce(
+                  (total, val) =>
+                      (total ?? 0) +
+                      (parseInt(val?.sell ?? 0) - parseInt(val?.capital ?? 0)),
+                  0
+              )
+            : 0;
 
-    const discount = results?.length > 0
-        ? results.reduce((total, val) => (total ?? 0) + parseInt(val?.discount), 0)
-        : 0;
+    const discount =
+        results?.length > 0
+            ? results.reduce(
+                  (total, val) => (total ?? 0) + parseInt(val?.discount),
+                  0
+              )
+            : 0;
+
+    console.log({ results });
 
     return {
         data: {
@@ -53,7 +75,7 @@ export const getMarginSaleReport = async (filters: {
             totalCapital,
             margin: results,
             total,
-            discount
-        }
+            discount,
+        },
     };
 };
