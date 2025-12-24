@@ -297,12 +297,14 @@ const deleteData = async (req: Request, res: Response) => {
  */
 const getDataById = async (req: Request, res: Response) => {
     try {
-        console.log("dsii");
-
         const model = await Model.salePending.findUnique({
             where: { id: req.params.id },
             include: {
-                salePendingDetails: true,
+                salePendingDetails: {
+                    include: {
+                        products: true,
+                    },
+                },
             },
         });
 
