@@ -99,7 +99,7 @@ const postData = async (req: Request, res: Response) => {
                 invoice: uuidv4(),
                 payCash: data.pay ?? 0,
                 total: data.total ?? 0,
-                accountCashId: data.accountId, // Simpan akun kas yang digunakan
+                accountCashId: data.accountCashId,
             };
 
             // LOGIC DEFAULT ACCOUNT
