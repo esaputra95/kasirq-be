@@ -63,26 +63,48 @@ export const registerOwner = async (userData: {
     const token = Math.random().toString(36).substring(2, 7);
     const code = await hash(token, salt);
 
-    const user = await Model.users.create({
-        data: {
-            id: uuidv4(),
-            name: userData.name,
-            password: hashedPassword,
-            email: userData.email,
-            username: userData.email,
-            token: code,
-            level: "owner",
-        },
-    });
+    const user = await Model.$transaction(async (tx) => {
+        const user = await tx.users.create({
+            data: {
+                id: uuidv4(),
+                name: userData.name,
+                password: hashedPassword,
+                email: userData.email,
+                username: userData.email,
+                token: code,
+                level: "owner",
+            },
+        });
 
-    await Model.stores.create({
-        data: {
-            id: uuidv4(),
-            ownerId: user.id,
-            name: userData.store,
-            expiredDate: moment().add(30, "d").format(),
-            address: userData.addressStore,
-        },
+        const store = await tx.stores.create({
+            data: {
+                id: uuidv4(),
+                ownerId: user.id,
+                name: userData.store,
+                expiredDate: moment().add(30, "d").format(),
+                address: userData.addressStore,
+            },
+        });
+
+        const account = await tx.account.create({
+            data: {
+                id: uuidv4(),
+                storeId: store.id,
+                name: "Kas Kecil",
+                type: "CASH",
+                currentBalance: 0,
+                ownerId: user.id,
+            },
+        });
+
+        await tx.stores.update({
+            where: { id: store.id },
+            data: {
+                defaultCashId: account.id,
+            },
+        });
+
+        return user;
     });
 
     await sendEmail(userData.email, code, "register");
