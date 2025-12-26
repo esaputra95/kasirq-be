@@ -40,7 +40,6 @@ export const createAccount = async (
     if (!ownerId.status)
         throw new ValidationError("Owner not found", 404, "owner");
     const data = { ...accountData, id: uuidv4(), ownerId: ownerId.id };
-    delete data.storeId;
     await Model.account.create({ data });
     return { message: "successful in created Account data" };
 };
@@ -55,7 +54,6 @@ export const updateAccount = async (
     if (!ownerId.status)
         throw new ValidationError("Owner not found", 404, "owner");
     const data = { ...accountData, ownerId: ownerId.id };
-    delete data.storeId;
     await Model.account.update({ where: { id }, data });
     return { message: "successful in updated Account data" };
 };
