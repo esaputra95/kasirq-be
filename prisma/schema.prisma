@@ -874,7 +874,7 @@ model cashflow {
   createdAt     DateTime  @default(now())
   deletedAt     DateTime?
 
-  account           account @relation("FromAccount", fields: [kasId], references: [id])
+  account           account? @relation("FromAccount", fields: [kasId], references: [id])
   toAccount         account? @relation("ToAccount", fields: [toKasId], references: [id])
   store             stores  @relation(fields: [storeId], references: [id])
 

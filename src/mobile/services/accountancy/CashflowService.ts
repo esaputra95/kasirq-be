@@ -303,7 +303,7 @@ export const updateCashflow = async (
         include: { account: true, toAccount: true },
     });
 
-    if (!existing || existing.account.storeId !== storeId) {
+    if (!existing || existing.storeId !== storeId) {
         throw new ValidationError("Cashflow tidak ditemukan", 404, "cashflow");
     }
 
@@ -312,7 +312,7 @@ export const updateCashflow = async (
 
     // Kembalikan saldo sumber
     let reversedSourceBalance =
-        existing.account.currentBalance || new Decimal(0);
+        existing.account?.currentBalance || new Decimal(0);
     if (existing.type === "IN") {
         reversedSourceBalance = reversedSourceBalance.sub(existing.amount);
     } else {
@@ -565,14 +565,14 @@ export const deleteCashflow = async (
         include: { account: true, toAccount: true },
     });
 
-    if (!cashflow || cashflow.account.storeId !== storeId) {
+    if (!cashflow || cashflow.storeId !== storeId) {
         throw new ValidationError("Cashflow tidak ditemukan", 404, "cashflow");
     }
 
     // Reverse saldo
     const transactions: any[] = [];
 
-    let sourceNewBalance = cashflow.account.currentBalance || new Decimal(0);
+    let sourceNewBalance = cashflow.account?.currentBalance || new Decimal(0);
     if (cashflow.type === "IN") {
         sourceNewBalance = sourceNewBalance.sub(cashflow.amount);
     } else {
@@ -629,11 +629,7 @@ export const getCashflowById = async (
         },
     });
 
-    if (
-        !cashflow ||
-        cashflow.account.storeId !== storeId ||
-        cashflow.deletedAt
-    ) {
+    if (!cashflow || cashflow.storeId !== storeId || cashflow.deletedAt) {
         throw new ValidationError("Cashflow tidak ditemukan", 404, "cashflow");
     }
 

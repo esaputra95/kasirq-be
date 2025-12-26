@@ -13,6 +13,8 @@ export const getData = async (req: Request, res: Response) => {
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
+        console.log({ error });
+
         handleErrorMessage(res, error);
     }
 };
