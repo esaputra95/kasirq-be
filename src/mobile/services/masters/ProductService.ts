@@ -1,6 +1,5 @@
 import Model from "#root/services/PrismaService";
 import { ProductQueryInterface } from "#root/interfaces/masters/ProductInterface";
-import { products } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import getOwnerId from "#root/helpers/GetOwnerId";
 import { ValidationError } from "#root/helpers/handleErrors";
@@ -8,10 +7,14 @@ import { ValidationError } from "#root/helpers/handleErrors";
 /**
  * Get products with complex nested relations
  */
-export const getProducts = async (query: ProductQueryInterface, userId: string, userLevel: string) => {
+export const getProducts = async (
+    query: ProductQueryInterface,
+    userId: string,
+    userLevel: string
+) => {
     const owner: any = await getOwnerId(userId, userLevel);
-    const take: number = parseInt(query.limit ?? '20');
-    const page: number = parseInt(query.page ?? '1');
+    const take: number = parseInt(query.limit ?? "20");
+    const page: number = parseInt(query.page ?? "1");
     const skip: number = (page - 1) * take;
 
     let filter: any = [];
@@ -19,10 +22,18 @@ export const getProducts = async (query: ProductQueryInterface, userId: string, 
         filter.push({ name: { contains: query.code } });
         filter.push({ code: { contains: query.code } });
     }
+    if (query?.status) {
+        filter.push({ status: query.status });
+    }
 
-    const whereClause: any = filter.length > 0
-        ? { OR: filter, categoryId: { contains: query.categoryId }, ownerId: owner.id }
-        : { categoryId: { contains: query.categoryId }, ownerId: owner.id };
+    const whereClause: any =
+        filter.length > 0
+            ? {
+                  OR: filter,
+                  categoryId: { contains: query.categoryId },
+                  ownerId: owner.id,
+              }
+            : { categoryId: { contains: query.categoryId }, ownerId: owner.id };
 
     const [data, total] = await Promise.all([
         Model.products.findMany({
@@ -30,8 +41,13 @@ export const getProducts = async (query: ProductQueryInterface, userId: string, 
             select: {
                 categories: { select: { id: true, name: true } },
                 stocks: {
-                    select: { id: true, productId: true, quantity: true, storeId: true },
-                    where: { storeId: query.storeId ?? "" }
+                    select: {
+                        id: true,
+                        productId: true,
+                        quantity: true,
+                        storeId: true,
+                    },
+                    where: { storeId: query.storeId ?? "" },
                 },
                 productConversions: {
                     select: {
@@ -39,15 +55,27 @@ export const getProducts = async (query: ProductQueryInterface, userId: string, 
                         quantity: true,
                         unitId: true,
                         status: true,
-                        units: { select: { id: true, name: true, ownerId: true } },
+                        units: {
+                            select: { id: true, name: true, ownerId: true },
+                        },
                         productPurchasePrices: {
-                            select: { id: true, price: true, storeId: true, conversionId: true }
+                            select: {
+                                id: true,
+                                price: true,
+                                storeId: true,
+                                conversionId: true,
+                            },
                         },
                         productSellPrices: {
-                            select: { id: true, price: true, storeId: true, conversionId: true }
-                        }
+                            select: {
+                                id: true,
+                                price: true,
+                                storeId: true,
+                                conversionId: true,
+                            },
+                        },
                     },
-                    orderBy: { quantity: "asc" }
+                    orderBy: { quantity: "asc" },
                 },
                 categoryId: true,
                 id: true,
@@ -57,31 +85,36 @@ export const getProducts = async (query: ProductQueryInterface, userId: string, 
                 image: true,
                 ownerId: true,
                 sku: true,
-                isStock: true
+                isStock: true,
+                status: true,
             },
             orderBy: { name: "asc" },
             skip,
-            take
+            take,
         }),
-        Model.products.count({ where: whereClause })
+        Model.products.count({ where: whereClause }),
     ]);
 
     return {
         message: "successful in getting product data",
         data: {
             product: data.sort((a, b) => a.name.localeCompare(b.name)),
-            info: { page, limit: take, total }
-        }
+            info: { page, limit: take, total },
+        },
     };
 };
 
 /**
  * Get products for selling (simplified relations)
  */
-export const getProductsForSell = async (query: ProductQueryInterface, userId: string, userLevel: string) => {
+export const getProductsForSell = async (
+    query: ProductQueryInterface,
+    userId: string,
+    userLevel: string
+) => {
     const owner: any = await getOwnerId(userId, userLevel);
-    const take: number = parseInt(query.limit ?? '20');
-    const page: number = parseInt(query.page ?? '1');
+    const take: number = parseInt(query.limit ?? "20");
+    const page: number = parseInt(query.page ?? "1");
     const skip: number = (page - 1) * take;
 
     let filter: any = [];
@@ -90,9 +123,19 @@ export const getProductsForSell = async (query: ProductQueryInterface, userId: s
         filter.push({ code: { contains: query.code } });
     }
 
-    const whereClause: any = filter.length > 0
-        ? { OR: filter, categoryId: { contains: query.categoryId }, ownerId: owner.id }
-        : { categoryId: { contains: query.categoryId }, ownerId: owner.id };
+    const whereClause: any =
+        filter.length > 0
+            ? {
+                  OR: filter,
+                  categoryId: { contains: query.categoryId },
+                  ownerId: owner.id,
+                  status: "active",
+              }
+            : {
+                  categoryId: { contains: query.categoryId },
+                  ownerId: owner.id,
+                  status: "active",
+              };
 
     const [data, total] = await Promise.all([
         Model.products.findMany({
@@ -100,8 +143,13 @@ export const getProductsForSell = async (query: ProductQueryInterface, userId: s
             select: {
                 categories: { select: { id: true, name: true } },
                 stocks: {
-                    select: { id: true, productId: true, quantity: true, storeId: true },
-                    where: { storeId: query.storeId ?? "" }
+                    select: {
+                        id: true,
+                        productId: true,
+                        quantity: true,
+                        storeId: true,
+                    },
+                    where: { storeId: query.storeId ?? "" },
                 },
                 productConversions: {
                     select: {
@@ -109,13 +157,20 @@ export const getProductsForSell = async (query: ProductQueryInterface, userId: s
                         quantity: true,
                         unitId: true,
                         status: true,
-                        units: { select: { id: true, name: true, ownerId: true } },
+                        units: {
+                            select: { id: true, name: true, ownerId: true },
+                        },
                         productSellPrices: {
-                            select: { id: true, price: true, storeId: true, conversionId: true },
-                            orderBy: { level: "asc" }
-                        }
+                            select: {
+                                id: true,
+                                price: true,
+                                storeId: true,
+                                conversionId: true,
+                            },
+                            orderBy: { level: "asc" },
+                        },
                     },
-                    orderBy: { quantity: "asc" }
+                    orderBy: { quantity: "asc" },
                 },
                 categoryId: true,
                 id: true,
@@ -125,27 +180,33 @@ export const getProductsForSell = async (query: ProductQueryInterface, userId: s
                 image: true,
                 ownerId: true,
                 sku: true,
-                isStock: true
+                isStock: true,
+                status: true,
             },
             orderBy: { name: "asc" },
             skip,
-            take
+            take,
         }),
-        Model.products.count({ where: whereClause })
+        Model.products.count({ where: whereClause }),
     ]);
 
     return {
         message: "successful in getting product data",
-        data: { product: data, info: { page, limit: take, total } }
+        data: { product: data, info: { page, limit: take, total } },
     };
 };
 
 /**
  * Create product with conversions and prices (transaction)
  */
-export const createProduct = async (productData: any, userId: string, userLevel: string) => {
+export const createProduct = async (
+    productData: any,
+    userId: string,
+    userLevel: string
+) => {
     const owner: any = await getOwnerId(userId, userLevel);
-    if (!owner.status) throw new ValidationError("Owner not found", 404, "owner");
+    if (!owner.status)
+        throw new ValidationError("Owner not found", 404, "owner");
 
     const data = { ...productData, ownerId: owner.id };
     const conversion = data.price;
@@ -164,8 +225,9 @@ export const createProduct = async (productData: any, userId: string, userLevel:
                 description: data.description,
                 image: data.image,
                 ownerId: owner.id,
-                sku: data.sku
-            }
+                sku: data.sku,
+                status: data?.status ?? "active",
+            },
         });
 
         let unitId = "";
@@ -178,8 +240,8 @@ export const createProduct = async (productData: any, userId: string, userLevel:
                         unitId: value.unitId,
                         quantity: value.quantity,
                         id: conversionId,
-                        status: value.type === "default" ? 1 : 0
-                    }
+                        status: value.type === "default" ? 1 : 0,
+                    },
                 });
 
                 await prisma.productPurchasePrices.create({
@@ -187,8 +249,8 @@ export const createProduct = async (productData: any, userId: string, userLevel:
                         id: uuidv4(),
                         conversionId,
                         price: value.capital,
-                        storeId: data.storeId
-                    }
+                        storeId: data.storeId,
+                    },
                 });
                 unitId = value.unitId;
             }
@@ -199,8 +261,8 @@ export const createProduct = async (productData: any, userId: string, userLevel:
                     conversionId,
                     price: value.sell,
                     storeId: data.storeId,
-                    level: value.level ?? 1
-                }
+                    level: value.level ?? 1,
+                },
             });
             unitId = value.unitId;
         }
@@ -212,7 +274,11 @@ export const createProduct = async (productData: any, userId: string, userLevel:
 /**
  * Update product with conversions and prices (transaction)
  */
-export const updateProduct = async (productData: any, userId: string, userLevel: string) => {
+export const updateProduct = async (
+    productData: any,
+    userId: string,
+    userLevel: string
+) => {
     const data = { ...productData };
     let dataProduct = { ...data };
     delete dataProduct.price;
@@ -220,9 +286,11 @@ export const updateProduct = async (productData: any, userId: string, userLevel:
     delete dataProduct.idDelete;
     const conversion = data.price;
 
+    console.log({ dataProduct });
+
     // SECURITY: Verify ownership before update
     const existingProduct = await Model.products.findUnique({
-        where: { id: dataProduct.id }
+        where: { id: dataProduct.id },
     });
 
     if (!existingProduct) {
@@ -231,16 +299,21 @@ export const updateProduct = async (productData: any, userId: string, userLevel:
 
     const owner: any = await getOwnerId(userId, userLevel);
     if (existingProduct.ownerId !== owner.id) {
-        throw new ValidationError("Unauthorized to update this product", 403, "product");
+        throw new ValidationError(
+            "Unauthorized to update this product",
+            403,
+            "product"
+        );
     }
 
     await Model.$transaction(async (prisma) => {
         await prisma.products.update({
             data: {
                 ...dataProduct,
-                isStock: dataProduct.isStock ? 1 : 0
+                isStock: dataProduct.isStock ? 1 : 0,
+                status: data?.status ?? "active",
             },
-            where: { id: dataProduct.id }
+            where: { id: dataProduct.id },
         });
 
         for (const value of conversion) {
@@ -250,26 +323,26 @@ export const updateProduct = async (productData: any, userId: string, userLevel:
                     data: {
                         unitId: value.unitId,
                         quantity: value.quantity,
-                        status: value.type === "default" ? 1 : 0
+                        status: value.type === "default" ? 1 : 0,
                     },
-                    where: { id: value.id }
+                    where: { id: value.id },
                 });
 
                 await prisma.productPurchasePrices.updateMany({
                     data: {
                         price: value.capital,
-                        storeId: data.storeId
+                        storeId: data.storeId,
                     },
-                    where: { conversionId: value.id }
+                    where: { conversionId: value.id },
                 });
 
                 await prisma.productSellPrices.updateMany({
                     data: {
                         price: value.sell,
                         storeId: data.storeId,
-                        level: value.level ?? 1
+                        level: value.level ?? 1,
                     },
-                    where: { conversionId: value.id }
+                    where: { conversionId: value.id },
                 });
             } else {
                 // Create new
@@ -280,8 +353,8 @@ export const updateProduct = async (productData: any, userId: string, userLevel:
                         unitId: value.unitId,
                         quantity: value.quantity,
                         id: conversionId,
-                        status: value.type === "default" ? 1 : 0
-                    }
+                        status: value.type === "default" ? 1 : 0,
+                    },
                 });
 
                 await prisma.productPurchasePrices.create({
@@ -289,8 +362,8 @@ export const updateProduct = async (productData: any, userId: string, userLevel:
                         id: uuidv4(),
                         conversionId,
                         price: value.capital,
-                        storeId: data.storeId
-                    }
+                        storeId: data.storeId,
+                    },
                 });
 
                 await prisma.productSellPrices.create({
@@ -299,8 +372,8 @@ export const updateProduct = async (productData: any, userId: string, userLevel:
                         conversionId,
                         price: value.sell,
                         storeId: data.storeId,
-                        level: value.level ?? 1
-                    }
+                        level: value.level ?? 1,
+                    },
                 });
             }
         }
@@ -310,7 +383,7 @@ export const updateProduct = async (productData: any, userId: string, userLevel:
         for (const value of idsToDelete) {
             if (value) {
                 await prisma.productConversions.delete({
-                    where: { id: value }
+                    where: { id: value },
                 });
             }
         }
@@ -322,10 +395,14 @@ export const updateProduct = async (productData: any, userId: string, userLevel:
 /**
  * Delete product
  */
-export const deleteProduct = async (id: string, userId: string, userLevel: string) => {
+export const deleteProduct = async (
+    id: string,
+    userId: string,
+    userLevel: string
+) => {
     // SECURITY: Verify ownership before delete
     const existingProduct = await Model.products.findUnique({
-        where: { id }
+        where: { id },
     });
 
     if (!existingProduct) {
@@ -334,7 +411,11 @@ export const deleteProduct = async (id: string, userId: string, userLevel: strin
 
     const owner: any = await getOwnerId(userId, userLevel);
     if (existingProduct.ownerId !== owner.id) {
-        throw new ValidationError("Unauthorized to delete this product", 403, "product");
+        throw new ValidationError(
+            "Unauthorized to delete this product",
+            403,
+            "product"
+        );
     }
 
     await Model.products.delete({ where: { id } });
@@ -357,14 +438,25 @@ export const getProductById = async (id: string) => {
                     unitId: true,
                     units: { select: { id: true, name: true, ownerId: true } },
                     productPurchasePrices: {
-                        select: { conversionId: true, id: true, price: true, storeId: true }
+                        select: {
+                            conversionId: true,
+                            id: true,
+                            price: true,
+                            storeId: true,
+                        },
                     },
                     productSellPrices: {
-                        select: { conversionId: true, id: true, level: true, price: true, storeId: true },
-                        orderBy: { level: "asc" }
-                    }
+                        select: {
+                            conversionId: true,
+                            id: true,
+                            level: true,
+                            price: true,
+                            storeId: true,
+                        },
+                        orderBy: { level: "asc" },
+                    },
                 },
-                orderBy: { quantity: "asc" }
+                orderBy: { quantity: "asc" },
             },
             barcode: true,
             categoryId: true,
@@ -376,40 +468,43 @@ export const getProductById = async (id: string) => {
             sku: true,
             code: true,
             description: true,
-            brandId: true
-        }
+            brandId: true,
+            status: true,
+        },
     });
 
     if (!product) throw new ValidationError("data not found", 404, "product");
 
     return {
         message: "successfully in get user data",
-        data: { product }
+        data: { product },
     };
 };
 
 /**
  * Get member-specific pricing
  */
-export const getPriceMember = async (query: Array<{
-    productId: string;
-    memberId: string;
-    storeId?: string;
-    conversionId: string;
-    price?: number;
-}>) => {
+export const getPriceMember = async (
+    query: Array<{
+        productId: string;
+        memberId: string;
+        storeId?: string;
+        conversionId: string;
+        price?: number;
+    }>
+) => {
     let tmpData: any[] = [];
 
     for (const value of query) {
         const member = await Model.members.findUnique({
-            where: { id: value.memberId }
+            where: { id: value.memberId },
         });
 
         const data = await Model.productSellPrices.findFirst({
             where: {
                 conversionId: value.conversionId,
-                level: parseInt(member?.level + "")
-            }
+                level: parseInt(member?.level + ""),
+            },
         });
 
         tmpData.push({
@@ -417,12 +512,12 @@ export const getPriceMember = async (query: Array<{
             price: data?.price ?? 0,
             conversionId: data?.conversionId ?? "",
             storeId: value.storeId ?? "",
-            memberId: value.memberId
+            memberId: value.memberId,
         });
     }
 
     return {
         message: "succes get data price member",
-        data: tmpData
+        data: tmpData,
     };
 };
