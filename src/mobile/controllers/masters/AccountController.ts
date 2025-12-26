@@ -8,8 +8,6 @@ const getData = async (
     res: Response
 ) => {
     try {
-        console.log("levelnya : ", res.locals.userType);
-
         const result = await AccountService.getAccounts(
             req.query,
             res.locals.userId,

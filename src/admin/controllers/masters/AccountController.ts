@@ -67,6 +67,7 @@ const postData = async (req: Request, res: Response) => {
             res.locals.userId,
             res.locals.level
         );
+
         if (!ownerId.status) throw new Error("Owner not found");
         const data = { ...req.body, id: uuidv4(), ownerId: ownerId.id };
         delete data.storeId;
