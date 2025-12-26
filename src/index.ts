@@ -18,6 +18,7 @@ import {
     SupplierRoute,
     UnitRoute,
     user,
+    StoreMaintenanceRoute,
 } from "./mobile/routers/masters";
 import { AccessToken } from "./mobile/controllers/auth/middlewareController";
 import { PurchaseRoute } from "./mobile/routers/purrchases";
@@ -61,6 +62,7 @@ app.use("/reports", AccessToken, ReportRoute);
 app.use("/dashboards", AccessToken, DashboardRoute);
 app.use("/sales-people", AccessToken, SalesPeopleRoute);
 app.use("/notifications", AccessToken, NotificationRoute);
+app.use("/store-maintenance", AccessToken, StoreMaintenanceRoute);
 
 // Accountancy Routes
 app.use("/cashflows", AccessToken, CashflowRoute);
