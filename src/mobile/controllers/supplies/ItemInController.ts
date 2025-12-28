@@ -489,7 +489,7 @@ const getFacture = async (req: Request, res: Response) => {
             newData = [
                 ...newData,
                 {
-                    product: ItemInDetails[index].products.name,
+                    product: ItemInDetails[index].products?.name,
                     quantity: ItemInDetails[index].quantity,
                     price: ItemInDetails[index].price,
                     unit: ItemInDetails[index].productConversions?.units?.name,

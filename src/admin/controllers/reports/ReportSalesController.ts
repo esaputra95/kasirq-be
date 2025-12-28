@@ -9,11 +9,16 @@ const getData = async (req: Request, res: Response) => {
         const response = await modelData(req, res);
         res.status(200).json({
             status: true,
-            message: "SUccess get sales report",
+            message: "Success get sales report",
             data: response,
         });
     } catch (error) {
-        res.status(500);
+        console.error("Error in getData:", error);
+        res.status(500).json({
+            status: false,
+            message: "Internal Server Error",
+            error: String(error),
+        });
     }
 };
 
@@ -24,22 +29,19 @@ const download = async (req: Request, res: Response) => {
 const xlsxData = async (req: Request, res: Response) => {
     try {
         const response = await modelData(req, res);
-        let dataExcel: any = [];
-        let total = 0;
+        const dataExcel: any = [];
+
         for (let index = 0; index < response.length; index++) {
-            total += response[index][6];
-            dataExcel = [
-                ...dataExcel,
-                {
-                    no: response[index][0],
-                    invoice: response[index][1],
-                    date: response[index][2],
-                    user: response[index][3],
-                    subTotal: response[index][4],
-                    discount: response[index][5],
-                    total: response[index][6],
-                },
-            ];
+            const row = response[index];
+            dataExcel.push({
+                no: row[0],
+                invoice: row[1],
+                date: row[2],
+                user: row[3],
+                subTotal: row[4],
+                discount: row[5],
+                total: row[6],
+            });
         }
         let settings = {
             fileName: "Laporan Penjualan",
@@ -99,20 +101,37 @@ const xlsxData = async (req: Request, res: Response) => {
 const modelData = async (req: Request, res: Response) => {
     try {
         const body = req.query;
+        const ownerId = res.locals.userId;
 
-        let filter = {};
+        let filter: any = {};
         body?.user
             ? (filter = {
                   ...filter,
                   userId: body.user,
               })
             : null;
-        body?.storeId
-            ? (filter = {
-                  ...filter,
-                  storeId: body.storeId,
-              })
-            : null;
+
+        // If storeId is not provided, get all stores for this owner
+        if (!body?.storeId) {
+            const ownerStores = await Model.stores.findMany({
+                where: { ownerId: ownerId },
+                select: { id: true },
+            });
+            const storeIds = ownerStores.map((store) => store.id);
+
+            if (storeIds.length > 0) {
+                filter = {
+                    ...filter,
+                    storeId: { in: storeIds },
+                };
+            }
+        } else {
+            filter = {
+                ...filter,
+                storeId: body.storeId,
+            };
+        }
+
         body.accountCashId
             ? (filter = {
                   ...filter,
@@ -135,14 +154,29 @@ const modelData = async (req: Request, res: Response) => {
                 },
                 ...filter,
             },
-            include: {
-                members: true,
-                saleDetails: {
-                    include: {
-                        products: true,
+            select: {
+                id: true,
+                invoice: true,
+                createdAt: true,
+                subTotal: true,
+                discount: true,
+                total: true,
+                users: {
+                    select: {
+                        name: true,
                     },
                 },
-                users: true,
+                saleDetails: {
+                    select: {
+                        quantity: true,
+                        price: true,
+                        products: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                    },
+                },
             },
             orderBy: [
                 {
@@ -154,54 +188,64 @@ const modelData = async (req: Request, res: Response) => {
             ],
         });
 
-        let newResponse: any = [];
+        const newResponse: any = [];
         let total = 0;
         for (let index = 0; index < data.length; index++) {
-            total += Number(data[index].total);
-            newResponse = [
-                ...newResponse,
-                [
-                    index + 1,
-                    data[index].invoice,
-                    moment(data[index].createdAt).format("DD/MM/YYYY"),
-                    data[index]?.users?.name ?? "",
-                    formatter.format(parseInt(data[index].subTotal + "")),
-                    formatter.format(parseInt(data[index].discount + "")),
-                    formatter.format(parseInt(data[index].total + "")),
-                ],
-            ];
-            const salesDetail = data[index].saleDetails ?? [];
-            if (salesDetail.length > 0) {
-                newResponse = [
-                    ...newResponse,
-                    ["", "", "", "Nama", "Jumlah", "Harga", "Total"],
-                ];
-            }
+            const sale = data[index];
+            total += Number(sale.total);
 
-            for (let iDetail = 0; iDetail < salesDetail.length; iDetail++) {
-                newResponse = [
-                    ...newResponse,
-                    [
+            newResponse.push([
+                index + 1,
+                sale.invoice,
+                moment(sale.createdAt).format("DD/MM/YYYY"),
+                sale?.users?.name ?? "",
+                formatter.format(parseInt(sale.subTotal + "")),
+                formatter.format(parseInt(sale.discount + "")),
+                formatter.format(parseInt(sale.total + "")),
+            ]);
+
+            const salesDetail = sale.saleDetails ?? [];
+            if (salesDetail.length > 0) {
+                newResponse.push([
+                    "",
+                    "",
+                    "",
+                    "Nama",
+                    "Jumlah",
+                    "Harga",
+                    "Total",
+                ]);
+
+                for (let iDetail = 0; iDetail < salesDetail.length; iDetail++) {
+                    const detail = salesDetail[iDetail];
+                    newResponse.push([
                         "",
                         "",
                         "",
-                        salesDetail[iDetail].products?.name ?? "",
-                        salesDetail[iDetail].quantity,
-                        formatter.format(Number(salesDetail[iDetail].price)),
+                        detail.products?.name ?? "",
+                        detail.quantity,
+                        formatter.format(Number(detail.price)),
                         formatter.format(
-                            parseInt(
-                                (salesDetail[iDetail].quantity ?? 0) + ""
-                            ) * parseInt((salesDetail[iDetail].price ?? 0) + "")
+                            parseInt((detail.quantity ?? 0) + "") *
+                                parseInt((detail.price ?? 0) + "")
                         ),
-                    ],
-                ];
+                    ]);
+                }
             }
         }
-        return [
-            ...newResponse,
-            ["Total", "", "", "", "", "", formatter.format(total)],
-        ];
+
+        newResponse.push([
+            "Total",
+            "",
+            "",
+            "",
+            "",
+            "",
+            formatter.format(total),
+        ]);
+        return newResponse;
     } catch (error) {
+        console.error("Error in modelData:", error);
         return [];
     }
 };

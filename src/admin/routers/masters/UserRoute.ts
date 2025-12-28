@@ -7,12 +7,12 @@ import {
     updateData,
 } from "#root/admin/controllers/masters/UserController";
 
-const ProductRoute = express.Router()
+const UserRoute = express.Router();
 
-ProductRoute.get('/', getData);
-ProductRoute.post('/', postData);
-ProductRoute.delete('/:id', deleteData);
-ProductRoute.put('/:id', updateData);
-ProductRoute.get('/:id', getDataById);
+UserRoute.get("/", getData);
+UserRoute.post("/", postData);
+UserRoute.delete("/:id", deleteData);
+UserRoute.put("/:id", updateData);
+UserRoute.get("/:id", getDataById);
 
-export default ProductRoute
+export default UserRoute;

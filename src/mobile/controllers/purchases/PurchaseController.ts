@@ -594,7 +594,7 @@ const getFacture = async (req: Request, res: Response) => {
             newData = [
                 ...newData,
                 {
-                    product: purchaseDetails[index].products.name,
+                    product: purchaseDetails[index].products?.name,
                     quantity: purchaseDetails[index].quantity,
                     price: purchaseDetails[index].price,
                     unit: purchaseDetails[index].productConversions?.units

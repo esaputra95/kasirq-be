@@ -435,7 +435,7 @@ const getFacture = async (req: Request, res: Response) => {
         for (let index = 0; index < salesDetails.length; index++) {
             const d = salesDetails[index];
             newData.push({
-                product: d.products.name,
+                product: d.products?.name,
                 quantity: formatter.format(toNumber(d.quantity)),
                 price: formatter.format(toNumber(d.price)),
                 unit: d.productConversions?.units?.name,
