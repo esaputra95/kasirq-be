@@ -19,7 +19,9 @@ export const getAccounts = async (
         filter.length > 0
             ? { OR: filter, ownerId: owner.id }
             : { ownerId: owner.id };
-    console.log({ owner });
+    if (query.storeId) {
+        whereClause.storeId = query.storeId;
+    }
 
     const [data, total] = await Promise.all([
         Model.account.findMany({ where: whereClause, skip, take }),

@@ -142,23 +142,26 @@ const postData = async (req: Request, res: Response) => {
             res.locals.userType
         );
         if (!ownerId.status) throw new Error("Owner not found");
-        const data = { ...req.body, id: uuidv4(), ownerId: ownerId.id };
+
+        const data = {
+            ...req.body,
+            id: uuidv4(),
+            expiredDate: req.body.expiredDate
+                ? moment(req.body.expiredDate).format()
+                : undefined,
+        };
+
         delete data.storeId;
+        delete data.owner;
         await Model.stores.create({ data: data });
         res.status(200).json({
             status: true,
             message: "successful in created Member data",
         });
     } catch (error) {
-        let message = errorType;
-        message.message.msg = `${error}`;
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-            message = await handleValidationError(error);
-        }
-        res.status(500).json({
-            status: message.status,
-            errors: [message.message],
-        });
+        console.log(error);
+
+        handleErrorMessage(res, error);
     }
 };
 
@@ -173,6 +176,7 @@ const updateData = async (req: Request, res: Response) => {
                 address: data.address,
                 expiredDate: moment(data.expiredDate).format(),
                 name: data.name,
+                ownerId: data.ownerId,
             },
         });
         res.status(200).json({

@@ -578,7 +578,7 @@ const deleteData = async (req: Request, res: Response) => {
 
                 const qtyBase =
                     Number(value.quantity) * Number(conversion?.quantity ?? 1);
-                if (value.products.isStock) {
+                if (value.products?.isStock) {
                     const inc = await IncrementStock(
                         prisma,
                         value.productId,
@@ -778,7 +778,7 @@ const getFacture = async (req: Request, res: Response) => {
             newData = [
                 ...newData,
                 {
-                    product: salesDetails[index].products.name,
+                    product: salesDetails[index].products?.name,
                     quantity: formatter.format(
                         parseInt(salesDetails[index].quantity + "") ?? 0
                     ),
