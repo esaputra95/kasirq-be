@@ -36,6 +36,7 @@ import {
     CashInRoute,
     CashOutRoute,
 } from "./mobile/routers/accountancy";
+import { AttendanceRoute } from "./mobile/routers/attendances";
 import { enhanceStore } from "./services/enhanceStore";
 
 const app = express();
@@ -71,6 +72,7 @@ app.use("/expenses", AccessToken, ExpenseRoute);
 app.use("/transfers", AccessToken, TransferRoute);
 app.use("/cash-ins", AccessToken, CashInRoute);
 app.use("/cash-outs", AccessToken, CashOutRoute);
+app.use("/attendances", AccessToken, AttendanceRoute);
 
 app.use("/admin", AdminRoute);
 
