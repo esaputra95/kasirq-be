@@ -5,6 +5,7 @@ import { getData as getDataMarginSale } from "#root/mobile/controllers/reports/M
 import { getData as getDataBestSeller } from "#root/mobile/controllers/reports/BestSellerReportController";
 import { getData as getDataStockOpname } from "#root/mobile/controllers/reports/StockOpnameReportController";
 import * as AccountancyReportController from "#root/mobile/controllers/reports/AccountancyReportController";
+import { getData as getDataAttendance } from "#root/mobile/controllers/reports/AttendanceReportController";
 const Route = express.Router();
 
 Route.get("/purchase-reports", getDataPurchase);
@@ -21,5 +22,6 @@ Route.get("/transfer-reports", AccountancyReportController.getTransferReport);
 Route.get("/cash-in-reports", AccountancyReportController.getCashInReport);
 Route.get("/cash-out-reports", AccountancyReportController.getCashOutReport);
 Route.get("/expense-reports", AccountancyReportController.getExpenseReport);
+Route.get("/attendance-reports", getDataAttendance);
 
 export default Route;

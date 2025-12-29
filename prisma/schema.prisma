@@ -383,6 +383,10 @@ model stores {
   updatedAt      DateTime?        @default(now()) @db.DateTime(0)
   deletedAt      DateTime?        @db.DateTime(0)
   userCreate     String?          @db.VarChar(36)
+  requireLocation Boolean?   @default(true)
+  latitude        Decimal?  @db.Decimal(10, 7)
+  longitude       Decimal?  @db.Decimal(10, 7)
+  locationRadius  Int?
   itemIns        itemIns[]
   itemOuts       itemOuts[]
   purchaseOrders purchaseOrders[]
@@ -397,6 +401,7 @@ model stores {
   expenseCategories expenseCategory[]
   expenses expense[]
   cashflows cashflow[]
+  attendances attendances[]
 
   defaultCashId String? @db.VarChar(36)
   defaultCash account? @relation("StoreDefaultCash", fields: [defaultCashId], references: [id])
@@ -509,6 +514,7 @@ model users {
   stockOpnames stockOpname[]
   stockOpnameDetails stockOpnameDetails[]
   expenses expense[]
+  attendances attendances[]
 }
 
 model variants {
@@ -922,6 +928,50 @@ model expense {
   @@index([storeId])
   @@index([accountId])
   @@index([expenseCategoryId])
+}
+
+model attendances {
+  id         String   @id @db.VarChar(36)
+
+  ownerId    String   @db.VarChar(36)
+  storeId    String   @db.VarChar(36)
+  userId String   @db.VarChar(36)
+
+  // ===== CHECK IN =====
+  checkInAt     DateTime @db.DateTime(0)
+  checkInLat    Decimal? @db.Decimal(10, 7)
+  checkInLng    Decimal? @db.Decimal(10, 7)
+  checkInDistance Int?
+  checkInStatus AttendanceStatus @default(VALID)
+
+  // ===== CHECK OUT =====
+  checkOutAt     DateTime? @db.DateTime(0)
+  checkOutLat    Decimal? @db.Decimal(10, 7)
+  checkOutLng    Decimal? @db.Decimal(10, 7)
+  checkOutDistance Int?
+  checkOutStatus AttendanceStatus?
+
+  // ===== META =====
+  isLocationRequired Boolean
+  deviceId  String? @db.VarChar(100)
+  note      String? @db.Text
+  photoInUrl  String? @db.Text
+  photoOutUrl String? @db.Text
+
+  createdAt DateTime @default(now()) @db.DateTime(0)
+
+  store     stores    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  users  users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, checkInAt])
+  @@index([storeId, checkInAt])
+}
+
+enum AttendanceStatus {
+  VALID
+  OUT_OF_RANGE
+  NO_LOCATION_REQUIRED
+  INVALID
 }
 
 enum stockOpname_status {
