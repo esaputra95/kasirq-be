@@ -111,8 +111,6 @@ export const getStockOpnameReport = async (
         summary.totalDifferenceValue += diff;
     });
 
-    console.log(JSON.stringify(data, null, 2));
-
     return {
         message: "successful in getting stock opname report",
         data: {
