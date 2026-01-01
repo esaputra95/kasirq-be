@@ -79,6 +79,8 @@ export const checkIn = async (userId: string, body: any) => {
     let distance = null;
     let status: any = "VALID";
 
+    console.log({ store });
+
     if (store.requireLocation) {
         if (lat && lng && store.latitude && store.longitude) {
             distance = calculateDistance(
@@ -89,9 +91,23 @@ export const checkIn = async (userId: string, body: any) => {
             );
 
             if (store.locationRadius && distance > store.locationRadius) {
+                if (!body.isForce) {
+                    throw new ValidationError(
+                        "Anda berada di luar jangkauan store. Apakah Anda yakin ingin lanjut?",
+                        400,
+                        "OUT_OF_RANGE"
+                    );
+                }
                 status = "OUT_OF_RANGE";
             }
         } else {
+            if (!body.isForce) {
+                throw new ValidationError(
+                    "Lokasi tidak ditemukan atau tidak tersedia. Apakah Anda yakin ingin lanjut?",
+                    400,
+                    "OUT_OF_RANGE"
+                );
+            }
             status = "INVALID";
         }
     } else {
@@ -156,6 +172,8 @@ export const checkOut = async (userId: string, body: any) => {
     let distance = null;
     let status: any = "VALID";
 
+    console.log(attendance);
+
     if (attendance.isLocationRequired) {
         if (
             lat &&
@@ -174,9 +192,23 @@ export const checkOut = async (userId: string, body: any) => {
                 attendance.store.locationRadius &&
                 distance > attendance.store.locationRadius
             ) {
+                if (!body.isForce) {
+                    throw new ValidationError(
+                        "Anda berada di luar jangkauan store. Apakah Anda yakin ingin lanjut?",
+                        400,
+                        "OUT_OF_RANGE"
+                    );
+                }
                 status = "OUT_OF_RANGE";
             }
         } else {
+            if (!body.isForce) {
+                throw new ValidationError(
+                    "Lokasi tidak ditemukan atau tidak tersedia. Apakah Anda yakin ingin lanjut?",
+                    400,
+                    "OUT_OF_RANGE"
+                );
+            }
             status = "INVALID";
         }
     } else {
