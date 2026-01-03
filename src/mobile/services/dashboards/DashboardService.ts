@@ -70,11 +70,11 @@ export const getMarginWeek = async (storeId: string) => {
         SELECT 
           saleDetails.quantity * saleDetails.price AS totals,
           SUM(cogs.price * cogs.quantity) AS total_cogs,
-          sales.date
+          sales.createdAt
         FROM saleDetails
         LEFT JOIN cogs ON cogs.saleDetailId = saleDetails.id
         LEFT JOIN sales ON sales.id = saleDetails.saleId
-        WHERE sales.date BETWEEN ${startSafe} AND ${endSafe}
+        WHERE sales.createdAt BETWEEN ${startSafe} AND ${endSafe}
           AND sales.storeId = ${storeId}
         GROUP BY saleDetails.id;
       `;
@@ -135,7 +135,7 @@ export const getSalesWeek = async (storeId: string) => {
             const total = await Model.sales.aggregate({
                 _sum: { total: true },
                 where: {
-                    date: { gte: startSafe, lte: endSafe },
+                    createdAt: { gte: startSafe, lte: endSafe },
                     storeId,
                 },
             });
