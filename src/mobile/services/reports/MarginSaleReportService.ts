@@ -24,8 +24,10 @@ export const getMarginSaleReport = async (filters: {
         LEFT JOIN 
             products ON products.id = saleDetails.productId
         WHERE 
-            sales.date BETWEEN ${moment(filters.start + " 00:00:00").format()} 
-            AND ${moment(filters.finish + " 00:00:00").format()}
+            sales.createdAt BETWEEN ${moment(
+                filters.start + " 00:00:00"
+            ).format()} 
+            AND ${moment(filters.finish + " 23:59:59").format()}
         AND sales.storeId COLLATE utf8mb4_unicode_ci = ${
             filters.storeId
         } COLLATE utf8mb4_unicode_ci
