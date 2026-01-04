@@ -11,6 +11,7 @@ export const getMarginSaleReport = async (filters: {
             saleDetails.quantity * saleDetails.price AS sell,
             SUM(COALESCE(cogs.price, 0) * COALESCE(cogs.quantity, 0)) AS capital,
             sales.date,
+            sales.createdAt,
             sales.invoice,
             saleDetails.id,
             sales.discount,
@@ -68,8 +69,6 @@ export const getMarginSaleReport = async (filters: {
                   0
               )
             : 0;
-
-    console.log({ results });
 
     return {
         data: {
