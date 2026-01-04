@@ -6,6 +6,8 @@ export const getMarginSaleReport = async (filters: {
     finish: string;
     storeId: string;
 }) => {
+    const start = moment(filters.start, "YYYY-MM-DD").startOf("day").toDate();
+    const end = moment(filters.finish, "YYYY-MM-DD").endOf("day").toDate();
     const results: any[] = await Model.$queryRaw`
         SELECT 
             saleDetails.quantity * saleDetails.price AS sell,
@@ -25,13 +27,9 @@ export const getMarginSaleReport = async (filters: {
         LEFT JOIN 
             products ON products.id = saleDetails.productId
         WHERE 
-            sales.createdAt BETWEEN ${moment(
-                filters.start + " 00:00:00"
-            ).format()} 
-            AND ${moment(filters.finish + " 23:59:59").format()}
-        AND sales.storeId COLLATE utf8mb4_unicode_ci = ${
-            filters.storeId
-        } COLLATE utf8mb4_unicode_ci
+            sales.createdAt BETWEEN ${start} 
+            AND ${end}
+        AND sales.storeId COLLATE utf8mb4_unicode_ci = ${filters.storeId} COLLATE utf8mb4_unicode_ci
         GROUP BY saleDetails.id
         ORDER BY sales.createdAt DESC
     `;
