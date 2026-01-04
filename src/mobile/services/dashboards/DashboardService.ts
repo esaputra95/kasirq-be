@@ -16,22 +16,6 @@ const color: Record<number, string> = {
     6: "#4f50e6",
 };
 
-// Utility: Parse date safely
-const makeDate = (date: string, time: string) => {
-    const parsed = moment(`${date} ${time}`, "YYYY-MM-DD HH:mm:ss", true);
-
-    if (!parsed.isValid()) {
-        return null;
-    }
-
-    return parsed;
-};
-
-// Utility: Ensure fallback when invalid
-const safeDate = (parsed: any, fallback: moment.Moment) => {
-    return parsed ? parsed.toDate() : fallback.toDate();
-};
-
 /**
  * Get total sales for a store
  */
@@ -60,11 +44,10 @@ export const getMarginWeek = async (storeId: string) => {
         const result: any[] = [];
 
         for (let i = 0; i < dates.length; i++) {
-            const start = makeDate(dates[i], "00:00:00");
-            const end = makeDate(dates[i], "23:59:59");
-
-            const startSafe = safeDate(start, moment());
-            const endSafe = safeDate(end, moment());
+            const start = moment(dates[i], "YYYY-MM-DD")
+                .startOf("day")
+                .toDate();
+            const end = moment(dates[i], "YYYY-MM-DD").endOf("day").toDate();
 
             const rows = await Model.$queryRaw`
         SELECT 
@@ -74,7 +57,7 @@ export const getMarginWeek = async (storeId: string) => {
         FROM saleDetails
         LEFT JOIN cogs ON cogs.saleDetailId = saleDetails.id
         LEFT JOIN sales ON sales.id = saleDetails.saleId
-        WHERE sales.createdAt BETWEEN ${startSafe} AND ${endSafe}
+        WHERE sales.createdAt BETWEEN ${start} AND ${end}
           AND sales.storeId = ${storeId}
         GROUP BY saleDetails.id;
       `;
@@ -126,16 +109,15 @@ export const getSalesWeek = async (storeId: string) => {
         const result: any[] = [];
 
         for (let i = 0; i < dates.length; i++) {
-            const start = makeDate(dates[i], "00:00:00");
-            const end = makeDate(dates[i], "23:59:59");
-
-            const startSafe = safeDate(start, moment());
-            const endSafe = safeDate(end, moment());
+            const start = moment(dates[i], "YYYY-MM-DD")
+                .startOf("day")
+                .toDate();
+            const end = moment(dates[i], "YYYY-MM-DD").endOf("day").toDate();
 
             const total = await Model.sales.aggregate({
                 _sum: { total: true },
                 where: {
-                    createdAt: { gte: startSafe, lte: endSafe },
+                    createdAt: { gte: start, lte: end },
                     storeId,
                 },
             });
