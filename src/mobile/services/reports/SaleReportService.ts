@@ -39,7 +39,12 @@ export const getSaleReport = async (filters: {
         Model.sales.findMany({
             include: {
                 members: true,
-                saleDetails: { include: { products: true } },
+                saleDetails: {
+                    include: { products: true },
+                    where: filters.categoryId
+                        ? { products: { categoryId: filters.categoryId } }
+                        : undefined,
+                },
                 salePeoples: true,
             },
             where: {
@@ -48,13 +53,24 @@ export const getSaleReport = async (filters: {
             },
             orderBy: [{ date: "desc" }, { transactionNumber: "desc" }],
         }),
-        Model.sales.aggregate({
-            _sum: { total: true },
-            where: {
-                createdAt: { gte: start, lte: end },
-                ...filter,
-            },
-        }),
+        filters.categoryId
+            ? Model.saleDetails.aggregate({
+                  _sum: { total: true },
+                  where: {
+                      sales: {
+                          createdAt: { gte: start, lte: end },
+                          ...filter,
+                      },
+                      products: { categoryId: filters.categoryId },
+                  },
+              })
+            : Model.sales.aggregate({
+                  _sum: { total: true },
+                  where: {
+                      createdAt: { gte: start, lte: end },
+                      ...filter,
+                  },
+              }),
     ]);
 
     return {
