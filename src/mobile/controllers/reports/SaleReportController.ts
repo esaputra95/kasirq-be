@@ -11,6 +11,7 @@ const getData = async (req: Request, res: Response) => {
             storeId: req.query.storeId as string | undefined,
             memberId: req.query.memberId as string | undefined,
             salePeopleId: req.query.salePeopleId as string | undefined,
+            categoryId: req.query.categoryId as string | undefined,
         });
 
         res.status(200).json({
