@@ -8,6 +8,7 @@ export const getSaleReport = async (filters: {
     storeId?: string;
     memberId?: string;
     salePeopleId?: string;
+    categoryId?: string;
 }) => {
     let filter: any = {};
 
@@ -21,6 +22,15 @@ export const getSaleReport = async (filters: {
     if (filters.storeId) filter.storeId = filters.storeId;
     if (filters.memberId) filter.memberId = filters.memberId;
     if (filters.salePeopleId) filter.salePeopleId = filters.salePeopleId;
+    if (filters.categoryId) {
+        filter.saleDetails = {
+            some: {
+                products: {
+                    categoryId: filters.categoryId,
+                },
+            },
+        };
+    }
 
     const start = moment(filters.start, "YYYY-MM-DD").startOf("day").toDate();
     const end = moment(filters.finish, "YYYY-MM-DD").endOf("day").toDate();
