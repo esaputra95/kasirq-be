@@ -73,6 +73,15 @@ export const getSaleReport = async (filters: {
               }),
     ]);
 
+    if (filters.categoryId) {
+        data.forEach((sale: any) => {
+            sale.total = sale.saleDetails.reduce(
+                (acc: number, detail: any) => acc + Number(detail.total || 0),
+                0
+            );
+        });
+    }
+
     return {
         message: "Success get data sales report",
         data: { sale: data, total },
