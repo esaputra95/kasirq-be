@@ -76,7 +76,9 @@ export const getSaleReport = async (filters: {
     if (filters.categoryId) {
         data.forEach((sale: any) => {
             sale.total = sale.saleDetails.reduce(
-                (acc: number, detail: any) => acc + Number(detail.total || 0),
+                (acc: number, detail: any) =>
+                    acc +
+                    Number(detail.price || 0) * Number(detail.quantity || 0),
                 0
             );
         });
