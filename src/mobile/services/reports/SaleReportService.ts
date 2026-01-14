@@ -81,6 +81,7 @@ export const getSaleReport = async (filters: {
                     Number(detail.price || 0) * Number(detail.quantity || 0),
                 0
             );
+            sale.subTotal = sale.total;
         });
     }
 
