@@ -97,9 +97,10 @@ export const getSaleReport = async (filters: {
             categorySubTotal += sale.subTotal;
         });
         summary.subTotal = categorySubTotal;
+        summary.total = categorySubTotal;
     } else {
         summary = {
-            total: total._sum.total || 0,
+            total: total._sum.subTotal || 0,
             subTotal: total._sum.subTotal || 0,
             discount: total._sum.discount || 0,
             tax: total._sum.tax || 0,
