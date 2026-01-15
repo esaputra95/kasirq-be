@@ -35,7 +35,7 @@ export const getSaleReport = async (filters: {
     const start = moment(filters.start, "YYYY-MM-DD").startOf("day").toDate();
     const end = moment(filters.finish, "YYYY-MM-DD").endOf("day").toDate();
 
-    const [data, total] = await Promise.all([
+    const [data, total]: [any, any] = await Promise.all([
         Model.sales.findMany({
             include: {
                 members: true,
@@ -65,7 +65,14 @@ export const getSaleReport = async (filters: {
                   },
               })
             : Model.sales.aggregate({
-                  _sum: { total: true },
+                  _sum: {
+                      total: true,
+                      subTotal: true,
+                      discount: true,
+                      tax: true,
+                      addtionalCost: true,
+                      shippingCost: true,
+                  },
                   where: {
                       createdAt: { gte: start, lte: end },
                       ...filter,
@@ -73,7 +80,12 @@ export const getSaleReport = async (filters: {
               }),
     ]);
 
+    let summary: any = {
+        total: total._sum.total || 0,
+    };
+
     if (filters.categoryId) {
+        let categorySubTotal = 0;
         data.forEach((sale: any) => {
             sale.total = sale.saleDetails.reduce(
                 (acc: number, detail: any) =>
@@ -82,11 +94,27 @@ export const getSaleReport = async (filters: {
                 0
             );
             sale.subTotal = sale.total - (sale.discount ?? 0);
+            categorySubTotal += sale.subTotal;
         });
+        summary.subTotal = categorySubTotal;
+    } else {
+        summary = {
+            total: total._sum.total || 0,
+            subTotal: total._sum.subTotal || 0,
+            discount: total._sum.discount || 0,
+            tax: total._sum.tax || 0,
+            addtionalCost: total._sum.addtionalCost || 0,
+            shippingCost: total._sum.shippingCost || 0,
+        };
     }
 
     return {
         message: "Success get data sales report",
-        data: { sale: data, total },
+        data: {
+            sale: data,
+            total: {
+                _sum: summary,
+            },
+        },
     };
 };
