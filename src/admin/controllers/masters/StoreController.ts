@@ -104,6 +104,9 @@ const getData = async (
             where: {
                 ...filter,
             },
+            include: {
+                users: true,
+            },
             skip: skip,
             take: take,
         });

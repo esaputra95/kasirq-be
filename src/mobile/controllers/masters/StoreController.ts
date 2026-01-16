@@ -19,6 +19,23 @@ const getSelect = async (_req: Request, res: Response) => {
     }
 };
 
+const getSelectSubscription = async (_req: Request, res: Response) => {
+    try {
+        const result = await StoreService.getStoresForSelectSubscription(
+            res.locals.userId,
+            res.locals.level
+        );
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        console.log({ error });
+
+        handleErrorMessage(res, error);
+    }
+};
+
 const updateData = async (req: Request, res: Response) => {
     try {
         const result = await StoreService.updateStore(req.params.id, req.body);
@@ -47,4 +64,4 @@ const getDataById = async (req: Request, res: Response) => {
     }
 };
 
-export { getSelect, updateData, getDataById };
+export { getSelect, updateData, getDataById, getSelectSubscription };

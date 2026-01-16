@@ -51,6 +51,66 @@ export const getStoresForSelect = async (userId: string, userLevel: string) => {
     };
 };
 
+export const getStoresForSelectSubscription = async (
+    userId: string,
+    userLevel: string
+) => {
+    let dataOption: any = [];
+    const now = new Date();
+
+    if (userLevel === "cashier") {
+        const user = await Model.users.findUnique({
+            where: { id: userId },
+        });
+
+        const stores = await Model.stores.findMany({
+            where: {
+                id: user?.storeId ?? "",
+                storeSubscriptions: {
+                    some: {
+                        status: "ACTIVE",
+                        endDate: {
+                            gte: now,
+                        },
+                    },
+                },
+            },
+        });
+
+        dataOption = stores.map((store) => ({
+            key: store.id,
+            value: store.name,
+        }));
+    } else {
+        const stores = await Model.stores.findMany({
+            where: {
+                ownerId: userId,
+                storeSubscriptions: {
+                    some: {
+                        status: "ACTIVE",
+                        endDate: {
+                            gte: now,
+                        },
+                    },
+                },
+            },
+        });
+
+        dataOption = stores.map((store) => ({
+            key: store.id,
+            value: store.name,
+            defaultCashId: store.defaultCashId,
+        }));
+    }
+
+    return {
+        message: "successfully in get user data",
+        data: {
+            store: dataOption,
+        },
+    };
+};
+
 export const updateStore = async (id: string, storeData: any) => {
     const data = { ...storeData };
     delete data.storeId;

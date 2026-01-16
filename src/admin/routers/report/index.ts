@@ -30,6 +30,11 @@ import {
     download as downloadAttendance,
 } from "#root/admin/controllers/reports/ReportAttendancesController";
 import * as AccountancyController from "#root/admin/controllers/reports/ReportAccountancyController";
+import {
+    getData as getDataSubscription,
+    xlsxData as xlsxDataSubscription,
+    download as downloadSubscription,
+} from "#root/admin/controllers/reports/ReportSubscriptionsController";
 
 const ReportSalesRoute = express.Router();
 
@@ -90,5 +95,9 @@ ReportSalesRoute.get(
     AccountancyController.getCashOutReport
 );
 ReportSalesRoute.get("/expense-report", AccountancyController.getExpenseReport);
+
+ReportSalesRoute.get("/subscription-report", getDataSubscription);
+ReportSalesRoute.get("/subscription-report/excel", xlsxDataSubscription);
+ReportSalesRoute.get("/subscription-report/download", downloadSubscription);
 
 export default ReportSalesRoute;
