@@ -6,4 +6,5 @@ export { default as UserRoute } from "#root/admin/routers/masters/UserRoute";
 export { default as UserManagementRoute } from "#root/admin/routers/masters/UserManagementRoute";
 export { default as AccountRoute } from "#root/admin/routers/masters/AccountRoute";
 export { default as SubscriptionStoreRoute } from "#root/admin/routers/masters/SubscriptionStoreRoute";
+export { default as StoreSubscriptionRoute } from "#root/admin/routers/masters/StoreSubscriptionRoute";
 export { default as NotificationRoute } from "#root/admin/routers/masters/NotificationRoute";

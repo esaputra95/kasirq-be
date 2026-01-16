@@ -86,6 +86,8 @@ export const registerOwner = async (userData: {
             },
         });
 
+        // tambahkan create subscription
+
         const account = await tx.account.create({
             data: {
                 id: uuidv4(),
@@ -101,6 +103,21 @@ export const registerOwner = async (userData: {
             where: { id: store.id },
             data: {
                 defaultCashId: account.id,
+            },
+        });
+
+        // Create subscription for store (30 days trial)
+        await tx.store_subscriptions.create({
+            data: {
+                id: uuidv4(),
+                storeId: store.id,
+                type: "TRIAL",
+                startDate: moment().toDate(),
+                endDate: moment().add(30, "d").toDate(),
+                durationMonth: 1,
+                price: 0,
+                status: "ACTIVE",
+                userCreate: user.id,
             },
         });
 
