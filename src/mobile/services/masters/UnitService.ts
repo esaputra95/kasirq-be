@@ -32,6 +32,7 @@ export const getUnits = async (
             where: whereClause,
             skip,
             take,
+            orderBy: { name: "asc" },
         }),
         Model.units.count({
             where: whereClause,
