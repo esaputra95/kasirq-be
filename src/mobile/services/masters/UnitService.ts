@@ -8,19 +8,24 @@ import { ValidationError } from "#root/helpers/handleErrors";
 /**
  * Get units with filtering and pagination
  */
-export const getUnits = async (query: UnitQueryInterface, userId: string, userLevel: string) => {
+export const getUnits = async (
+    query: UnitQueryInterface,
+    userId: string,
+    userLevel: string
+) => {
     const owner: any = await getOwnerId(userId, userLevel);
 
-    const take: number = parseInt(query.limit ?? '20');
-    const page: number = parseInt(query.page ?? '1');
+    const take: number = parseInt(query.limit ?? "50");
+    const page: number = parseInt(query.page ?? "1");
     const skip: number = (page - 1) * take;
 
     let filter: any = [];
     if (query.name) filter.push({ name: { contains: query.name } });
 
-    const whereClause: any = filter.length > 0
-        ? { OR: filter, ownerId: owner.id }
-        : { ownerId: owner.id };
+    const whereClause: any =
+        filter.length > 0
+            ? { OR: filter, ownerId: owner.id }
+            : { ownerId: owner.id };
 
     const [data, total] = await Promise.all([
         Model.units.findMany({
@@ -30,7 +35,7 @@ export const getUnits = async (query: UnitQueryInterface, userId: string, userLe
         }),
         Model.units.count({
             where: whereClause,
-        })
+        }),
     ]);
 
     return {
@@ -49,9 +54,13 @@ export const getUnits = async (query: UnitQueryInterface, userId: string, userLe
 /**
  * Create new unit
  */
-export const createUnit = async (unitData: any, userId: string, userLevel: string) => {
+export const createUnit = async (
+    unitData: any,
+    userId: string,
+    userLevel: string
+) => {
     const ownerId: any = await getOwnerId(userId, userLevel);
-    
+
     if (!ownerId.status) {
         throw new ValidationError("Owner not found", 404, "owner");
     }
@@ -122,9 +131,13 @@ export const getUnitById = async (id: string) => {
 /**
  * Get units for select dropdown
  */
-export const getUnitsForSelect = async (name: string | undefined, userId: string, userLevel: string) => {
+export const getUnitsForSelect = async (
+    name: string | undefined,
+    userId: string,
+    userLevel: string
+) => {
     const owner: any = await getOwnerId(userId, userLevel);
-    
+
     let filter: any = {};
     if (name) filter = { ...filter, name: { contains: name } };
 
@@ -133,10 +146,13 @@ export const getUnitsForSelect = async (name: string | undefined, userId: string
             ...filter,
             ownerId: owner.id,
         },
-        take: 10,
+        take: 100,
+        orderBy: {
+            name: "asc",
+        },
     });
 
-    const dataOption = data.map(value => ({
+    const dataOption = data.map((value) => ({
         value: value.id,
         label: value.name,
     }));

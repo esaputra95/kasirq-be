@@ -168,8 +168,8 @@ const ProductUpdateValidation = [
         .optional()
         .isString()
         .withMessage("Type should be string")
-        .isIn(["default", "custom"])
-        .withMessage("Type should be 'default' or 'custom'"),
+        .isIn(["default", "satuan"])
+        .withMessage("Type should be 'default' or 'satuan'"),
 
     body("price.*.level")
         .optional()
