@@ -10,7 +10,7 @@ import { ValidationError } from "#root/helpers/handleErrors";
 export const getProducts = async (
     query: ProductQueryInterface,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const owner: any = await getOwnerId(userId, userLevel);
     const take: number = parseInt(query.limit ?? "20");
@@ -110,7 +110,7 @@ export const getProducts = async (
 export const getProductsForSell = async (
     query: ProductQueryInterface,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const owner: any = await getOwnerId(userId, userLevel);
     const take: number = parseInt(query.limit ?? "20");
@@ -202,7 +202,7 @@ export const getProductsForSell = async (
 export const createProduct = async (
     productData: any,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const owner: any = await getOwnerId(userId, userLevel);
     if (!owner.status)
@@ -266,6 +266,33 @@ export const createProduct = async (
             });
             unitId = value.unitId;
         }
+
+        // Handle components for package and formula types
+        if (
+            (data.type === "package" || data.type === "formula") &&
+            Array.isArray(data.components)
+        ) {
+            for (const comp of data.components) {
+                // Find smallest conversion for componentId
+                const smallestConversion =
+                    await prisma.productConversions.findFirst({
+                        where: { productId: comp.componentId },
+                        orderBy: { quantity: "asc" },
+                    });
+
+                await prisma.productComponents.create({
+                    data: {
+                        id: uuidv4(),
+                        productId,
+                        componentId: comp.componentId,
+                        conversionId: smallestConversion?.id,
+                        quantity: parseInt(comp.quantity ?? 0),
+                        type: data.type as "package" | "formula",
+                        userCreate: userId,
+                    },
+                });
+            }
+        }
     });
 
     return { message: "successful in created user data" };
@@ -277,13 +304,14 @@ export const createProduct = async (
 export const updateProduct = async (
     productData: any,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const data = { ...productData };
     let dataProduct = { ...data };
     delete dataProduct.price;
     delete dataProduct.storeId;
     delete dataProduct.idDelete;
+    delete dataProduct.components;
     const conversion = data.price;
 
     console.log({ dataProduct });
@@ -302,7 +330,7 @@ export const updateProduct = async (
         throw new ValidationError(
             "Unauthorized to update this product",
             403,
-            "product"
+            "product",
         );
     }
 
@@ -387,6 +415,42 @@ export const updateProduct = async (
                 });
             }
         }
+
+        // Handle components for package and formula types
+        if (data.type === "package" || data.type === "formula") {
+            // Delete existing components
+            await prisma.productComponents.deleteMany({
+                where: { productId: dataProduct.id },
+            });
+
+            if (Array.isArray(data.components)) {
+                for (const comp of data.components) {
+                    // Find smallest conversion for componentId
+                    const smallestConversion =
+                        await prisma.productConversions.findFirst({
+                            where: { productId: comp.componentId },
+                            orderBy: { quantity: "asc" },
+                        });
+
+                    await prisma.productComponents.create({
+                        data: {
+                            id: uuidv4(),
+                            productId: dataProduct.id,
+                            componentId: comp.componentId,
+                            conversionId: smallestConversion?.id,
+                            quantity: parseInt(comp.quantity ?? 0),
+                            type: data.type as "package" | "formula",
+                            userCreate: userId,
+                        },
+                    });
+                }
+            }
+        } else {
+            // If type changed to something else, remove components
+            await prisma.productComponents.deleteMany({
+                where: { productId: dataProduct.id },
+            });
+        }
     });
 
     return { message: "Berhasil memperbarui data produk" };
@@ -398,7 +462,7 @@ export const updateProduct = async (
 export const deleteProduct = async (
     id: string,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     // SECURITY: Verify ownership before delete
     const existingProduct = await Model.products.findUnique({
@@ -414,7 +478,7 @@ export const deleteProduct = async (
         throw new ValidationError(
             "Unauthorized to delete this product",
             403,
-            "product"
+            "product",
         );
     }
 
@@ -470,6 +534,17 @@ export const getProductById = async (id: string) => {
             description: true,
             brandId: true,
             status: true,
+            type: true,
+            components: {
+                include: {
+                    component: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                },
+            },
         },
     });
 
@@ -491,7 +566,7 @@ export const getPriceMember = async (
         storeId?: string;
         conversionId: string;
         price?: number;
-    }>
+    }>,
 ) => {
     let tmpData: any[] = [];
 

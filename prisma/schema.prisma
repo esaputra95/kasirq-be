@@ -136,6 +136,7 @@ model productConversions {
   saleDetails          saleDetails[]
   salePendingDetails salePendingDetails[]
   stockOpnameDetails stockOpnameDetails[]
+  productComponents productComponents[]
 
   @@index([productId], map: "productConversionProduct")
   @@index([unitId], map: "productConversionUnit")
@@ -195,6 +196,9 @@ model products {
   saleDetails          saleDetails[]
   salePendingDetails   salePendingDetails[]
   stockOpnameDetails stockOpnameDetails[]
+  components    productComponents[] @relation("ProductComponent_Product")
+  partOfBundles productComponents[] @relation("ProductComponent_Component")
+  
 
   @@index([ownerId], map: "productStore")
   @@index([userCreate], map: "productUser")
@@ -993,6 +997,33 @@ model attendances {
   @@index([storeId, checkInAt])
 }
 
+model productComponents {
+  id            String   @id @db.VarChar(36)
+  productId     String   @db.VarChar(36) // produk utama
+  componentId   String   @db.VarChar(36) // produk bahan / item
+  conversionId  String?  @db.VarChar(36) // hanya untuk recipe
+  quantity      Int
+  type          product_component_type
+  status        Int?     @default(1) @db.SmallInt
+  userCreate    String?  @db.VarChar(36)
+  createdAt     DateTime? @default(now()) @db.DateTime(0)
+  updatedAt     DateTime? @default(now()) @db.DateTime(0)
+  deletedAt     DateTime? @db.DateTime(0)
+
+  product     products @relation("ProductComponent_Product", fields: [productId], references: [id])
+  component   products @relation("ProductComponent_Component", fields: [componentId], references: [id])
+  conversion  productConversions? @relation(fields: [conversionId], references: [id])
+
+  @@index([productId])
+  @@index([componentId])
+  @@index([conversionId])
+}
+
+enum product_component_type {
+  formula
+  package
+}
+
 enum AttendanceStatus {
   VALID
   OUT_OF_RANGE
@@ -1036,6 +1067,8 @@ enum products_type {
   package
   service
   cost
+  recipe
+  bundle
 }
 
 enum products_consignmentType {
