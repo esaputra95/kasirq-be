@@ -27,7 +27,7 @@ const StoreSubscriptionValidation = [
         .isInt({ min: 1 })
         .withMessage("durationMonth should be a positive integer"),
     body("price")
-        .exists({ checkFalsy: true })
+        .exists()
         .withMessage("price is required")
         .isDecimal()
         .withMessage("price should be a decimal number"),
@@ -71,10 +71,6 @@ const StoreSubscriptionUpdateValidation = [
         .optional()
         .isIn(["ACTIVE", "EXPIRED", "CANCELLED"])
         .withMessage("status should be either ACTIVE, EXPIRED, or CANCELLED"),
-    body("paymentRef")
-        .optional()
-        .isString()
-        .withMessage("paymentRef should be string"),
 ];
 
 export { StoreSubscriptionValidation, StoreSubscriptionUpdateValidation };

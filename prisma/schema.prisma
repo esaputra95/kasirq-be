@@ -46,7 +46,7 @@ model store_subscriptions {
   startDate      DateTime @db.DateTime
   endDate        DateTime @db.DateTime
   durationMonth  Int
-  price          Decimal  @db.Decimal(12, 2)
+  price          Decimal?  @db.Decimal(12, 2)
   status         store_subscription_status
   paymentRef     String?  @db.VarChar(100)
   createdAt      DateTime @default(now()) @db.DateTime
