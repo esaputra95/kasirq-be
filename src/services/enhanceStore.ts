@@ -77,7 +77,6 @@ export const enhanceStore = async (req: Request, res: Response) => {
             message: "successfully in enhancing store",
         });
     } catch (error) {
-        console.log(error);
         res.status(500).json({
             message: "failed in enhancing store",
             error,

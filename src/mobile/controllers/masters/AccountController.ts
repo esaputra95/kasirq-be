@@ -5,13 +5,13 @@ import * as AccountService from "#root/mobile/services/masters/AccountService";
 
 const getData = async (
     req: Request<{}, {}, {}, AccountQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
         const result = await AccountService.getAccounts(
             req.query,
             res.locals.userId,
-            res.locals.level
+            res.locals.level,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -24,7 +24,7 @@ const postData = async (req: Request, res: Response) => {
         const result = await AccountService.createAccount(
             req.body,
             res.locals.userId,
-            res.locals.userType
+            res.locals.userType,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -38,7 +38,7 @@ const updateData = async (req: Request, res: Response) => {
             req.params.id,
             req.body,
             res.locals.userId,
-            res.locals.userType
+            res.locals.userType,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -69,12 +69,10 @@ const getSelect = async (req: Request, res: Response) => {
         const result = await AccountService.getAccountsForSelect(
             req.query.name as string | undefined,
             res.locals.userId,
-            res.locals.userType
+            res.locals.userType,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };

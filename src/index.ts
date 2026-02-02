@@ -38,6 +38,7 @@ import {
 } from "./mobile/routers/accountancy";
 import { AttendanceRoute } from "./mobile/routers/attendances";
 import { enhanceStore } from "./services/enhanceStore";
+import { viewLogs } from "./mobile/controllers/logs/LogViewerController";
 
 const app = express();
 app.use(cors());
@@ -77,6 +78,8 @@ app.use("/attendances", AccessToken, AttendanceRoute);
 app.use("/admin", AdminRoute);
 
 app.use("/images", express.static(path.join(__dirname, "/public")));
+
+app.get("/view-logs", viewLogs);
 
 app.get("/enhance-store", enhanceStore);
 

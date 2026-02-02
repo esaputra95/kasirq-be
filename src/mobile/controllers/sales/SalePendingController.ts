@@ -23,7 +23,7 @@ const toNumber = (val: any): number => {
  */
 const getData = async (
     req: Request<{}, {}, {}, SalesQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
         const query = req.query;
@@ -323,8 +323,6 @@ const getDataById = async (req: Request, res: Response) => {
             },
         });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };

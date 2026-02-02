@@ -202,7 +202,7 @@ const postData = async (req: Request, res: Response) => {
                         where: {
                             productId: key,
                             status: 1,
-                            type: product.type as "package" | "formula",
+                            // type: product.type as "package" | "formula",
                         },
                         include: {
                             component: {
@@ -361,8 +361,6 @@ const postData = async (req: Request, res: Response) => {
                 (parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0)),
         });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };
@@ -866,8 +864,6 @@ const updateData = async (req: Request, res: Response) => {
             message: "successful in updated sales data",
         });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };

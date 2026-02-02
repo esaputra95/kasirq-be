@@ -314,8 +314,6 @@ export const updateProduct = async (
     delete dataProduct.components;
     const conversion = data.price;
 
-    console.log({ dataProduct });
-
     // SECURITY: Verify ownership before update
     const existingProduct = await Model.products.findUnique({
         where: { id: dataProduct.id },
@@ -536,7 +534,14 @@ export const getProductById = async (id: string) => {
             status: true,
             type: true,
             components: {
-                include: {
+                select: {
+                    id: true,
+                    componentId: true,
+                    conversionId: true,
+                    quantity: true,
+                    type: true,
+                    productId: true,
+                    status: true,
                     component: {
                         select: {
                             id: true,

@@ -19,7 +19,7 @@ export const resetStoreData = async (req: Request, res: Response) => {
 
         const result = await StoreMaintenanceService.resetStoreData(
             storeId,
-            ownerId
+            ownerId,
         );
 
         res.status(200).json({
@@ -27,7 +27,6 @@ export const resetStoreData = async (req: Request, res: Response) => {
             ...result,
         });
     } catch (error) {
-        console.log({ error });
         handleErrorMessage(res, error);
     }
 };
@@ -50,7 +49,7 @@ export const resetStock = async (req: Request, res: Response) => {
         const result = await StoreMaintenanceService.resetStock(
             productId,
             storeId,
-            ownerId
+            ownerId,
         );
 
         res.status(200).json({

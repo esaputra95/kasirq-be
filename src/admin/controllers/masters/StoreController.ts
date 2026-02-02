@@ -14,7 +14,7 @@ const getSelect = async (req: Request, res: Response) => {
     try {
         const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.level
+            res.locals.level,
         );
         let filter: any = {};
         req.query.name
@@ -72,13 +72,13 @@ const getSelect = async (req: Request, res: Response) => {
 
 const getData = async (
     req: Request<{}, {}, {}, StoreQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
         const query = req.query;
         const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.userType,
         );
         // PAGING
         const take: number = parseInt(query.limit ?? 20);
@@ -142,7 +142,7 @@ const postData = async (req: Request, res: Response) => {
     try {
         const ownerId: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.userType,
         );
         if (!ownerId.status) throw new Error("Owner not found");
 
@@ -162,8 +162,6 @@ const postData = async (req: Request, res: Response) => {
             message: "successful in created Member data",
         });
     } catch (error) {
-        console.log(error);
-
         handleErrorMessage(res, error);
     }
 };

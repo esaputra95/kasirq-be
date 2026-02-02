@@ -37,9 +37,8 @@ export const getAccountBalances = async (req: Request, res: Response) => {
             });
         }
 
-        const result = await AccountancyReportService.getAccountBalances(
-            storeId
-        );
+        const result =
+            await AccountancyReportService.getAccountBalances(storeId);
         res.status(200).json({ status: true, ...result });
     } catch (error) {
         handleErrorMessage(res, error);
@@ -74,8 +73,6 @@ export const getCashInReport = async (req: Request, res: Response) => {
     try {
         const { start, finish, storeId } = req.query as any;
 
-        console.log(req.query);
-
         if (!start || !finish || !storeId) {
             return res.status(400).json({
                 status: false,
@@ -90,12 +87,8 @@ export const getCashInReport = async (req: Request, res: Response) => {
             accountId: req.query.accountId as string,
         });
 
-        console.log(JSON.stringify(result, null, 2));
-
         res.status(200).json({ status: true, ...result });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };

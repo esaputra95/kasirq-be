@@ -1,0 +1,16 @@
+[2026-02-02 16:39:26] POST /sales - Status: 500
+Body: {"subTotal":18000000,"pay":18000000,"accountId":"2c0f2be3-8710-44d5-bd6b-8870fceb9167","storeId":"1","detailItem":{"fabf05ea-4a9f-47f4-83d8-24b4fdaa09d7":{"unitId":"b6e68a86-7580-4131-aca5-d8721c4407ca","quantity":90,"price":200000}}}
+Error: ValidationError: "Stok tidak cukup"
+Stack: ValidationError: "Stok tidak cukup"
+    at /Users/ekosaputra/Project/Kasir/api-kasirq/src/mobile/controllers/sales/SalesController.ts:298:31
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/ekosaputra/Project/Kasir/api-kasirq/src/mobile/controllers/sales/SalesController.ts:5:58)
+--------------------------------------------------
+[2026-02-02 16:39:56] POST /sales - Status: 500
+Body: {"subTotal":18000000,"pay":18000000,"accountId":"2c0f2be3-8710-44d5-bd6b-8870fceb9167","storeId":"1","detailItem":{"fabf05ea-4a9f-47f4-83d8-24b4fdaa09d7":{"unitId":"b6e68a86-7580-4131-aca5-d8721c4407ca","quantity":90,"price":200000}}}
+Error: ValidationError: "Stok tidak cukup"
+Stack: ValidationError: "Stok tidak cukup"
+    at /Users/ekosaputra/Project/Kasir/api-kasirq/src/mobile/controllers/sales/SalesController.ts:298:31
+    at Generator.next (<anonymous>)
+    at fulfilled (/Users/ekosaputra/Project/Kasir/api-kasirq/src/mobile/controllers/sales/SalesController.ts:5:58)
+--------------------------------------------------

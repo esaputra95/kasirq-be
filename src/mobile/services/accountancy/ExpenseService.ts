@@ -7,7 +7,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 
 const getStoreId = async (
     userId: string,
-    userLevel: string
+    userLevel: string,
 ): Promise<string> => {
     const owner: any = await getOwnerId(userId, userLevel);
     const store = await Model.stores.findFirst({
@@ -20,7 +20,7 @@ const getStoreId = async (
 export const getExpenses = async (
     query: ExpenseQueryInterface,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
     const take: number = parseInt(query.limit ?? "20");
@@ -65,12 +65,9 @@ export const getExpenses = async (
 export const createExpense = async (
     expenseData: any,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
-
-    console.log({ expenseData });
-
     // Validasi kas account
     const account = await Model.account.findUnique({
         where: { id: expenseData.accountId },
@@ -79,7 +76,7 @@ export const createExpense = async (
         throw new ValidationError(
             "Kas Account tidak ditemukan",
             404,
-            "account"
+            "account",
         );
     }
 
@@ -91,7 +88,7 @@ export const createExpense = async (
         throw new ValidationError(
             "Kategori Pengeluaran tidak ditemukan",
             404,
-            "expenseCategory"
+            "expenseCategory",
         );
     }
 
@@ -150,7 +147,7 @@ export const updateExpense = async (
     id: string,
     expenseData: any,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
 
@@ -162,7 +159,7 @@ export const updateExpense = async (
         throw new ValidationError(
             "Pengeluaran tidak ditemukan",
             404,
-            "expense"
+            "expense",
         );
     }
 
@@ -180,7 +177,7 @@ export const updateExpense = async (
             throw new ValidationError(
                 "Kas Account tidak ditemukan",
                 404,
-                "account"
+                "account",
             );
         }
         newaccount = kas;
@@ -203,7 +200,7 @@ export const updateExpense = async (
             where: { id: existing.accountId },
             data: {
                 currentBalance: oldaccount?.currentBalance?.add(
-                    existing.amount
+                    existing.amount,
                 ),
             },
         }),
@@ -243,7 +240,7 @@ export const updateExpense = async (
 export const deleteExpense = async (
     id: string,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
 
@@ -255,7 +252,7 @@ export const deleteExpense = async (
         throw new ValidationError(
             "Pengeluaran tidak ditemukan",
             404,
-            "expense"
+            "expense",
         );
     }
 
@@ -283,7 +280,7 @@ export const deleteExpense = async (
 export const getExpenseById = async (
     id: string,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
 
@@ -299,7 +296,7 @@ export const getExpenseById = async (
         throw new ValidationError(
             "Pengeluaran tidak ditemukan",
             404,
-            "expense"
+            "expense",
         );
     }
 
