@@ -15,7 +15,7 @@ const IncrementStock = async (
     >,
     productId: string,
     storeId: string,
-    quantity: number
+    quantity: number,
 ) => {
     try {
         const checkStock = await prisma.stocks.findUnique({
@@ -71,10 +71,10 @@ const DecrementStock = async (
     >,
     productId: string,
     storeId: string,
-    quantity: number
+    quantity: number,
 ) => {
     try {
-        const checkStock = await prisma.stocks.findUnique({
+        const checkStock = await prisma.stocks.findFirst({
             where: {
                 productId: productId,
             },
@@ -89,14 +89,28 @@ const DecrementStock = async (
                 },
             },
         });
-        if (!checkStock?.products?.isStock) {
+
+        let isStock = checkStock?.products?.isStock;
+        let currentQuantity = checkStock?.quantity ?? 0;
+
+        // Jika record stok belum ada, cek langsung ke tabel products
+        if (!checkStock) {
+            const product = await prisma.products.findUnique({
+                where: { id: productId },
+                select: { isStock: true },
+            });
+            isStock = product?.isStock;
+        }
+
+        if (!isStock) {
             return {
                 status: true,
                 message:
                     "Tidak dapat mengurangi stok produk ini karena tidak menggunakan stok",
             };
         }
-        if (checkStock?.products?.isStock && checkStock.quantity < quantity) {
+
+        if (currentQuantity < quantity) {
             return {
                 status: false,
                 message: "Stok tidak cukup",

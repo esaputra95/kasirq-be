@@ -17,7 +17,7 @@ import { transactionNumber } from "#root/helpers/transactionNumber";
 
 const getData = async (
     req: Request<{}, {}, {}, SalesQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
         const query = req.query;
@@ -159,6 +159,13 @@ const postData = async (req: Request, res: Response) => {
             for (const key in dataDetail) {
                 if (dataDetail[key].quantity === 0) continue;
                 const idDetail = uuidv4();
+
+                // Get product info to check type
+                const product = await prisma.products.findUnique({
+                    where: { id: key },
+                    select: { type: true, isStock: true },
+                });
+
                 await prisma.saleDetails.create({
                     data: {
                         id: idDetail,
@@ -178,65 +185,163 @@ const postData = async (req: Request, res: Response) => {
 
                 if (!conversion) {
                     throw new Error(
-                        `Konversi produk dengan ID ${dataDetail[key].unitId} tidak ditemukan`
+                        `Konversi produk dengan ID ${dataDetail[key].unitId} tidak ditemukan`,
                     );
                 }
 
-                const decrement = await DecrementStock(
-                    prisma,
-                    key,
-                    data.storeId,
-                    dataDetail[key].quantity * (conversion?.quantity ?? 1)
-                );
+                const saleQuantity = dataDetail[key].quantity ?? 1;
+                const baseQuantity = saleQuantity * (conversion?.quantity ?? 1);
 
-                if (!decrement.status) {
-                    throw new ValidationError(
-                        JSON.stringify(decrement.message),
-                        400,
-                        "quantity"
-                    );
-                }
-
-                const hpp = await GetHpp({
-                    prisma,
-                    storeId: data.storeId,
-                    quantityNeed:
-                        dataDetail[key].quantity * conversion?.quantity,
-                    productId: key,
-                });
-
-                for (const value of hpp.hpp) {
-                    if (value.hppHistoryId) {
-                        await prisma.cogs.create({
-                            data: {
-                                id: uuidv4(),
-                                hppHistoryId: value.hppHistoryId,
-                                saleDetailId: idDetail,
-                                price: value.price,
-                                quantity: value.quantity,
-                                createdAt: moment().format(),
+                // Handle package and formula type products
+                if (
+                    product?.type === "package" ||
+                    product?.type === "formula"
+                ) {
+                    // Get product components
+                    const components = await prisma.productComponents.findMany({
+                        where: {
+                            productId: key,
+                            status: 1,
+                            // type: product.type as "package" | "formula",
+                        },
+                        include: {
+                            component: {
+                                select: { id: true, isStock: true },
                             },
+                            conversion: {
+                                select: { quantity: true },
+                            },
+                        },
+                    });
+
+                    // Process each component
+                    for (const comp of components) {
+                        // Calculate component quantity: saleQty * componentQty * conversionQty
+                        const componentConversionQty =
+                            comp.conversion?.quantity ?? 1;
+                        const componentQtyNeeded =
+                            saleQuantity *
+                            comp.quantity *
+                            componentConversionQty;
+
+                        // Decrement stock for component (if it tracks stock)
+                        if (comp.component?.isStock) {
+                            const decrement = await DecrementStock(
+                                prisma,
+                                comp.componentId,
+                                data.storeId,
+                                componentQtyNeeded,
+                            );
+
+                            if (!decrement.status) {
+                                throw new ValidationError(
+                                    JSON.stringify(decrement.message),
+                                    400,
+                                    "quantity",
+                                );
+                            }
+                        }
+
+                        // Get HPP for component
+                        const hpp = await GetHpp({
+                            prisma,
+                            storeId: data.storeId,
+                            quantityNeed: componentQtyNeeded,
+                            productId: comp.componentId,
                         });
-                        await prisma.hppHistory.update({
-                            data: {
-                                quantityUsed: {
-                                    increment: value.quantity,
+
+                        for (const value of hpp.hpp) {
+                            if (value.hppHistoryId) {
+                                await prisma.cogs.create({
+                                    data: {
+                                        id: uuidv4(),
+                                        hppHistoryId: value.hppHistoryId,
+                                        saleDetailId: idDetail,
+                                        price: value.price,
+                                        quantity: value.quantity,
+                                        createdAt: moment().format(),
+                                    },
+                                });
+                                await prisma.hppHistory.update({
+                                    data: {
+                                        quantityUsed: {
+                                            increment: value.quantity,
+                                        },
+                                    },
+                                    where: {
+                                        id: value.hppHistoryId,
+                                    },
+                                });
+                            } else {
+                                await prisma.cogs.create({
+                                    data: {
+                                        id: uuidv4(),
+                                        saleDetailId: idDetail,
+                                        price: value.price,
+                                        quantity: value.quantity,
+                                        createdAt: moment().format(),
+                                    },
+                                });
+                            }
+                        }
+                    }
+                } else {
+                    // Handle regular product (existing logic)
+                    const decrement = await DecrementStock(
+                        prisma,
+                        key,
+                        data.storeId,
+                        baseQuantity,
+                    );
+
+                    if (!decrement.status) {
+                        throw new ValidationError(
+                            JSON.stringify(decrement.message),
+                            400,
+                            "quantity",
+                        );
+                    }
+
+                    const hpp = await GetHpp({
+                        prisma,
+                        storeId: data.storeId,
+                        quantityNeed: baseQuantity,
+                        productId: key,
+                    });
+
+                    for (const value of hpp.hpp) {
+                        if (value.hppHistoryId) {
+                            await prisma.cogs.create({
+                                data: {
+                                    id: uuidv4(),
+                                    hppHistoryId: value.hppHistoryId,
+                                    saleDetailId: idDetail,
+                                    price: value.price,
+                                    quantity: value.quantity,
+                                    createdAt: moment().format(),
                                 },
-                            },
-                            where: {
-                                id: value.hppHistoryId,
-                            },
-                        });
-                    } else {
-                        await prisma.cogs.create({
-                            data: {
-                                id: uuidv4(),
-                                saleDetailId: idDetail,
-                                price: value.price,
-                                quantity: value.quantity,
-                                createdAt: moment().format(),
-                            },
-                        });
+                            });
+                            await prisma.hppHistory.update({
+                                data: {
+                                    quantityUsed: {
+                                        increment: value.quantity,
+                                    },
+                                },
+                                where: {
+                                    id: value.hppHistoryId,
+                                },
+                            });
+                        } else {
+                            await prisma.cogs.create({
+                                data: {
+                                    id: uuidv4(),
+                                    saleDetailId: idDetail,
+                                    price: value.price,
+                                    quantity: value.quantity,
+                                    createdAt: moment().format(),
+                                },
+                            });
+                        }
                     }
                 }
             }
@@ -256,8 +361,6 @@ const postData = async (req: Request, res: Response) => {
                 (parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0)),
         });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };
@@ -272,7 +375,18 @@ const updateData = async (req: Request, res: Response) => {
             // Ambil data sales + detail lama
             const existing = await prisma.sales.findUnique({
                 where: { id: salesId },
-                include: { saleDetails: true },
+                include: {
+                    saleDetails: {
+                        include: {
+                            products: {
+                                select: {
+                                    type: true,
+                                    isStock: true,
+                                },
+                            },
+                        },
+                    },
+                },
             });
 
             if (!existing) throw new Error("sales data not found");
@@ -285,7 +399,7 @@ const updateData = async (req: Request, res: Response) => {
                 prisma,
                 salesId,
                 "SALE",
-                existing.storeId ?? ""
+                existing.storeId ?? "",
             );
 
             // 2. Buat cashflow baru (jika ada pembayaran)
@@ -341,13 +455,13 @@ const updateData = async (req: Request, res: Response) => {
 
             // Index detail lama by id untuk memudahkan rekonsiliasi
             const existingById = new Map(
-                (existing.saleDetails ?? []).map((d) => [d.id, d])
+                (existing.saleDetails ?? []).map((d) => [d.id, d]),
             );
 
             // Helper: hitung qty basis stok (konversi)
             const getBaseQty = async (
                 conversionId: string | null,
-                qty: Prisma.Decimal | number
+                qty: Prisma.Decimal | number,
             ) => {
                 const conv = conversionId
                     ? await prisma.productConversions.findFirst({
@@ -372,20 +486,20 @@ const updateData = async (req: Request, res: Response) => {
                     if ((item.quantity ?? 0) === 0) {
                         const prevBase = await getBaseQty(
                             prev.productConversionId,
-                            prev.quantity ?? 0
+                            prev.quantity ?? 0,
                         );
 
                         const inc = await IncrementStock(
                             prisma,
                             prev.productId,
                             existing.storeId ?? "",
-                            prevBase
+                            prevBase,
                         );
                         if (!inc.status) {
                             throw new Error(
                                 typeof inc.message === "string"
                                     ? inc.message
-                                    : JSON.stringify(inc.message)
+                                    : JSON.stringify(inc.message),
                             );
                         }
 
@@ -402,11 +516,11 @@ const updateData = async (req: Request, res: Response) => {
                     // Update detail & sesuaikan stok berdasarkan selisih
                     const newBase = await getBaseQty(
                         item.unitId ?? null,
-                        item.quantity ?? 0
+                        item.quantity ?? 0,
                     );
                     const oldBase = await getBaseQty(
                         prev.productConversionId,
-                        prev.quantity ?? 0
+                        prev.quantity ?? 0,
                     );
                     const diff = newBase - oldBase; // + berarti perlu kurangi stok, - berarti kembalikan stok
 
@@ -420,33 +534,91 @@ const updateData = async (req: Request, res: Response) => {
                         },
                     });
 
-                    if (diff > 0) {
-                        const dec = await DecrementStock(
-                            prisma,
-                            productId,
-                            existing.storeId ?? "",
-                            diff
-                        );
-                        if (!dec.status) {
-                            throw new ValidationError(
-                                JSON.stringify(dec.message),
-                                400,
-                                "quantity"
-                            );
-                        }
-                    } else if (diff < 0) {
-                        const inc = await IncrementStock(
-                            prisma,
-                            productId,
-                            existing.storeId ?? "",
-                            Math.abs(diff)
-                        );
-                        if (!inc.status) {
-                            throw new Error(
-                                typeof inc.message === "string"
-                                    ? inc.message
-                                    : JSON.stringify(inc.message)
-                            );
+                    if (diff !== 0) {
+                        const product = prev.products;
+                        if (
+                            product?.type === "package" ||
+                            product?.type === "formula"
+                        ) {
+                            const components =
+                                await prisma.productComponents.findMany({
+                                    where: {
+                                        productId,
+                                        status: 1,
+                                        type: product.type as
+                                            | "package"
+                                            | "formula",
+                                    },
+                                    include: {
+                                        component: {
+                                            select: { id: true, isStock: true },
+                                        },
+                                        conversion: {
+                                            select: { quantity: true },
+                                        },
+                                    },
+                                });
+
+                            for (const comp of components) {
+                                const compConversionQty =
+                                    comp.conversion?.quantity ?? 1;
+                                const compDiffQty =
+                                    diff * comp.quantity * compConversionQty;
+
+                                if (compDiffQty > 0) {
+                                    const dec = await DecrementStock(
+                                        prisma,
+                                        comp.componentId,
+                                        existing.storeId ?? "",
+                                        compDiffQty,
+                                    );
+                                    if (!dec.status)
+                                        throw new Error(
+                                            JSON.stringify(dec.message),
+                                        );
+                                } else if (compDiffQty < 0) {
+                                    const inc = await IncrementStock(
+                                        prisma,
+                                        comp.componentId,
+                                        existing.storeId ?? "",
+                                        Math.abs(compDiffQty),
+                                    );
+                                    if (!inc.status)
+                                        throw new Error(
+                                            JSON.stringify(inc.message),
+                                        );
+                                }
+                            }
+                        } else if (product?.isStock) {
+                            if (diff > 0) {
+                                const dec = await DecrementStock(
+                                    prisma,
+                                    productId,
+                                    existing.storeId ?? "",
+                                    diff,
+                                );
+                                if (!dec.status) {
+                                    throw new ValidationError(
+                                        JSON.stringify(dec.message),
+                                        400,
+                                        "quantity",
+                                    );
+                                }
+                            } else if (diff < 0) {
+                                const inc = await IncrementStock(
+                                    prisma,
+                                    productId,
+                                    existing.storeId ?? "",
+                                    Math.abs(diff),
+                                );
+                                if (!inc.status) {
+                                    throw new Error(
+                                        typeof inc.message === "string"
+                                            ? inc.message
+                                            : JSON.stringify(inc.message),
+                                    );
+                                }
+                            }
                         }
                     }
 
@@ -472,23 +644,154 @@ const updateData = async (req: Request, res: Response) => {
 
                     const base = await getBaseQty(
                         item.unitId ?? null,
-                        item.quantity ?? 0
+                        item.quantity ?? 0,
                     );
-                    const dec = await DecrementStock(
-                        prisma,
-                        productId,
-                        body.storeId,
-                        base
-                    );
-                    if (!dec.status) {
-                        throw new ValidationError(
-                            JSON.stringify(dec.message),
-                            400,
-                            "quantity"
-                        );
-                    }
 
-                    // Catatan: Tambahkan pencatatan HPP/COGS baru jika diperlukan
+                    // Get product info to check type
+                    const product = await prisma.products.findUnique({
+                        where: { id: productId },
+                        select: { type: true, isStock: true },
+                    });
+
+                    if (
+                        product?.type === "package" ||
+                        product?.type === "formula"
+                    ) {
+                        const components =
+                            await prisma.productComponents.findMany({
+                                where: {
+                                    productId,
+                                    status: 1,
+                                    type: product.type as "package" | "formula",
+                                },
+                                include: {
+                                    component: {
+                                        select: { id: true, isStock: true },
+                                    },
+                                    conversion: { select: { quantity: true } },
+                                },
+                            });
+
+                        for (const comp of components) {
+                            const compConversionQty =
+                                comp.conversion?.quantity ?? 1;
+                            const compQtyNeeded =
+                                (item.quantity ?? 1) *
+                                comp.quantity *
+                                compConversionQty;
+
+                            if (comp.component?.isStock) {
+                                const dec = await DecrementStock(
+                                    prisma,
+                                    comp.componentId,
+                                    existing.storeId ?? "",
+                                    compQtyNeeded,
+                                );
+                                if (!dec.status)
+                                    throw new Error(
+                                        JSON.stringify(dec.message),
+                                    );
+                            }
+
+                            // Get HPP for component and record COGS
+                            const hpp = await GetHpp({
+                                prisma,
+                                storeId: existing.storeId ?? "",
+                                quantityNeed: compQtyNeeded,
+                                productId: comp.componentId,
+                            });
+
+                            for (const value of hpp.hpp) {
+                                if (value.hppHistoryId) {
+                                    await prisma.cogs.create({
+                                        data: {
+                                            id: uuidv4(),
+                                            hppHistoryId: value.hppHistoryId,
+                                            saleDetailId: idDetail,
+                                            price: value.price,
+                                            quantity: value.quantity,
+                                            createdAt: moment().format(),
+                                        },
+                                    });
+                                    await prisma.hppHistory.update({
+                                        data: {
+                                            quantityUsed: {
+                                                increment: value.quantity,
+                                            },
+                                        },
+                                        where: { id: value.hppHistoryId },
+                                    });
+                                } else {
+                                    await prisma.cogs.create({
+                                        data: {
+                                            id: uuidv4(),
+                                            saleDetailId: idDetail,
+                                            price: value.price,
+                                            quantity: value.quantity,
+                                            createdAt: moment().format(),
+                                        },
+                                    });
+                                }
+                            }
+                        }
+                    } else {
+                        if (product?.isStock) {
+                            const dec = await DecrementStock(
+                                prisma,
+                                productId,
+                                existing.storeId ?? "",
+                                base,
+                            );
+                            if (!dec.status) {
+                                throw new ValidationError(
+                                    JSON.stringify(dec.message),
+                                    400,
+                                    "quantity",
+                                );
+                            }
+                        }
+
+                        // Record COGS for regular product
+                        const hpp = await GetHpp({
+                            prisma,
+                            storeId: existing.storeId ?? "",
+                            quantityNeed: base,
+                            productId,
+                        });
+
+                        for (const value of hpp.hpp) {
+                            if (value.hppHistoryId) {
+                                await prisma.cogs.create({
+                                    data: {
+                                        id: uuidv4(),
+                                        hppHistoryId: value.hppHistoryId,
+                                        saleDetailId: idDetail,
+                                        price: value.price,
+                                        quantity: value.quantity,
+                                        createdAt: moment().format(),
+                                    },
+                                });
+                                await prisma.hppHistory.update({
+                                    data: {
+                                        quantityUsed: {
+                                            increment: value.quantity,
+                                        },
+                                    },
+                                    where: { id: value.hppHistoryId },
+                                });
+                            } else {
+                                await prisma.cogs.create({
+                                    data: {
+                                        id: uuidv4(),
+                                        saleDetailId: idDetail,
+                                        price: value.price,
+                                        quantity: value.quantity,
+                                        createdAt: moment().format(),
+                                    },
+                                });
+                            }
+                        }
+                    }
                 }
             }
 
@@ -496,20 +799,57 @@ const updateData = async (req: Request, res: Response) => {
             for (const leftover of existingById.values()) {
                 const base = await getBaseQty(
                     leftover.productConversionId,
-                    leftover.quantity ?? 1
+                    leftover.quantity ?? 1,
                 );
-                const inc = await IncrementStock(
-                    prisma,
-                    leftover.productId,
-                    existing.storeId ?? "",
-                    base
-                );
-                if (!inc.status) {
-                    throw new Error(
-                        typeof inc.message === "string"
-                            ? inc.message
-                            : JSON.stringify(inc.message)
+
+                const product = leftover.products;
+                if (
+                    product?.type === "package" ||
+                    product?.type === "formula"
+                ) {
+                    const components = await prisma.productComponents.findMany({
+                        where: {
+                            productId: leftover.productId,
+                            status: 1,
+                            type: product.type as "package" | "formula",
+                        },
+                        include: {
+                            component: { select: { id: true, isStock: true } },
+                            conversion: { select: { quantity: true } },
+                        },
+                    });
+
+                    for (const comp of components) {
+                        const compConversionQty =
+                            comp.conversion?.quantity ?? 1;
+                        const compQtyToReturn =
+                            Number(leftover.quantity) *
+                            comp.quantity *
+                            compConversionQty;
+
+                        if (comp.component?.isStock) {
+                            await IncrementStock(
+                                prisma,
+                                comp.componentId,
+                                existing.storeId ?? "",
+                                compQtyToReturn,
+                            );
+                        }
+                    }
+                } else if (product?.isStock) {
+                    const inc = await IncrementStock(
+                        prisma,
+                        leftover.productId,
+                        existing.storeId ?? "",
+                        base,
                     );
+                    if (!inc.status) {
+                        throw new Error(
+                            typeof inc.message === "string"
+                                ? inc.message
+                                : JSON.stringify(inc.message),
+                        );
+                    }
                 }
 
                 await prisma.cogs.deleteMany({
@@ -524,8 +864,6 @@ const updateData = async (req: Request, res: Response) => {
             message: "successful in updated sales data",
         });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };
@@ -548,6 +886,7 @@ const deleteData = async (req: Request, res: Response) => {
                             products: {
                                 select: {
                                     isStock: true,
+                                    type: true,
                                 },
                             },
                         },
@@ -566,7 +905,7 @@ const deleteData = async (req: Request, res: Response) => {
                 prisma,
                 model.id,
                 "SALE",
-                model.storeId ?? ""
+                model.storeId ?? "",
             );
 
             // Kembalikan stok untuk tiap detail berdasarkan konversi unit
@@ -578,19 +917,54 @@ const deleteData = async (req: Request, res: Response) => {
 
                 const qtyBase =
                     Number(value.quantity) * Number(conversion?.quantity ?? 1);
-                if (value.products?.isStock) {
+
+                const product = value.products;
+                if (
+                    product?.type === "package" ||
+                    product?.type === "formula"
+                ) {
+                    const components = await prisma.productComponents.findMany({
+                        where: {
+                            productId: value.productId,
+                            status: 1,
+                            type: product.type as "package" | "formula",
+                        },
+                        include: {
+                            component: { select: { id: true, isStock: true } },
+                            conversion: { select: { quantity: true } },
+                        },
+                    });
+
+                    for (const comp of components) {
+                        const compConversionQty =
+                            comp.conversion?.quantity ?? 1;
+                        const compQtyToReturn =
+                            Number(value.quantity) *
+                            comp.quantity *
+                            compConversionQty;
+
+                        if (comp.component?.isStock) {
+                            await IncrementStock(
+                                prisma,
+                                comp.componentId,
+                                model.storeId ?? "",
+                                compQtyToReturn,
+                            );
+                        }
+                    }
+                } else if (product?.isStock) {
                     const inc = await IncrementStock(
                         prisma,
                         value.productId,
                         model.storeId ?? "",
-                        qtyBase
+                        qtyBase,
                     );
                     if (!inc.status) {
                         // Jika helper mengembalikan status false, hentikan transaksi
                         throw new Error(
                             typeof inc.message === "string"
                                 ? inc.message
-                                : JSON.stringify(inc.message)
+                                : JSON.stringify(inc.message),
                         );
                     }
                 }
@@ -780,10 +1154,10 @@ const getFacture = async (req: Request, res: Response) => {
                 {
                     product: salesDetails[index].products?.name,
                     quantity: formatter.format(
-                        parseInt(salesDetails[index].quantity + "") ?? 0
+                        parseInt(salesDetails[index].quantity + "") ?? 0,
                     ),
                     price: formatter.format(
-                        parseInt(salesDetails[index].price + "") ?? 0
+                        parseInt(salesDetails[index].price + "") ?? 0,
                     ),
                     unit: salesDetails[index].productConversions?.units?.name,
                 },

@@ -12,10 +12,9 @@ interface StockOpnameReportQuery {
 export const getStockOpnameReport = async (
     query: StockOpnameReportQuery,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const owner: any = await getOwnerId(userId, userLevel);
-    console.log({ query });
 
     let whereClause: any = {
         stockOpname: {

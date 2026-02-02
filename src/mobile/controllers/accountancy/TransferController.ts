@@ -13,7 +13,7 @@ export const getData = async (req: Request, res: Response) => {
         const result = await CashflowService.getCashflows(
             query as any,
             locals.userId,
-            locals.level
+            locals.level,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -25,17 +25,13 @@ export const postData = async (req: Request, res: Response) => {
     try {
         const { locals } = res as any;
         const data = { ...req.body, type: "TRANSFER", referenceType: "MANUAL" };
-        console.log({ data });
-
         const result = await CashflowService.createCashflow(
             data,
             locals.userId,
-            locals.level
+            locals.level,
         );
         res.status(201).json({ status: true, ...result });
     } catch (error) {
-        console.log({ error });
-
         handleErrorMessage(res, error);
     }
 };
@@ -49,7 +45,7 @@ export const updateData = async (req: Request, res: Response) => {
             id,
             data,
             locals.userId,
-            locals.level
+            locals.level,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -64,7 +60,7 @@ export const deleteData = async (req: Request, res: Response) => {
         const result = await CashflowService.deleteCashflow(
             id,
             locals.userId,
-            locals.level
+            locals.level,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -79,7 +75,7 @@ export const getDataById = async (req: Request, res: Response) => {
         const result = await CashflowService.getCashflowById(
             id,
             locals.userId,
-            locals.level
+            locals.level,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {

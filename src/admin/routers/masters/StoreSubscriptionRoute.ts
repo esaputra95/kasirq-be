@@ -20,12 +20,12 @@ StoreSubscriptionRoute.get("/", getData);
 StoreSubscriptionRoute.post(
     "/",
     validationMessage(StoreSubscriptionValidation),
-    postData
+    postData,
 );
 StoreSubscriptionRoute.put(
     "/:id",
     validationMessage(StoreSubscriptionUpdateValidation),
-    updateData
+    updateData,
 );
 StoreSubscriptionRoute.delete("/:id", deleteData);
 StoreSubscriptionRoute.get("/:id", getDataById);

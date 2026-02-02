@@ -42,7 +42,7 @@ export const checkIn = async (userId: string, body: any) => {
         throw new ValidationError(
             "User not associated with any store",
             400,
-            "attendance"
+            "attendance",
         );
     }
 
@@ -72,14 +72,12 @@ export const checkIn = async (userId: string, body: any) => {
         throw new ValidationError(
             "You have already checked in today",
             400,
-            "attendance"
+            "attendance",
         );
     }
 
     let distance = null;
     let status: any = "VALID";
-
-    console.log({ store });
 
     if (store.requireLocation) {
         if (lat && lng && store.latitude && store.longitude) {
@@ -87,7 +85,7 @@ export const checkIn = async (userId: string, body: any) => {
                 Number(lat),
                 Number(lng),
                 Number(store.latitude),
-                Number(store.longitude)
+                Number(store.longitude),
             );
 
             if (store.locationRadius && distance > store.locationRadius) {
@@ -95,7 +93,7 @@ export const checkIn = async (userId: string, body: any) => {
                     throw new ValidationError(
                         "Anda berada di luar jangkauan store. Apakah Anda yakin ingin lanjut?",
                         400,
-                        "OUT_OF_RANGE"
+                        "OUT_OF_RANGE",
                     );
                 }
                 status = "OUT_OF_RANGE";
@@ -105,7 +103,7 @@ export const checkIn = async (userId: string, body: any) => {
                 throw new ValidationError(
                     "Lokasi tidak ditemukan atau tidak tersedia. Apakah Anda yakin ingin lanjut?",
                     400,
-                    "OUT_OF_RANGE"
+                    "OUT_OF_RANGE",
                 );
             }
             status = "INVALID";
@@ -165,14 +163,12 @@ export const checkOut = async (userId: string, body: any) => {
         throw new ValidationError(
             "No active check-in found for today or already checked out",
             400,
-            "attendance"
+            "attendance",
         );
     }
 
     let distance = null;
     let status: any = "VALID";
-
-    console.log(attendance);
 
     if (attendance.isLocationRequired) {
         if (
@@ -185,7 +181,7 @@ export const checkOut = async (userId: string, body: any) => {
                 Number(lat),
                 Number(lng),
                 Number(attendance.store.latitude),
-                Number(attendance.store.longitude)
+                Number(attendance.store.longitude),
             );
 
             if (
@@ -196,7 +192,7 @@ export const checkOut = async (userId: string, body: any) => {
                     throw new ValidationError(
                         "Anda berada di luar jangkauan store. Apakah Anda yakin ingin lanjut?",
                         400,
-                        "OUT_OF_RANGE"
+                        "OUT_OF_RANGE",
                     );
                 }
                 status = "OUT_OF_RANGE";
@@ -206,7 +202,7 @@ export const checkOut = async (userId: string, body: any) => {
                 throw new ValidationError(
                     "Lokasi tidak ditemukan atau tidak tersedia. Apakah Anda yakin ingin lanjut?",
                     400,
-                    "OUT_OF_RANGE"
+                    "OUT_OF_RANGE",
                 );
             }
             status = "INVALID";
