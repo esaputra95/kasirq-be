@@ -5,13 +5,13 @@ import * as ProductService from "#root/mobile/services/masters/ProductService";
 
 const getData = async (
     req: Request<{}, {}, {}, ProductQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
         const result = await ProductService.getProducts(
             req.query,
             res.locals.userId,
-            res.locals.level
+            res.locals.level,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -21,13 +21,13 @@ const getData = async (
 
 const getProductSell = async (
     req: Request<{}, {}, {}, ProductQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
         const result = await ProductService.getProductsForSell(
             req.query,
             res.locals.userId,
-            res.locals.level
+            res.locals.level,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -40,7 +40,7 @@ const postData = async (req: Request, res: Response) => {
         const result = await ProductService.createProduct(
             req.body,
             res.locals.userId,
-            res.locals.level
+            res.locals.level,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -53,7 +53,7 @@ const updateData = async (req: Request, res: Response) => {
         const result = await ProductService.updateProduct(
             req.body,
             res.locals.userId,
-            res.locals.level
+            res.locals.level,
         );
         res.status(200).json({ status: true, ...result });
     } catch (error) {
@@ -66,7 +66,7 @@ const deleteData = async (req: Request, res: Response) => {
         const result = await ProductService.deleteProduct(
             req.params.id,
             res.locals.userId,
-            res.locals.level
+            res.locals.level,
         );
         res.status(200).json({ status: false, ...result });
     } catch (error) {

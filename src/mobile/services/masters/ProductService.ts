@@ -22,9 +22,6 @@ export const getProducts = async (
         filter.push({ name: { contains: query.code } });
         filter.push({ code: { contains: query.code } });
     }
-    if (query?.status) {
-        filter.push({ status: query.status });
-    }
 
     const whereClause: any =
         filter.length > 0
@@ -32,8 +29,13 @@ export const getProducts = async (
                   OR: filter,
                   categoryId: { contains: query.categoryId },
                   ownerId: owner.id,
+                  status: "active",
               }
-            : { categoryId: { contains: query.categoryId }, ownerId: owner.id };
+            : {
+                  categoryId: { contains: query.categoryId },
+                  ownerId: owner.id,
+                  status: "active",
+              };
 
     const [data, total] = await Promise.all([
         Model.products.findMany({
