@@ -337,7 +337,16 @@ export const updateProduct = async (
     await Model.$transaction(async (prisma) => {
         await prisma.products.update({
             data: {
-                ...dataProduct,
+                // ...dataProduct,
+                name: dataProduct.name,
+                code: dataProduct.code,
+                barcode: dataProduct.barcode,
+                categoryId: dataProduct.categoryId,
+                brandId: dataProduct.brandId,
+                description: dataProduct.description,
+                image: dataProduct.image,
+                sku: dataProduct.sku,
+                type: dataProduct.type,
                 isStock: dataProduct.isStock ? 1 : 0,
                 status: data?.status ?? "active",
             },

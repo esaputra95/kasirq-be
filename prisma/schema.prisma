@@ -1069,6 +1069,7 @@ enum products_type {
   cost
   recipe
   bundle
+  default
 }
 
 enum products_consignmentType {
