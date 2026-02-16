@@ -11,34 +11,39 @@ const Login = async (req: Request, res: Response) => {
         const user = await Model.users.findFirst({
             where: {
                 email: data.email,
-                verified: 'active',
+                verified: "active",
                 OR: [
                     {
-                        level: 'superadmin',
+                        level: "superadmin",
                     },
                     {
-                        level: 'owner'
-                    }
-                ]
-            }
+                        level: "owner",
+                    },
+                ],
+            },
         });
-        if (!user) throw new Error('Username or password incorrect');
-        
+        if (!user) throw new Error("Username or password incorrect");
+
         const match = await compare(data.password, user.password);
         if (!match) {
-            return res.status(401).json({ message: "Wrong username or password" });
+            return res
+                .status(401)
+                .json({ message: "Wrong username or password" });
         }
-        const accessToken = sign({
-            id: user.id,
-            username: user.username,
-            name: user.name,
-            level: user.level
-        }, '1234567890');
-        
+        const accessToken = sign(
+            {
+                id: user.id,
+                username: user.username,
+                name: user.name,
+                level: user.level,
+            },
+            process.env.JWT_TOKEN || "1234567890",
+        );
+
         return res.json({ token: accessToken });
     } catch (error) {
-        handleErrorMessage(res, error)
+        handleErrorMessage(res, error);
     }
 };
 
-export { Login }
+export { Login };

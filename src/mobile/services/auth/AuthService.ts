@@ -34,7 +34,7 @@ export const loginUser = async (email: string, password: string) => {
             name: user.name,
             level: user.level,
         },
-        "1234567890"
+        process.env.JWT_TOKEN || "1234567890",
     );
 
     return { token: accessToken };
@@ -203,7 +203,7 @@ export const verifyPasswordResetCode = async (email: string, code: string) => {
 export const resetPassword = async (
     email: string,
     newPassword: string,
-    confirmPassword: string
+    confirmPassword: string,
 ) => {
     if (newPassword !== confirmPassword) {
         throw new ValidationError("Password does not match", 400, "password");
