@@ -146,9 +146,18 @@ const postData = async (req: Request, res: Response) => {
         );
         if (!ownerId.status) throw new Error("Owner not found");
 
+        const name = req.body.name;
         const data = {
             ...req.body,
             id: uuidv4(),
+            slug:
+                req.body.slug ||
+                (name
+                    ? name
+                          .toLowerCase()
+                          .replace(/ /g, "-")
+                          .replace(/[^\w-]+/g, "")
+                    : uuidv4()),
             expiredDate: req.body.expiredDate
                 ? moment(req.body.expiredDate).format()
                 : undefined,
@@ -169,6 +178,23 @@ const postData = async (req: Request, res: Response) => {
 const updateData = async (req: Request, res: Response) => {
     try {
         const data = { ...req.body };
+        if (data.slug) {
+            const checkSlug = await Model.stores.findFirst({
+                where: {
+                    slug: data.slug,
+                    NOT: {
+                        id: req.params.id,
+                    },
+                },
+            });
+            if (checkSlug) {
+                handleErrorMessage(
+                    res,
+                    "Slug already exists, please use another slug",
+                );
+                return;
+            }
+        }
         await Model.stores.update({
             where: {
                 id: req.params.id,
@@ -178,6 +204,8 @@ const updateData = async (req: Request, res: Response) => {
                 expiredDate: moment(data.expiredDate).format(),
                 name: data.name,
                 ownerId: data.ownerId,
+                slug: data.slug,
+                phone: data.phone,
             },
         });
         res.status(200).json({

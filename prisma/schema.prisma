@@ -389,6 +389,9 @@ model salePending {
   createdAt            DateTime?     @default(now()) @db.DateTime(0)
   updatedAt            DateTime?     @default(now()) @db.DateTime(0)
   deletedAt            DateTime?     @db.DateTime(0)
+  phone String? @db.VarChar(20)
+  address String? @db.Text
+  name String? @db.VarChar(50)
   transactionNumber Int? @db.Int()
   salePendingDetails          salePendingDetails[]
   members              members?      @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingMember")
@@ -414,6 +417,8 @@ model stores {
   latitude        Decimal?  @db.Decimal(10, 7)
   longitude       Decimal?  @db.Decimal(10, 7)
   locationRadius  Int?
+  slug String? @db.VarChar(255)
+  phone String? @db.VarChar(20)
   itemIns        itemIns[]
   itemOuts       itemOuts[]
   purchaseOrders purchaseOrders[]

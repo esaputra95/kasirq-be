@@ -27,6 +27,7 @@ import { SalePendingRoute, SalesRoute } from "./mobile/routers/sales";
 import { ReportRoute } from "./mobile/routers/reports";
 import DashboardRoute from "#root/mobile/routers/dashboards/DashboardRoute";
 import AdminRoute from "./admin/routers";
+import StoresRoute from "./stores/routers";
 import sendEmail from "./helpers/sendEmail";
 import {
     CashflowRoute,
@@ -76,6 +77,7 @@ app.use("/cash-outs", AccessToken, CashOutRoute);
 app.use("/attendances", AccessToken, AttendanceRoute);
 
 app.use("/admin", AdminRoute);
+app.use("/stores-api", StoresRoute);
 
 app.use("/images", express.static(path.join(__dirname, "/public")));
 

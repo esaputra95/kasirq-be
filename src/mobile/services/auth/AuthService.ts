@@ -81,6 +81,10 @@ export const registerOwner = async (userData: {
                 id: uuidv4(),
                 ownerId: user.id,
                 name: userData.store,
+                slug: userData.store
+                    .toLowerCase()
+                    .replace(/ /g, "-")
+                    .replace(/[^\w-]+/g, ""),
                 expiredDate: moment().add(30, "d").format(),
                 address: userData.addressStore,
             },
