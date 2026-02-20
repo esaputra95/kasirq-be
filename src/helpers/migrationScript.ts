@@ -3,8 +3,6 @@ import { v4 as uuidv4 } from "uuid";
 import moment from "moment";
 
 async function migrateStoreSubscriptions() {
-    console.log("=== Memulai Migrasi Data Expired Date ===");
-
     try {
         // 1. Ambil semua store yang punya expiredDate
         const stores = await Model.stores.findMany({
@@ -12,8 +10,6 @@ async function migrateStoreSubscriptions() {
                 expiredDate: { not: null },
             },
         });
-
-        console.log(`Ditemukan ${stores.length} toko untuk diproses.`);
 
         let successCount = 0;
         let skipCount = 0;
@@ -26,7 +22,7 @@ async function migrateStoreSubscriptions() {
 
             if (existingSub) {
                 console.log(
-                    `[SKIP] Store: ${store.name} sudah memiliki data langganan.`
+                    `[SKIP] Store: ${store.name} sudah memiliki data langganan.`,
                 );
                 skipCount++;
                 continue;
@@ -57,7 +53,7 @@ async function migrateStoreSubscriptions() {
             });
 
             console.log(
-                `[OK] Berhasil migrasi Store: ${store.name} (Status: ${status})`
+                `[OK] Berhasil migrasi Store: ${store.name} (Status: ${status})`,
             );
             successCount++;
         }

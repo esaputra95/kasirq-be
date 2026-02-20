@@ -1,0 +1,78 @@
+import { Request, Response } from "express";
+import { handleErrorMessage } from "#root/helpers/handleErrors";
+import * as StoreService from "#root/stores/services/masters/StoreService";
+
+const getSelect = async (_req: Request, res: Response) => {
+    try {
+        const result = await StoreService.getStoresForSelect(
+            res.locals.userId,
+            res.locals.level,
+        );
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+const getSelectSubscription = async (_req: Request, res: Response) => {
+    try {
+        const result = await StoreService.getStoresForSelectSubscription(
+            res.locals.userId,
+            res.locals.level,
+        );
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+const updateData = async (req: Request, res: Response) => {
+    try {
+        const result = await StoreService.updateStore(req.params.id, req.body);
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+const getDataById = async (req: Request, res: Response) => {
+    try {
+        const result = await StoreService.getStoreById(req.params.id);
+
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+const getStoreBySlug = async (req: Request, res: Response) => {
+    try {
+        const result = await StoreService.getStoreBySlug(req.params.slug);
+        res.status(200).json({
+            status: true,
+            ...result,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+export {
+    getSelect,
+    updateData,
+    getDataById,
+    getSelectSubscription,
+    getStoreBySlug,
+};

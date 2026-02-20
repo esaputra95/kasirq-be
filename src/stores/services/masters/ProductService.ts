@@ -111,6 +111,7 @@ export const getProducts = async (
  */
 export const getProductsForSell = async (
     query: ProductQueryInterface,
+    slug: string,
     userId: string,
     userLevel: string,
 ) => {
@@ -118,6 +119,26 @@ export const getProductsForSell = async (
     const take: number = parseInt(query.limit ?? "20");
     const page: number = parseInt(query.page ?? "1");
     const skip: number = (page - 1) * take;
+
+    // Find store by slug
+    const store = await Model.stores.findFirst({
+        where: {
+            slug: slug,
+            ownerId: owner.id,
+        },
+        select: { id: true, ownerId: true },
+    });
+
+    if (!store) {
+        throw new ValidationError(
+            "Store not found or unauthorized",
+            404,
+            "slug",
+        );
+    }
+
+    const ownerId = store.ownerId;
+    const storeId = store.id;
 
     let filter: any = [];
     if (query.code) {
@@ -130,18 +151,18 @@ export const getProductsForSell = async (
             ? {
                   OR: filter,
                   categoryId: { contains: query.categoryId },
-                  ownerId: owner.id,
+                  ownerId: ownerId,
                   status: "active",
               }
             : {
                   categoryId: { contains: query.categoryId },
-                  ownerId: owner.id,
+                  ownerId: ownerId,
                   status: "active",
               };
 
     const [data, total] = await Promise.all([
         Model.products.findMany({
-            // where: whereClause,
+            where: whereClause,
             select: {
                 categories: { select: { id: true, name: true } },
                 stocks: {
@@ -151,7 +172,7 @@ export const getProductsForSell = async (
                         quantity: true,
                         storeId: true,
                     },
-                    where: { storeId: query.storeId ?? "" },
+                    where: { storeId: storeId },
                 },
                 productConversions: {
                     select: {
@@ -169,6 +190,7 @@ export const getProductsForSell = async (
                                 storeId: true,
                                 conversionId: true,
                             },
+                            where: { storeId: storeId },
                             orderBy: { level: "asc" },
                         },
                     },
