@@ -141,7 +141,7 @@ export const getProductsForSell = async (
 
     const [data, total] = await Promise.all([
         Model.products.findMany({
-            // where: whereClause,
+            where: whereClause,
             select: {
                 categories: { select: { id: true, name: true } },
                 stocks: {
