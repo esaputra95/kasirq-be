@@ -214,3 +214,59 @@ export const getExpenseReport = async (filters: {
         data,
     };
 };
+
+export const getCashflowReport = async (filters: {
+    start: string;
+    finish: string;
+    storeId: string;
+    accountId?: string;
+}) => {
+    const startDate = moment(filters.start, "YYYY-MM-DD")
+        .startOf("day")
+        .toDate();
+    const endDate = moment(filters.finish, "YYYY-MM-DD").endOf("day").toDate();
+
+    const accountFilter = filters.accountId
+        ? {
+              OR: [{ kasId: filters.accountId }, { toKasId: filters.accountId }],
+          }
+        : {};
+
+    const data = await Model.cashflow.findMany({
+        where: {
+            storeId: filters.storeId,
+            ...accountFilter,
+            transactionDate: { gte: startDate, lte: endDate },
+            deletedAt: null,
+        },
+        include: {
+            account: { select: { id: true, name: true } },
+            toAccount: { select: { id: true, name: true } },
+        },
+        orderBy: { transactionDate: "desc" },
+    });
+
+    let totalIn = new Decimal(0);
+    let totalOut = new Decimal(0);
+    let totalTransfer = new Decimal(0);
+
+    data.forEach((cf) => {
+        const amount = new Decimal(cf.amount);
+        if (cf.type === "IN") totalIn = totalIn.add(amount);
+        if (cf.type === "OUT") totalOut = totalOut.add(amount);
+        if (cf.type === "TRANSFER") totalTransfer = totalTransfer.add(amount);
+    });
+
+    return {
+        message: "Success get cashflow report",
+        data: {
+            summary: {
+                totalCashIn: totalIn,
+                totalCashOut: totalOut,
+                totalTransfer: totalTransfer,
+                netCashflow: totalIn.sub(totalOut),
+            },
+            transactions: data,
+        },
+    };
+};
