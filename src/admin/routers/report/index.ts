@@ -35,6 +35,11 @@ import {
     xlsxData as xlsxDataSubscription,
     download as downloadSubscription,
 } from "#root/admin/controllers/reports/ReportSubscriptionsController";
+import {
+    getData as getDataAffiliate,
+    xlsxData as xlsxDataAffiliate,
+    download as downloadAffiliate,
+} from "#root/admin/controllers/reports/ReportAffiliatesController";
 
 const ReportSalesRoute = express.Router();
 
@@ -64,40 +69,44 @@ ReportSalesRoute.get("/attendance-report/download", downloadAttendance);
 
 ReportSalesRoute.get(
     "/accountancy-report",
-    AccountancyController.getAccountancyReport
+    AccountancyController.getAccountancyReport,
 );
 ReportSalesRoute.get(
     "/accountancy-report/excel",
-    AccountancyController.xlsxAccountancyReport
+    AccountancyController.xlsxAccountancyReport,
 );
 
 ReportSalesRoute.get(
     "/account-balance-report",
-    AccountancyController.getAccountBalances
+    AccountancyController.getAccountBalances,
 );
 ReportSalesRoute.get(
     "/account-balance-report/excel",
-    AccountancyController.xlsxAccountBalances
+    AccountancyController.xlsxAccountBalances,
 );
 
 ReportSalesRoute.get(
     "/transfer-report",
-    AccountancyController.getTransferReport
+    AccountancyController.getTransferReport,
 );
 ReportSalesRoute.get(
     "/transfer-report/excel",
-    AccountancyController.xlsxTransferReport
+    AccountancyController.xlsxTransferReport,
 );
 
 ReportSalesRoute.get("/cash-in-report", AccountancyController.getCashInReport);
 ReportSalesRoute.get(
     "/cash-out-report",
-    AccountancyController.getCashOutReport
+    AccountancyController.getCashOutReport,
 );
 ReportSalesRoute.get("/expense-report", AccountancyController.getExpenseReport);
 
 ReportSalesRoute.get("/subscription-report", getDataSubscription);
 ReportSalesRoute.get("/subscription-report/excel", xlsxDataSubscription);
 ReportSalesRoute.get("/subscription-report/download", downloadSubscription);
+
+ReportSalesRoute.get("/affiliate-report", getDataAffiliate);
+ReportSalesRoute.get("/affiliate-report/excel", xlsxDataAffiliate);
+ReportSalesRoute.get("/affiliate-report/download", downloadAffiliate);
 
 export default ReportSalesRoute;

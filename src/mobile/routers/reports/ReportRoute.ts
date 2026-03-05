@@ -21,6 +21,7 @@ Route.get("/account-balances", AccountancyReportController.getAccountBalances);
 Route.get("/transfer-reports", AccountancyReportController.getTransferReport);
 Route.get("/cash-in-reports", AccountancyReportController.getCashInReport);
 Route.get("/cash-out-reports", AccountancyReportController.getCashOutReport);
+Route.get("/cashflow-reports", AccountancyReportController.getCashflowReport);
 Route.get("/expense-reports", AccountancyReportController.getExpenseReport);
 Route.get("/attendance-reports", getDataAttendance);
 

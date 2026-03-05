@@ -140,3 +140,27 @@ export const getExpenseReport = async (req: Request, res: Response) => {
         handleErrorMessage(res, error);
     }
 };
+
+export const getCashflowReport = async (req: Request, res: Response) => {
+    try {
+        const { start, finish, storeId } = req.query as any;
+
+        if (!start || !finish || !storeId) {
+            return res.status(400).json({
+                status: false,
+                message: "start, finish, and storeId are required",
+            });
+        }
+
+        const result = await AccountancyReportService.getCashflowReport({
+            start,
+            finish,
+            storeId,
+            accountId: req.query.accountId as string,
+        });
+
+        res.status(200).json({ status: true, ...result });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
