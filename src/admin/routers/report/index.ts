@@ -35,11 +35,11 @@ import {
     xlsxData as xlsxDataSubscription,
     download as downloadSubscription,
 } from "#root/admin/controllers/reports/ReportSubscriptionsController";
-import {
-    getData as getDataAffiliate,
-    xlsxData as xlsxDataAffiliate,
-    download as downloadAffiliate,
-} from "#root/admin/controllers/reports/ReportAffiliatesController";
+// import {
+//     getData as getDataAffiliate,
+//     xlsxData as xlsxDataAffiliate,
+//     download as downloadAffiliate,
+// } from "#root/admin/controllers/reports/ReportAffiliatesController";
 
 const ReportSalesRoute = express.Router();
 
@@ -105,8 +105,8 @@ ReportSalesRoute.get("/subscription-report", getDataSubscription);
 ReportSalesRoute.get("/subscription-report/excel", xlsxDataSubscription);
 ReportSalesRoute.get("/subscription-report/download", downloadSubscription);
 
-ReportSalesRoute.get("/affiliate-report", getDataAffiliate);
-ReportSalesRoute.get("/affiliate-report/excel", xlsxDataAffiliate);
-ReportSalesRoute.get("/affiliate-report/download", downloadAffiliate);
+// ReportSalesRoute.get("/affiliate-report", getDataAffiliate);
+// ReportSalesRoute.get("/affiliate-report/excel", xlsxDataAffiliate);
+// ReportSalesRoute.get("/affiliate-report/download", downloadAffiliate);
 
 export default ReportSalesRoute;
