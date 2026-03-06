@@ -46,7 +46,12 @@ const logToFile = (req: Request, error: any, statusCode: number) => {
 
         const logMessage = `[${timestamp}] ${method} ${url} - Status: ${statusCode}\nBody: ${body}\nError: ${error}\nStack: ${stack}\n${"-".repeat(50)}\n`;
 
-        fs.appendFileSync(logFile, logMessage);
+        // Prepend new log to the top of the file
+        let existingLogs = "";
+        if (fs.existsSync(logFile)) {
+            existingLogs = fs.readFileSync(logFile, "utf-8");
+        }
+        fs.writeFileSync(logFile, logMessage + existingLogs);
     } catch (err) {
         console.error("Failed to write to log file:", err);
     }

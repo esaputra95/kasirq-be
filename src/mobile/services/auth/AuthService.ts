@@ -49,6 +49,7 @@ export const registerOwner = async (userData: {
     password: string;
     store: string;
     addressStore: string;
+    affiliateCode?: string;
 }) => {
     const checkEmail = await Model.users.findFirst({
         where: { email: userData.email },
@@ -124,6 +125,24 @@ export const registerOwner = async (userData: {
                 userCreate: user.id,
             },
         });
+
+        // Associate with affiliate if code provided
+        if (userData.affiliateCode) {
+            const affCode = await tx.affiliate_codes.findFirst({
+                where: { code: userData.affiliateCode },
+            });
+            if (affCode) {
+                await tx.referrals.create({
+                    data: {
+                        id: uuidv4(),
+                        affiliateCodeId: affCode.id,
+                        referredUserId: user.id,
+                        earnedAmount: 0, // initially 0 for trial
+                        status: "PENDING",
+                    },
+                });
+            }
+        }
 
         return user;
     });

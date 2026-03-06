@@ -13,7 +13,6 @@ const getData = async (req: Request, res: Response) => {
             data: response,
         });
     } catch (error) {
-        console.error("Error in getData:", error);
         res.status(500).json({
             status: false,
             message: "Internal Server Error",
@@ -74,7 +73,7 @@ const xlsxData = async (req: Request, res: Response) => {
                     content: dataExcel,
                 },
             ],
-            settings
+            settings,
         );
         res.writeHead(200, {
             "Content-Type": "application/octet-stream",
@@ -83,7 +82,6 @@ const xlsxData = async (req: Request, res: Response) => {
         });
         res.end(buffer);
     } catch (error) {
-        console.error("Error in xlsxData:", error);
         res.status(500).json({
             status: false,
             message: "Internal Server Error",
@@ -120,7 +118,7 @@ const modelData = async (req: Request, res: Response) => {
                 status,
             },
             res.locals.userId,
-            res.locals.level
+            res.locals.level,
         );
 
         // Convert from nested object to array of arrays
@@ -144,7 +142,6 @@ const modelData = async (req: Request, res: Response) => {
 
         return arrayData;
     } catch (error) {
-        console.error("Error in modelData:", error);
         return [];
     }
 };

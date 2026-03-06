@@ -7,13 +7,14 @@ import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 import { deleteUserAndRelatedData } from "#root/helpers/deleteRelation";
+import { v4 as uuidv4 } from "uuid";
 
 const getData = async (
     req: Request<{}, {}, {}, UserQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
-        const q: Partial<UserQueryInterface> = req.query ?? {};
+        const q: any = req.query ?? {};
 
         // paging - ensure sensible defaults and safe parsing
         const limit = Math.max(1, Number(q.limit ?? 20));
@@ -29,6 +30,13 @@ const getData = async (
         if (q.phone) filter.phone = { contains: q.phone };
         if (q.level) filter.level = q.level;
         if (q.verified) filter.verified = q.verified;
+        if (q.affiliateCode) {
+            if (q.affiliateCode === "true") {
+                filter.affiliateCode = { isNot: null };
+            } else if (q.affiliateCode === "false") {
+                filter.affiliateCode = { is: null };
+            }
+        }
         if (q.createdAt) {
             const created = new Date(q.createdAt as any);
             if (!Number.isNaN(created.getTime()))
@@ -56,6 +64,13 @@ const getData = async (
                 verified: true,
                 createdAt: true,
                 updatedAt: true,
+                affiliateCode: {
+                    select: {
+                        code: true,
+                        commissionType: true,
+                        commissionValue: true,
+                    },
+                },
             },
             skip,
             take: limit,
@@ -184,4 +199,66 @@ const getDataById = async (req: Request, res: Response) => {
     }
 };
 
-export { getData, postData, updateData, deleteData, getDataById };
+const RegisterAffiliate = async (req: Request, res: Response) => {
+    try {
+        const { userId, code, commissionType, commissionValue } = req.body;
+
+        const user = await Model.users.findFirst({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const existingAffiliate = await Model.affiliate_codes.findFirst({
+            where: { userId },
+        });
+
+        if (existingAffiliate) {
+            throw new Error("User already registered as affiliate");
+        }
+
+        let affiliateCode = code;
+        if (!affiliateCode || affiliateCode === "Auto") {
+            affiliateCode =
+                user.name.substring(0, 3).toUpperCase() +
+                Math.floor(1000 + Math.random() * 9000);
+        }
+
+        const checkCode = await Model.affiliate_codes.findFirst({
+            where: { code: affiliateCode },
+        });
+
+        if (checkCode) {
+            throw new Error("Affiliate code already exists");
+        }
+
+        const affiliate = await Model.affiliate_codes.create({
+            data: {
+                id: uuidv4(),
+                userId: userId,
+                code: affiliateCode,
+                commissionType: commissionType || "FIXED",
+                commissionValue: commissionValue || 0,
+            },
+        });
+
+        res.status(200).json({
+            status: true,
+            message: "Successfully registered as affiliate",
+            data: affiliate,
+        });
+    } catch (error) {
+        handleErrorMessage(res, error);
+    }
+};
+
+export {
+    getData,
+    postData,
+    updateData,
+    deleteData,
+    getDataById,
+    RegisterAffiliate,
+};
