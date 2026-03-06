@@ -140,8 +140,8 @@ CREATE TABLE `subscriptionStore` (
     `startDate` DATE NULL,
     `endDate` DATE NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `deletedAt` DATETIME NULL,
 
     PRIMARY KEY (`id`)
@@ -161,9 +161,9 @@ CREATE TABLE `salePendingDetails` (
     `expiredDate` DATE NULL,
     `status` ENUM('ordered', 'cooking', 'cancle', 'served', 'finish') NULL DEFAULT 'ordered',
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updatedAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `deletedAt` DATETIME NULL,
 
     INDEX `saleDetailProduct`(`productId`),
     INDEX `saleDetailSale`(`saleId`),
@@ -197,9 +197,9 @@ CREATE TABLE `salePending` (
     `accountDownPaymentId` VARCHAR(36) NULL,
     `description` TEXT NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updatedAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `deletedAt` DATETIME NULL,
     `transactionNumber` INTEGER NULL,
 
     INDEX `saleMember`(`memberId`),
@@ -215,9 +215,9 @@ CREATE TABLE `stocks` (
     `productId` VARCHAR(36) NOT NULL,
     `quantity` INTEGER NOT NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updatedAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `deletedAt` DATETIME NULL,
 
     UNIQUE INDEX `stocks_productId_key`(`productId`),
     PRIMARY KEY (`id`)
@@ -230,9 +230,9 @@ CREATE TABLE `productPurchasePrices` (
     `storeId` VARCHAR(36) NULL,
     `price` FLOAT NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL,
-    `updatedAt` DATETIME(0) NULL,
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL,
+    `updatedAt` DATETIME NULL,
+    `deletedAt` DATETIME NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -245,9 +245,9 @@ CREATE TABLE `productSellPrices` (
     `price` FLOAT NULL,
     `level` SMALLINT NULL DEFAULT 1,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL,
-    `updatedAt` DATETIME(0) NULL,
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL,
+    `updatedAt` DATETIME NULL,
+    `deletedAt` DATETIME NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -260,9 +260,9 @@ CREATE TABLE `cogs` (
     `quantity` DECIMAL(14, 2) NULL,
     `saleDetailId` VARCHAR(36) NOT NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL,
-    `updatedAt` DATETIME(0) NULL,
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL,
+    `updatedAt` DATETIME NULL,
+    `deletedAt` DATETIME NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -272,7 +272,7 @@ CREATE TABLE `hppHistory` (
     `id` VARCHAR(36) NOT NULL,
     `storeId` VARCHAR(36) NULL,
     `transactionDetailId` VARCHAR(36) NULL,
-    `date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `productId` VARCHAR(36) NOT NULL,
     `price` FLOAT NULL,
     `type` VARCHAR(191) NULL,
@@ -291,9 +291,9 @@ CREATE TABLE `account` (
     `balance` DECIMAL(13, 4) NULL,
     `type` VARCHAR(10) NULL,
     `image` TEXT NULL,
-    `createdAt` DATETIME(0) NULL,
-    `updatedAt` DATETIME(0) NULL,
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL,
+    `updatedAt` DATETIME NULL,
+    `deletedAt` DATETIME NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -306,9 +306,9 @@ CREATE TABLE `debts` (
     `paid` DECIMAL(14, 4) NULL,
     `remainder` DECIMAL(14, 4) NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL,
-    `updatedAt` DATETIME(0) NULL,
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL,
+    `updatedAt` DATETIME NULL,
+    `deletedAt` DATETIME NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -325,9 +325,9 @@ CREATE TABLE `itemInDetails` (
     `expiredDate` DATE NULL,
     `description` TEXT NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updatedAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `deletedAt` DATETIME NULL,
 
     INDEX `purchaseDetailProduct`(`productId`),
     INDEX `purchaseDetailPurchase`(`itemInId`),
@@ -346,9 +346,9 @@ CREATE TABLE `itemIns` (
     `total` DECIMAL(14, 4) NULL,
     `description` TEXT NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updatedAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `deletedAt` DATETIME NULL,
 
     INDEX `purchaseStore`(`storeId`),
     INDEX `purchaseUser`(`userCreate`),
@@ -367,9 +367,9 @@ CREATE TABLE `itemOutDetails` (
     `expiredDate` DATE NULL,
     `description` TEXT NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updatedAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `deletedAt` DATETIME NULL,
 
     INDEX `purchaseDetailProduct`(`productId`),
     INDEX `purchaseDetailPurchase`(`purchaseId`),
@@ -388,9 +388,9 @@ CREATE TABLE `itemOuts` (
     `total` DECIMAL(14, 4) NULL,
     `description` TEXT NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updatedAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `deletedAt` DATETIME NULL,
 
     INDEX `purchaseStore`(`storeId`),
     INDEX `purchaseUser`(`userCreate`),
@@ -410,9 +410,9 @@ CREATE TABLE `purchaseOrderDetails` (
     `total` DECIMAL(14, 4) NULL,
     `expiredDate` DATE NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updatedAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `deletedAt` DATETIME NULL,
 
     INDEX `purchaseDetailProduct`(`productId`),
     INDEX `purchaseDetailPurchase`(`purchaseId`),
@@ -443,9 +443,9 @@ CREATE TABLE `purchaseOrders` (
     `accountCreditId` VARCHAR(36) NULL,
     `accountDownPaymentId` VARCHAR(36) NULL,
     `userCreate` VARCHAR(36) NULL,
-    `createdAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `updatedAt` DATETIME(0) NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `deletedAt` DATETIME(0) NULL,
+    `createdAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    `deletedAt` DATETIME NULL,
 
     INDEX `purchaseStore`(`storeId`),
     INDEX `purchaseSupplier`(`supplierId`),

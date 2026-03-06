@@ -15,7 +15,16 @@ const Login = async (req: Request, res: Response) => {
 
 const RegisterOwner = async (req: Request, res: Response) => {
     try {
-        const result = await AuthService.registerOwner(req.body);
+        const { name, email, password, store, addressStore, affiliateCode } =
+            req.body;
+        const result = await AuthService.registerOwner({
+            name,
+            email,
+            password,
+            store,
+            addressStore,
+            affiliateCode,
+        });
         res.status(200).json({
             status: true,
             ...result,
@@ -30,7 +39,7 @@ const Verification = async (req: Request, res: Response) => {
         const { code } = req.query;
         await AuthService.verifyEmail(code as string);
         res.sendFile(
-            path.join(__dirname, "/../../public/successActiveRegister.html")
+            path.join(__dirname, "/../../public/successActiveRegister.html"),
         );
     } catch (error) {
         res.status(400).send("Invalid verification token");
@@ -69,7 +78,7 @@ const ForgotPassword = async (req: Request, res: Response) => {
         const result = await AuthService.resetPassword(
             email,
             newPassword,
-            confirmNewPassword
+            confirmNewPassword,
         );
         res.status(200).json({
             status: true,

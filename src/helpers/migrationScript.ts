@@ -21,9 +21,6 @@ async function migrateStoreSubscriptions() {
             });
 
             if (existingSub) {
-                console.log(
-                    `[SKIP] Store: ${store.name} sudah memiliki data langganan.`,
-                );
                 skipCount++;
                 continue;
             }
@@ -52,9 +49,6 @@ async function migrateStoreSubscriptions() {
                 },
             });
 
-            console.log(
-                `[OK] Berhasil migrasi Store: ${store.name} (Status: ${status})`,
-            );
             successCount++;
         }
 

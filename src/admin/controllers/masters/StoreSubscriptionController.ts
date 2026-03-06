@@ -105,14 +105,65 @@ const postData = async (req: Request, res: Response) => {
             });
 
             // Update expiredDate in stores
-            await tx.stores.update({
+            const store = await tx.stores.update({
                 where: {
                     id: data.storeId,
                 },
                 data: {
                     expiredDate: moment(data.endDate).toISOString(),
                 },
+                select: {
+                    ownerId: true,
+                },
             });
+
+            // Commission Logic
+            if (Number(data.price || 0) > 0 && store.ownerId) {
+                const referral = await tx.referrals.findFirst({
+                    where: { referredUserId: store.ownerId },
+                    include: {
+                        affiliateCode: true,
+                    },
+                });
+
+                if (referral && referral.affiliateCode) {
+                    const aff = referral.affiliateCode;
+                    let commissionAmount = 0;
+
+                    if (aff.commissionType === "PERCENTAGE") {
+                        commissionAmount =
+                            (Number(data.price) *
+                                Number(aff.commissionValue || 0)) /
+                            100;
+                    } else if (aff.commissionType === "FIXED") {
+                        commissionAmount =
+                            Number(aff.commissionValue || 0) *
+                            Number(data.durationMonth);
+                    }
+
+                    if (commissionAmount > 0) {
+                        // Create commission record
+                        await tx.affiliate_commissions.create({
+                            data: {
+                                id: uuidv4(),
+                                affiliateCodeId: aff.id,
+                                subscriptionId: uuid,
+                                amount: commissionAmount,
+                            },
+                        });
+
+                        // Update referral earnedAmount
+                        await tx.referrals.update({
+                            where: { id: referral.id },
+                            data: {
+                                earnedAmount: {
+                                    increment: commissionAmount,
+                                },
+                            },
+                        });
+                    }
+                }
+            }
         });
 
         res.status(200).json({
@@ -261,7 +312,7 @@ const migrateData = async (req: Request, res: Response) => {
 
             if (existingSub) {
                 logs.push(
-                    `[SKIP] Store: ${store.name} sudah memiliki data langganan.`
+                    `[SKIP] Store: ${store.name} sudah memiliki data langganan.`,
                 );
                 skipCount++;
                 continue;
@@ -292,7 +343,7 @@ const migrateData = async (req: Request, res: Response) => {
             });
 
             logs.push(
-                `[OK] Berhasil migrasi Store: ${store.name} (Status: ${status})`
+                `[OK] Berhasil migrasi Store: ${store.name} (Status: ${status})`,
             );
             successCount++;
         }

@@ -144,7 +144,6 @@ export const resetStoreData = async (storeId: string, ownerId: string) => {
                 "Store data, stocks, and cash balances have been reset successfully",
         };
     } catch (error) {
-        console.error("Failed to reset store data:", error);
         throw error;
     }
 };
@@ -155,7 +154,7 @@ export const resetStoreData = async (storeId: string, ownerId: string) => {
 export const resetStock = async (
     productId: string,
     storeId: string,
-    ownerId: string
+    ownerId: string,
 ) => {
     try {
         // 1. Verify product and store ownership
@@ -264,7 +263,6 @@ export const resetStock = async (
             message: `Stock and transactions for product ${product.name} in store ${store.name} have been reset successfully`,
         };
     } catch (error) {
-        console.error("Failed to perform product stock reset:", error);
         throw error;
     }
 };

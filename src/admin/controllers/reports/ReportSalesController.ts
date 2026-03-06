@@ -13,7 +13,6 @@ const getData = async (req: Request, res: Response) => {
             data: response,
         });
     } catch (error) {
-        console.error("Error in getData:", error);
         res.status(500).json({
             status: false,
             message: "Internal Server Error",
@@ -87,7 +86,7 @@ const xlsxData = async (req: Request, res: Response) => {
                     content: dataExcel,
                 },
             ],
-            settings
+            settings,
         );
         res.writeHead(200, {
             "Content-Type": "application/octet-stream",
@@ -227,7 +226,7 @@ const modelData = async (req: Request, res: Response) => {
                         formatter.format(Number(detail.price)),
                         formatter.format(
                             parseInt((detail.quantity ?? 0) + "") *
-                                parseInt((detail.price ?? 0) + "")
+                                parseInt((detail.price ?? 0) + ""),
                         ),
                     ]);
                 }
@@ -245,7 +244,6 @@ const modelData = async (req: Request, res: Response) => {
         ]);
         return newResponse;
     } catch (error) {
-        console.error("Error in modelData:", error);
         return [];
     }
 };
