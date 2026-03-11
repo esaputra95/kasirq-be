@@ -7,7 +7,7 @@ import { ValidationError } from "#root/helpers/handleErrors";
 export const getMembers = async (
     query: MemberQueryInterface,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const owner: any = await getOwnerId(userId, userLevel);
     const take = Number(query.limit) > 0 ? Number(query.limit) : 20;
@@ -20,7 +20,12 @@ export const getMembers = async (
             ? { OR: filter, ownerId: owner.id }
             : { ownerId: owner.id };
     const [data, total] = await Promise.all([
-        Model.members.findMany({ where: whereClause, skip, take }),
+        Model.members.findMany({
+            where: whereClause,
+            skip,
+            take,
+            include: { memberLevel: true },
+        }),
         Model.members.count({ where: whereClause }),
     ]);
     return {
@@ -32,7 +37,7 @@ export const getMembers = async (
 export const createMember = async (
     memberData: any,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const owner: any = await getOwnerId(userId, userLevel);
     if (!owner.status)
@@ -44,6 +49,8 @@ export const createMember = async (
 };
 
 export const updateMember = async (id: string, memberData: any) => {
+    console.log(memberData);
+
     await Model.members.update({
         where: { id },
         data: {
@@ -52,6 +59,7 @@ export const updateMember = async (id: string, memberData: any) => {
             address: memberData.address,
             level: parseInt(memberData.level + ""),
             phone: memberData.phone,
+            memberLevelId: memberData.memberLevelId ?? null,
         },
     });
     return { message: "successful in updated Member data" };
@@ -63,7 +71,10 @@ export const deleteMember = async (id: string) => {
 };
 
 export const getMemberById = async (id: string) => {
-    const member = await Model.members.findUnique({ where: { id } });
+    const member = await Model.members.findUnique({
+        where: { id },
+        include: { memberLevel: true },
+    });
     if (!member) throw new ValidationError("data not found", 404, "member");
     return { message: "successfully in get Member data", data: { member } };
 };
@@ -71,7 +82,7 @@ export const getMemberById = async (id: string) => {
 export const getMembersForSelect = async (
     name: string | undefined,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const owner: any = await getOwnerId(userId, userLevel);
     let filter: any = {};

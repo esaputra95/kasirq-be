@@ -211,7 +211,9 @@ export const createProduct = async (
         throw new ValidationError("Owner not found", 404, "owner");
 
     const data = { ...productData, ownerId: owner.id };
+
     const conversion = data.price;
+
     const productId = uuidv4();
 
     await Model.$transaction(async (prisma) => {
@@ -233,15 +235,16 @@ export const createProduct = async (
         });
 
         let unitId = "";
+        let currentConversionId = "";
         for (const value of conversion) {
-            let conversionId = uuidv4();
             if (unitId !== value.unitId) {
+                currentConversionId = uuidv4();
                 await prisma.productConversions.create({
                     data: {
                         productId,
                         unitId: value.unitId,
                         quantity: value.quantity,
-                        id: conversionId,
+                        id: currentConversionId,
                         status: value.type === "default" ? 1 : 0,
                     },
                 });
@@ -249,7 +252,7 @@ export const createProduct = async (
                 await prisma.productPurchasePrices.create({
                     data: {
                         id: uuidv4(),
-                        conversionId,
+                        conversionId: currentConversionId,
                         price: value.capital,
                         storeId: data.storeId,
                     },
@@ -260,13 +263,12 @@ export const createProduct = async (
             await prisma.productSellPrices.create({
                 data: {
                     id: uuidv4(),
-                    conversionId,
+                    conversionId: currentConversionId,
                     price: value.sell,
                     storeId: data.storeId,
                     level: value.level ?? 1,
                 },
             });
-            unitId = value.unitId;
         }
 
         // Handle components for package and formula types
@@ -353,60 +355,69 @@ export const updateProduct = async (
             where: { id: dataProduct.id },
         });
 
+        let unitId = "";
+        let currentConversionId = "";
         for (const value of conversion) {
             if (value.id) {
                 // Update existing
-                await prisma.productConversions.update({
-                    data: {
-                        unitId: value.unitId,
-                        quantity: value.quantity,
-                        status: value.type === "default" ? 1 : 0,
-                    },
-                    where: { id: value.id },
-                });
+                if (unitId !== value.unitId) {
+                    await prisma.productConversions.update({
+                        data: {
+                            unitId: value.unitId,
+                            quantity: value.quantity,
+                            status: value.type === "default" ? 1 : 0,
+                        },
+                        where: { id: value.convId },
+                    });
 
-                await prisma.productPurchasePrices.updateMany({
-                    data: {
-                        price: value.capital,
-                        storeId: data.storeId,
-                    },
-                    where: { conversionId: value.id },
-                });
+                    await prisma.productPurchasePrices.updateMany({
+                        data: {
+                            price: value.capital,
+                            storeId: data.storeId,
+                        },
+                        where: { conversionId: value.convId },
+                    });
+                    unitId = value.unitId;
+                    currentConversionId = value.convId;
+                }
 
-                await prisma.productSellPrices.updateMany({
+                await prisma.productSellPrices.update({
                     data: {
                         price: value.sell,
                         storeId: data.storeId,
                         level: value.level ?? 1,
                     },
-                    where: { conversionId: value.id },
+                    where: { id: value.id },
                 });
             } else {
                 // Create new
-                const conversionId = uuidv4();
-                await prisma.productConversions.create({
-                    data: {
-                        productId: dataProduct.id,
-                        unitId: value.unitId,
-                        quantity: value.quantity,
-                        id: conversionId,
-                        status: value.type === "default" ? 1 : 0,
-                    },
-                });
+                if (unitId !== value.unitId) {
+                    currentConversionId = uuidv4();
+                    await prisma.productConversions.create({
+                        data: {
+                            productId: dataProduct.id,
+                            unitId: value.unitId,
+                            quantity: value.quantity,
+                            id: currentConversionId,
+                            status: value.type === "default" ? 1 : 0,
+                        },
+                    });
 
-                await prisma.productPurchasePrices.create({
-                    data: {
-                        id: uuidv4(),
-                        conversionId,
-                        price: value.capital,
-                        storeId: data.storeId,
-                    },
-                });
+                    await prisma.productPurchasePrices.create({
+                        data: {
+                            id: uuidv4(),
+                            conversionId: currentConversionId,
+                            price: value.capital,
+                            storeId: data.storeId,
+                        },
+                    });
+                    unitId = value.unitId;
+                }
 
                 await prisma.productSellPrices.create({
                     data: {
                         id: uuidv4(),
-                        conversionId,
+                        conversionId: currentConversionId,
                         price: value.sell,
                         storeId: data.storeId,
                         level: value.level ?? 1,
@@ -589,12 +600,26 @@ export const getPriceMember = async (
     for (const value of query) {
         const member = await Model.members.findUnique({
             where: { id: value.memberId },
+            include: { memberLevel: true },
         });
+
+        if (!member) continue;
+
+        // Priority logic: memberLevels.level > members.level
+        let targetLevel: number | null = null;
+        if (member.memberLevel) {
+            targetLevel = member.memberLevel.level;
+        } else if (member.level !== null && member.level !== undefined) {
+            targetLevel = member.level;
+        }
+
+        // If no level can be determined, skip this member
+        if (targetLevel === null) continue;
 
         const data = await Model.productSellPrices.findFirst({
             where: {
                 conversionId: value.conversionId,
-                level: parseInt(member?.level + ""),
+                level: targetLevel,
             },
         });
 
