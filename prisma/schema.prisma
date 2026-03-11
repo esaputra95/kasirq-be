@@ -91,6 +91,7 @@ model memberLevels {
   deletedAt                         DateTime? @db.DateTime(0)
   users                             users     @relation(fields: [id], references: [id], onUpdate: Restrict, map: "memberLevelUser")
   users_memberLevels_ownerIdTousers users?    @relation("memberLevels_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "memberlevels_ibfk_1")
+  members                           members[]
 
   @@index([ownerId], map: "memberLevelStore")
   @@index([userCreate], map: "userCreate")
@@ -107,8 +108,10 @@ model members {
   createdAt                    DateTime?    @default(now()) @db.DateTime(0)
   updatedAt                    DateTime?    @default(now()) @db.DateTime(0)
   deletedAt                    DateTime?    @db.DateTime(0)
+  memberLevelId                String?      @db.VarChar(36)
   users                        users?       @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "memberUser")
   users_members_ownerIdTousers users?       @relation("members_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "members_ibfk_1")
+  memberLevel                  memberLevels? @relation(fields: [memberLevelId], references: [id])
   sales                        sales[]
   salePending   salePending[]
 

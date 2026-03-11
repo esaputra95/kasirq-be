@@ -69,6 +69,8 @@ export const handleErrorMessage = async (res: Response, error: any) => {
         location: "body",
     };
 
+    console.log(error);
+
     // Logging to file ALWAYS happens first
     if (res.req) {
         logToFile(res.req as Request, error, statusCode);

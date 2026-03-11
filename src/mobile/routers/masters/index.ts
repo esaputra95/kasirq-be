@@ -10,3 +10,4 @@ export { default as MemberRoute } from "./MemberRoute";
 export { default as AccountRoute } from "./AccountRoute";
 export { default as NotificationRoute } from "./NotificationRoute";
 export { default as StoreMaintenanceRoute } from "./StoreMaintenanceRoute";
+export { default as MemberLevelRoute } from "./MemberLevelRoute";

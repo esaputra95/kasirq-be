@@ -7,19 +7,22 @@ import {
     updateData,
     uploadImage,
     getProductSell,
-    getPriceMember
+    getPriceMember,
 } from "#root/mobile/controllers/masters/ProductController";
 import { ImageUpload } from "#root/helpers/uploadImage";
 import multer from "multer";
 import validationMessage from "#root/validations/Validate";
-import { ProductValidation, ProductUpdateValidation } from "#root/validations/masters/ProductValidation";
+import {
+    ProductValidation,
+    ProductUpdateValidation,
+} from "#root/validations/masters/ProductValidation";
 
 const Route = express.Router();
 
-Route.get('/', getData);
-Route.get('/sell', getProductSell);
-Route.post('/image', (req, res, next) => {
-    ImageUpload.single('images')(req, res, function (err) {
+Route.get("/", getData);
+Route.get("/sell", getProductSell);
+Route.post("/image", (req, res, next) => {
+    ImageUpload.single("images")(req, res, function (err) {
         if (err) {
             if (err instanceof multer.MulterError) {
                 // Multer error seperti file terlalu besar
@@ -34,10 +37,10 @@ Route.post('/image', (req, res, next) => {
         uploadImage(req, res);
     });
 });
-Route.post('/', validationMessage(ProductValidation), postData);
-Route.post('/check-member-price', getPriceMember);
-Route.put('/:id', validationMessage(ProductUpdateValidation), updateData);
-Route.delete('/:id', deleteData);
-Route.get('/:id', getDataById);
+Route.post("/", validationMessage(ProductValidation), postData);
+Route.post("/check-member-price", getPriceMember);
+Route.put("/:id", validationMessage(ProductUpdateValidation), updateData);
+Route.delete("/:id", deleteData);
+Route.get("/:id", getDataById);
 
 export default Route;

@@ -19,6 +19,7 @@ import {
     UnitRoute,
     user,
     StoreMaintenanceRoute,
+    MemberLevelRoute,
 } from "./mobile/routers/masters";
 import { AccessToken } from "./mobile/controllers/auth/middlewareController";
 import { PurchaseRoute } from "./mobile/routers/purrchases";
@@ -39,6 +40,7 @@ import {
 } from "./mobile/routers/accountancy";
 import { AttendanceRoute } from "./mobile/routers/attendances";
 import { enhanceStore } from "./services/enhanceStore";
+import { generateMemberLevels } from "./services/generateMemberLevels";
 import { viewLogs } from "./mobile/controllers/logs/LogViewerController";
 
 const app = express();
@@ -66,6 +68,7 @@ app.use("/dashboards", AccessToken, DashboardRoute);
 app.use("/sales-people", AccessToken, SalesPeopleRoute);
 app.use("/notifications", AccessToken, NotificationRoute);
 app.use("/store-maintenance", AccessToken, StoreMaintenanceRoute);
+app.use("/member-levels", AccessToken, MemberLevelRoute);
 
 // Accountancy Routes
 app.use("/cashflows", AccessToken, CashflowRoute);
@@ -84,5 +87,6 @@ app.use("/images", express.static(path.join(__dirname, "/public")));
 app.get("/view-logs", viewLogs);
 
 app.get("/enhance-store", enhanceStore);
+app.get("/generate-member-levels", generateMemberLevels);
 
 app.listen(3001, () => console.log("server run ip 127.0.0.1:3001"));
