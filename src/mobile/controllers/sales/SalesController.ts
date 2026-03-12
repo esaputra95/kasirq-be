@@ -862,6 +862,10 @@ const updateData = async (req: Request, res: Response) => {
         res.status(200).json({
             status: true,
             message: "successful in updated sales data",
+            data: salesId,
+            remainder:
+                parseInt(body?.pay ?? 0) -
+                (parseInt(body.subTotal ?? 0) - parseInt(body.discount ?? 0)),
         });
     } catch (error) {
         handleErrorMessage(res, error);
