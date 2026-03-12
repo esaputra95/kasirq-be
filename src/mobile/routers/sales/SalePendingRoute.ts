@@ -5,6 +5,7 @@ import {
     getDataById,
     postData,
     updateData,
+    updateNewData,
     getSelect,
     getFacture,
     getDataUpdate,
@@ -17,6 +18,7 @@ const Route = express.Router();
 Route.get("/", getData);
 Route.post("/", validationMessage(SalesValidation), postData);
 Route.put("/:id", updateData);
+Route.put("/update-new/:id", updateNewData);
 Route.delete("/:id", deleteData);
 Route.get("/select", getSelect);
 Route.get("/facture", getFacture);
