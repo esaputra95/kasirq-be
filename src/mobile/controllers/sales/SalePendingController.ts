@@ -261,6 +261,117 @@ const updateData = async (req: Request, res: Response) => {
 };
 
 /**
+ * PUT updateNewData salePending
+ */
+const updateNewData = async (req: Request, res: Response) => {
+    try {
+        const data = { ...req.body };
+        const dataDetail = data.detailItem || {};
+        const idDelete = Array.isArray(data.idDelete) ? data.idDelete : [];
+        const salesId = req.params.id;
+
+        const updated = await Model.$transaction(async (prisma) => {
+            // Pastikan salePending ada
+            const exists = await prisma.salePending.findUnique({
+                where: { id: salesId },
+            });
+
+            if (!exists) {
+                // Akan ditangkap di catch dan dibalas 404
+                throw new Error("Sale Pending not found");
+            }
+
+            const subTotal = toNumber(data.subTotal);
+            const discount = toNumber(data.discount);
+            const payCash = toNumber(data.pay);
+
+            const salesData = {
+                subTotal: subTotal,
+                discount: discount,
+                total: subTotal - discount,
+                payCash: payCash,
+            };
+
+            // Jika storeId dikirim dari payload
+            if (data.storeId) {
+                Object.assign(salesData, { storeId: data.storeId });
+            }
+
+            // Update Sale
+            const updatedSale = await prisma.salePending.update({
+                data: salesData,
+                where: { id: salesId },
+            });
+
+            // Hapus detail yang di Delete
+            if (idDelete.length > 0) {
+                await prisma.salePendingDetails.deleteMany({
+                    where: {
+                        id: { in: idDelete },
+                        saleId: salesId,
+                    },
+                });
+            }
+
+            // Update and Create Details
+            for (const key in dataDetail) {
+                const detail = dataDetail[key];
+                if (!detail || toNumber(detail.quantity) === 0) continue;
+
+                if (detail.salesDetailId) {
+                    await prisma.salePendingDetails.update({
+                        data: {
+                            quantity: toNumber(detail.quantity),
+                            price: toNumber(detail.price),
+                            productConversionId: detail.unitId,
+                            productId: key,
+                        },
+                        where: { id: detail.salesDetailId },
+                    });
+                } else {
+                    await prisma.salePendingDetails.create({
+                        data: {
+                            id: uuidv4(),
+                            saleId: salesId,
+                            productId: key,
+                            productConversionId: detail.unitId,
+                            quantity: toNumber(detail.quantity) || 1,
+                            price: toNumber(detail.price),
+                        },
+                    });
+                }
+            }
+
+            return updatedSale;
+        });
+
+        // Hitung sisa
+        const subTotal = toNumber(data.subTotal);
+        const discount = toNumber(data.discount);
+        const payCash = toNumber(data.pay);
+        const remainder = payCash - (subTotal - discount);
+
+        return res.status(200).json({
+            status: true,
+            message: "Sales transaction updated successfully",
+            data: updated,
+            remainder,
+        });
+    } catch (error: any) {
+        if (error.message === "Sale Pending not found") {
+            return res.status(404).json({
+                status: false,
+                message: "Sale Pending not found",
+            });
+        }
+
+        console.log(error);
+
+        handleErrorMessage(res, error);
+    }
+};
+
+/**
  * DELETE salePending + details
  */
 const deleteData = async (req: Request, res: Response) => {
@@ -541,6 +652,7 @@ export {
     getData,
     postData,
     updateData,
+    updateNewData,
     deleteData,
     getDataById,
     getSelect,
