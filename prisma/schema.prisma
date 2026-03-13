@@ -9,52 +9,52 @@ datasource db {
 }
 
 model brands {
-  id          String    @id @db.VarChar(36)
-  ownerId     String?   @db.VarChar(36)
-  name        String    @db.VarChar(50)
-  description String?   @db.VarChar(255)
-  userCreate  String?   @db.VarChar(36)
-  createdAt   DateTime? @default(now()) @db.DateTime(0)
-  updatedAt   DateTime? @default(now()) @db.DateTime(0)
-  deletedAt   DateTime? @db.DateTime(0)
-  products products[]
-  users       users?    @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "brandUser")
+  id          String     @id @db.VarChar(36)
+  ownerId     String?    @db.VarChar(36)
+  name        String     @db.VarChar(50)
+  description String?    @db.VarChar(255)
+  userCreate  String?    @db.VarChar(36)
+  createdAt   DateTime?  @default(now()) @db.DateTime(0)
+  updatedAt   DateTime?  @default(now()) @db.DateTime(0)
+  deletedAt   DateTime?  @db.DateTime(0)
+  products    products[]
+  users       users?     @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "brandUser")
 
   @@index([userCreate], map: "brandUser")
 }
 
 model SubscriptionStore {
-  id          String   @id @default(uuid()) @db.VarChar(36)
-  storeId     String?  @db.VarChar(36)
-  startDate   DateTime? @db.Date
-  endDate     DateTime? @db.Date
-  userCreate  String?  @db.VarChar(36)
-  createdAt   DateTime @default(now()) @db.DateTime
-  updatedAt   DateTime @default(now()) @db.DateTime
-  deletedAt   DateTime? @db.DateTime
+  id         String    @id @default(uuid()) @db.VarChar(36)
+  storeId    String?   @db.VarChar(36)
+  startDate  DateTime? @db.Date
+  endDate    DateTime? @db.Date
+  userCreate String?   @db.VarChar(36)
+  createdAt  DateTime  @default(now()) @db.DateTime
+  updatedAt  DateTime  @default(now()) @db.DateTime
+  deletedAt  DateTime? @db.DateTime
 
-  stores      stores?    @relation(fields: [storeId], references: [id])
-  users users? @relation(fields: [userCreate], references: [id])
+  stores stores? @relation(fields: [storeId], references: [id])
+  users  users?  @relation(fields: [userCreate], references: [id])
 
   @@map("subscriptionStore")
 }
 
 model store_subscriptions {
-  id             String   @id @default(uuid()) @db.VarChar(36)
-  storeId        String   @db.VarChar(36)
-  type           store_subscription_type
-  startDate      DateTime @db.DateTime
-  endDate        DateTime @db.DateTime
-  durationMonth  Int
-  price          Decimal?  @db.Decimal(12, 2)
-  status         store_subscription_status
-  paymentRef     String?  @db.VarChar(100)
-  createdAt      DateTime @default(now()) @db.DateTime
-  updatedAt      DateTime @default(now()) @updatedAt @db.DateTime
-  userCreate     String?  @db.VarChar(36)
+  id            String                    @id @default(uuid()) @db.VarChar(36)
+  storeId       String                    @db.VarChar(36)
+  type          store_subscription_type
+  startDate     DateTime                  @db.DateTime
+  endDate       DateTime                  @db.DateTime
+  durationMonth Int
+  price         Decimal?                  @db.Decimal(12, 2)
+  status        store_subscription_status
+  paymentRef    String?                   @db.VarChar(100)
+  createdAt     DateTime                  @default(now()) @db.DateTime
+  updatedAt     DateTime                  @default(now()) @updatedAt @db.DateTime
+  userCreate    String?                   @db.VarChar(36)
 
-  store          stores   @relation("StoreSubscriptions", fields: [storeId], references: [id], onDelete: Cascade)
-  user           users?   @relation("StoreSubscriptionCreator", fields: [userCreate], references: [id])
+  store                 stores                  @relation("StoreSubscriptions", fields: [storeId], references: [id], onDelete: Cascade)
+  user                  users?                  @relation("StoreSubscriptionCreator", fields: [userCreate], references: [id])
   affiliate_commissions affiliate_commissions[]
 
   @@index([storeId])
@@ -62,19 +62,18 @@ model store_subscriptions {
   @@map("store_subscriptions")
 }
 
-
 model categories {
-  id                              String    @id @db.VarChar(36)
-  ownerId                         String?   @db.VarChar(36)
-  name                            String    @db.VarChar(50)
-  description                     String?   @db.VarChar(255)
-  userCreate                      String?   @db.VarChar(36)
-  createdAt                       DateTime? @default(now()) @db.DateTime(0)
-  updatedAt                       DateTime? @default(now()) @db.DateTime(0)
-  deletedAt                       DateTime? @db.DateTime(0)
+  id                              String     @id @db.VarChar(36)
+  ownerId                         String?    @db.VarChar(36)
+  name                            String     @db.VarChar(50)
+  description                     String?    @db.VarChar(255)
+  userCreate                      String?    @db.VarChar(36)
+  createdAt                       DateTime?  @default(now()) @db.DateTime(0)
+  updatedAt                       DateTime?  @default(now()) @db.DateTime(0)
+  deletedAt                       DateTime?  @db.DateTime(0)
   products                        products[]
-  users                           users?    @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "categoriUser")
-  users_categories_ownerIdTousers users?    @relation("categories_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "categories_ibfk_1")
+  users                           users?     @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "categoriUser")
+  users_categories_ownerIdTousers users?     @relation("categories_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "categories_ibfk_1")
 
   @@index([userCreate], map: "categoriUser")
   @@index([ownerId], map: "ownerId")
@@ -98,49 +97,49 @@ model memberLevels {
 }
 
 model members {
-  id                           String       @id @db.VarChar(36)
-  ownerId                      String?      @db.VarChar(36)
-  level                        Int?         @db.Int()
-  name                         String       @db.VarChar(150)
-  phone                        String?      @db.VarChar(16)
-  address                      String?      @db.Text
-  userCreate                   String?      @db.VarChar(36)
-  createdAt                    DateTime?    @default(now()) @db.DateTime(0)
-  updatedAt                    DateTime?    @default(now()) @db.DateTime(0)
-  deletedAt                    DateTime?    @db.DateTime(0)
-  memberLevelId                String?      @db.VarChar(36)
-  users                        users?       @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "memberUser")
-  users_members_ownerIdTousers users?       @relation("members_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "members_ibfk_1")
+  id                           String        @id @db.VarChar(36)
+  ownerId                      String?       @db.VarChar(36)
+  level                        Int?          @db.Int()
+  name                         String        @db.VarChar(150)
+  phone                        String?       @db.VarChar(16)
+  address                      String?       @db.Text
+  userCreate                   String?       @db.VarChar(36)
+  createdAt                    DateTime?     @default(now()) @db.DateTime(0)
+  updatedAt                    DateTime?     @default(now()) @db.DateTime(0)
+  deletedAt                    DateTime?     @db.DateTime(0)
+  memberLevelId                String?       @db.VarChar(36)
+  users                        users?        @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "memberUser")
+  users_members_ownerIdTousers users?        @relation("members_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "members_ibfk_1")
   memberLevel                  memberLevels? @relation(fields: [memberLevelId], references: [id])
   sales                        sales[]
-  salePending   salePending[]
+  salePending                  salePending[]
 
   @@index([userCreate], map: "memberUser")
 }
 
 model productConversions {
-  id                   String                 @id @db.VarChar(36)
-  productId            String                 @db.VarChar(36)
-  unitId               String                 @db.VarChar(36)
-  quantity             Int                    @default(1)
-  status               Int?                   @default(1) @db.SmallInt
-  userCreate           String?                @db.VarChar(36)
-  createdAt            DateTime?              @default(now()) @db.DateTime(0)
-  updatedAt            DateTime?              @default(now()) @db.DateTime(0)
-  deletedAt            DateTime?              @db.DateTime(0)
-  products products @relation(fields: [productId], references: [id])
-  units units? @relation(fields: [unitId], references: [id])
+  id                    String                  @id @db.VarChar(36)
+  productId             String                  @db.VarChar(36)
+  unitId                String                  @db.VarChar(36)
+  quantity              Int                     @default(1)
+  status                Int?                    @default(1) @db.SmallInt
+  userCreate            String?                 @db.VarChar(36)
+  createdAt             DateTime?               @default(now()) @db.DateTime(0)
+  updatedAt             DateTime?               @default(now()) @db.DateTime(0)
+  deletedAt             DateTime?               @db.DateTime(0)
+  products              products                @relation(fields: [productId], references: [id])
+  units                 units?                  @relation(fields: [unitId], references: [id])
   productPurchasePrices productPurchasePrices[]
-  productSellPrices productSellPrices[]
-  itemInDetails        itemInDetails[]
-  itemOutDetails       itemOutDetails[]
-  productVariants      productVariants[]
-  purchaseDetails      purchaseDetails[]
-  purchaseOrderDetails purchaseOrderDetails[]
-  saleDetails          saleDetails[]
-  salePendingDetails salePendingDetails[]
-  stockOpnameDetails stockOpnameDetails[]
-  productComponents productComponents[]
+  productSellPrices     productSellPrices[]
+  itemInDetails         itemInDetails[]
+  itemOutDetails        itemOutDetails[]
+  productVariants       productVariants[]
+  purchaseDetails       purchaseDetails[]
+  purchaseOrderDetails  purchaseOrderDetails[]
+  saleDetails           saleDetails[]
+  salePendingDetails    salePendingDetails[]
+  stockOpnameDetails    stockOpnameDetails[]
+  productComponents     productComponents[]
 
   @@index([productId], map: "productConversionProduct")
   @@index([unitId], map: "productConversionUnit")
@@ -189,20 +188,19 @@ model products {
   priceType            Int?
   sku                  String?                   @db.VarChar(255)
   isStock              Int?
-  productConversions productConversions[]
-  stocks stocks[]
-  categories           categories?                @relation(fields: [categoryId], references: [id])
-  brands brands? @relation(fields: [brandId], references: [id])
+  productConversions   productConversions[]
+  stocks               stocks[]
+  categories           categories?               @relation(fields: [categoryId], references: [id])
+  brands               brands?                   @relation(fields: [brandId], references: [id])
   itemInDetails        itemInDetails[]
   itemOutDetails       itemOutDetails[]
   purchaseDetails      purchaseDetails[]
   purchaseOrderDetails purchaseOrderDetails[]
   saleDetails          saleDetails[]
   salePendingDetails   salePendingDetails[]
-  stockOpnameDetails stockOpnameDetails[]
-  components    productComponents[] @relation("ProductComponent_Product")
-  partOfBundles productComponents[] @relation("ProductComponent_Component")
-  
+  stockOpnameDetails   stockOpnameDetails[]
+  components           productComponents[]       @relation("ProductComponent_Product")
+  partOfBundles        productComponents[]       @relation("ProductComponent_Component")
 
   @@index([ownerId], map: "productStore")
   @@index([userCreate], map: "productUser")
@@ -246,7 +244,7 @@ model purchases {
   subTotal             Decimal?               @db.Decimal(14, 4)
   tax                  Decimal?               @db.Decimal(14, 4)
   discount             Decimal?               @db.Decimal(14, 4)
-  additionalCost        Decimal?               @db.Decimal(14, 4)
+  additionalCost       Decimal?               @db.Decimal(14, 4)
   total                Decimal?               @db.Decimal(14, 4)
   downPayment          Decimal?               @db.Decimal(14, 4)
   payCash              Decimal?               @db.Decimal(14, 4)
@@ -292,13 +290,14 @@ model saleDetails {
   sales               sales               @relation(fields: [saleId], references: [id], onDelete: Cascade, map: "saleDetailSale")
   users               users?              @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleDetailUser")
   productConversions  productConversions? @relation(fields: [productConversionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saledetails_ibfk_1")
-  cogs cogs[]
+  cogs                cogs[]
 
   @@index([productId], map: "saleDetailProduct")
   @@index([saleId], map: "saleDetailSale")
   @@index([userCreate], map: "saleDetailUser")
   @@index([productConversionId], map: "saleDetailVariant")
 }
+
 model salePendingDetails {
   id                  String              @id @db.VarChar(36)
   saleId              String              @db.VarChar(36)
@@ -316,7 +315,7 @@ model salePendingDetails {
   updatedAt           DateTime?           @default(now()) @db.DateTime(0)
   deletedAt           DateTime?           @db.DateTime(0)
   products            products?           @relation(fields: [productId], references: [id], onUpdate: Restrict, map: "saleDetailPendingProduct")
-  salePending               salePending               @relation(fields: [saleId], references: [id], onDelete: Cascade, map: "saleDetailPendingSale")
+  salePending         salePending         @relation(fields: [saleId], references: [id], onDelete: Cascade, map: "saleDetailPendingSale")
   users               users?              @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleDetailPendingUser")
   productConversions  productConversions? @relation(fields: [productConversionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salependingdetail_ibfk_1")
 
@@ -353,54 +352,55 @@ model sales {
   createdAt            DateTime?     @default(now()) @db.DateTime(0)
   updatedAt            DateTime?     @default(now()) @db.DateTime(0)
   deletedAt            DateTime?     @db.DateTime(0)
-  transactionNumber Int? @db.Int()
-  salePeopleId String? @db.VarChar(36)
-  salePeoples salesPeoples? @relation(fields: [salePeopleId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePeopleSale") 
+  transactionNumber    Int?          @db.Int()
+  salePeopleId         String?       @db.VarChar(36)
+  salePeoples          salesPeoples? @relation(fields: [salePeopleId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePeopleSale")
   saleDetails          saleDetails[]
   members              members?      @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleMember")
   stores               stores?       @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleStore")
   users                users?        @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleUser")
-  paymentMethod        account?        @relation(fields: [payMetodeId], references: [id],  map: "salePaymentMethod")
+  paymentMethod        account?      @relation(fields: [payMetodeId], references: [id], map: "salePaymentMethod")
 
   @@index([memberId], map: "saleMember")
   @@index([storeId], map: "saleStore")
   @@index([userCreate], map: "saleUser")
 }
+
 model salePending {
-  id                   String        @id @db.VarChar(36)
-  storeId              String?       @db.VarChar(36)
-  memberId             String?       @db.VarChar(36)
-  saleOrderId          String?       @db.VarChar(36)
-  date                 DateTime?     @db.Date
-  invoice              String?       @db.VarChar(100)
-  subTotal             Decimal?      @db.Decimal(14, 4)
-  tax                  Decimal?      @db.Decimal(14, 4)
-  discount             Decimal?      @db.Decimal(14, 4)
-  addtionalCost        Decimal?      @db.Decimal(14, 4)
-  shippingCost         Decimal?      @db.Decimal(14, 4)
-  total                Decimal?      @db.Decimal(14, 4)
-  downPayment          Decimal?      @db.Decimal(14, 4)
-  payCash              Decimal?      @db.Decimal(14, 4)
-  payCredit            Decimal?      @db.Decimal(14, 4)
-  payMetodeId          String?       @db.VarChar(36)
-  status               sales_status? @default(ordered)
-  accountCashId        String?       @db.VarChar(36)
-  accountDebitId       String?       @db.VarChar(36)
-  accountCreditId      String?       @db.VarChar(36)
-  accountDownPaymentId String?       @db.VarChar(36)
-  description          String?       @db.Text
-  userCreate           String?       @db.VarChar(36)
-  createdAt            DateTime?     @default(now()) @db.DateTime(0)
-  updatedAt            DateTime?     @default(now()) @db.DateTime(0)
-  deletedAt            DateTime?     @db.DateTime(0)
-  phone String? @db.VarChar(20)
-  address String? @db.Text
-  name String? @db.VarChar(50)
-  transactionNumber Int? @db.Int()
-  salePendingDetails          salePendingDetails[]
-  members              members?      @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingMember")
-  stores               stores?       @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingStore")
-  users                users?        @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingUser")
+  id                   String               @id @db.VarChar(36)
+  storeId              String?              @db.VarChar(36)
+  memberId             String?              @db.VarChar(36)
+  saleOrderId          String?              @db.VarChar(36)
+  date                 DateTime?            @db.Date
+  invoice              String?              @db.VarChar(100)
+  subTotal             Decimal?             @db.Decimal(14, 4)
+  tax                  Decimal?             @db.Decimal(14, 4)
+  discount             Decimal?             @db.Decimal(14, 4)
+  addtionalCost        Decimal?             @db.Decimal(14, 4)
+  shippingCost         Decimal?             @db.Decimal(14, 4)
+  total                Decimal?             @db.Decimal(14, 4)
+  downPayment          Decimal?             @db.Decimal(14, 4)
+  payCash              Decimal?             @db.Decimal(14, 4)
+  payCredit            Decimal?             @db.Decimal(14, 4)
+  payMetodeId          String?              @db.VarChar(36)
+  status               sales_status?        @default(ordered)
+  accountCashId        String?              @db.VarChar(36)
+  accountDebitId       String?              @db.VarChar(36)
+  accountCreditId      String?              @db.VarChar(36)
+  accountDownPaymentId String?              @db.VarChar(36)
+  description          String?              @db.Text
+  userCreate           String?              @db.VarChar(36)
+  createdAt            DateTime?            @default(now()) @db.DateTime(0)
+  updatedAt            DateTime?            @default(now()) @db.DateTime(0)
+  deletedAt            DateTime?            @db.DateTime(0)
+  phone                String?              @db.VarChar(20)
+  address              String?              @db.Text
+  name                 String?              @db.VarChar(50)
+  transactionNumber    Int?                 @db.Int()
+  salePendingDetails   salePendingDetails[]
+  members              members?             @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingMember")
+  stores               stores?              @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingStore")
+  users                users?               @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingUser")
 
   @@index([memberId], map: "salePendingMember")
   @@index([storeId], map: "salePendingStore")
@@ -408,40 +408,40 @@ model salePending {
 }
 
 model stores {
-  id             String           @id @db.VarChar(36)
-  name           String           @db.VarChar(255)
-  ownerId        String           @db.VarChar(36)
-  address        String?          @db.Text
-  expiredDate    DateTime?        @db.DateTime(0)
-  createdAt      DateTime?        @default(now()) @db.DateTime(0)
-  updatedAt      DateTime?        @default(now()) @db.DateTime(0)
-  deletedAt      DateTime?        @db.DateTime(0)
-  userCreate     String?          @db.VarChar(36)
-  requireLocation Boolean?   @default(true)
-  latitude        Decimal?  @db.Decimal(10, 7)
-  longitude       Decimal?  @db.Decimal(10, 7)
-  locationRadius  Int?
-  slug String? @db.VarChar(255)
-  phone String? @db.VarChar(20)
-  itemIns        itemIns[]
-  itemOuts       itemOuts[]
-  purchaseOrders purchaseOrders[]
-  purchases      purchases[]
-  sales          sales[]
-  salePending salePending[]
-  users          users            @relation(fields: [ownerId], references: [id], onDelete: Cascade, map: "storeUser")
-  variants       variants[]
+  id                 String                @id @db.VarChar(36)
+  name               String                @db.VarChar(255)
+  ownerId            String                @db.VarChar(36)
+  address            String?               @db.Text
+  expiredDate        DateTime?             @db.DateTime(0)
+  createdAt          DateTime?             @default(now()) @db.DateTime(0)
+  updatedAt          DateTime?             @default(now()) @db.DateTime(0)
+  deletedAt          DateTime?             @db.DateTime(0)
+  userCreate         String?               @db.VarChar(36)
+  requireLocation    Boolean?              @default(true)
+  latitude           Decimal?              @db.Decimal(10, 7)
+  longitude          Decimal?              @db.Decimal(10, 7)
+  locationRadius     Int?
+  slug               String?               @db.VarChar(255)
+  phone              String?               @db.VarChar(20)
+  itemIns            itemIns[]
+  itemOuts           itemOuts[]
+  purchaseOrders     purchaseOrders[]
+  purchases          purchases[]
+  sales              sales[]
+  salePending        salePending[]
+  users              users                 @relation(fields: [ownerId], references: [id], onDelete: Cascade, map: "storeUser")
+  variants           variants[]
   subscriptionStores SubscriptionStore[]
   storeSubscriptions store_subscriptions[] @relation("StoreSubscriptions")
-  stockOpnames stockOpname[]
-  accounts account[]
-  expenseCategories expenseCategory[]
-  expenses expense[]
-  cashflows cashflow[]
-  attendances attendances[]
+  stockOpnames       stockOpname[]
+  accounts           account[]
+  expenseCategories  expenseCategory[]
+  expenses           expense[]
+  cashflows          cashflow[]
+  attendances        attendances[]
 
-  defaultCashId String? @db.VarChar(36)
-  defaultCash account? @relation("StoreDefaultCash", fields: [defaultCashId], references: [id])
+  defaultCashId String?  @db.VarChar(36)
+  defaultCash   account? @relation("StoreDefaultCash", fields: [defaultCashId], references: [id])
 
   @@index([ownerId], map: "storeUser")
   @@index([defaultCashId], map: "storeDefaultCash")
@@ -467,67 +467,66 @@ model suppliers {
 }
 
 model salesPeoples {
-  id                                 String    @id @db.VarChar(36)
-  ownerId                            String?   @db.VarChar(36)
-  name                               String    @db.VarChar(150)
-  phone                              String?   @db.VarChar(20)
-  email                              String?   @db.VarChar(50)
-  userCreate                         String?   @db.VarChar(36)
-  createdAt                          DateTime? @default(now()) @db.DateTime(0)
-  updatedAt                          DateTime? @default(now()) @db.DateTime(0)
-  deletedAt                          DateTime? @db.DateTime(0)
-  users                              users?    @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salesPeopleUser")
-  sales                              sales[]
-  users_salesPeople_ownerIdTousers   users?    @relation("salesPeople_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "salespeople_ibfk_1")
+  id                               String    @id @db.VarChar(36)
+  ownerId                          String?   @db.VarChar(36)
+  name                             String    @db.VarChar(150)
+  phone                            String?   @db.VarChar(20)
+  email                            String?   @db.VarChar(50)
+  userCreate                       String?   @db.VarChar(36)
+  createdAt                        DateTime? @default(now()) @db.DateTime(0)
+  updatedAt                        DateTime? @default(now()) @db.DateTime(0)
+  deletedAt                        DateTime? @db.DateTime(0)
+  users                            users?    @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salesPeopleUser")
+  sales                            sales[]
+  users_salesPeople_ownerIdTousers users?    @relation("salesPeople_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "salespeople_ibfk_1")
 
   @@index([ownerId], map: "salesPeopleOwner")
   @@index([userCreate], map: "salesPeopleUser")
 }
 
-
 model units {
-  id                         String    @id @db.VarChar(36)
-  ownerId                    String    @db.VarChar(36)
-  name                       String    @db.VarChar(50)
-  description                String?   @db.VarChar(255)
-  userCreate                 String?   @db.VarChar(36)
-  createdAt                  DateTime? @default(now()) @db.DateTime(0)
-  updatedAt                  DateTime? @default(now()) @db.DateTime(0)
-  deletedAt                  DateTime? @db.DateTime(0)
-  productConversions productConversions[]
-  users                      users?    @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "unitUser")
-  users_units_ownerIdTousers users     @relation("units_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "units_ibfk_1")
+  id                         String               @id @db.VarChar(36)
+  ownerId                    String               @db.VarChar(36)
+  name                       String               @db.VarChar(50)
+  description                String?              @db.VarChar(255)
+  userCreate                 String?              @db.VarChar(36)
+  createdAt                  DateTime?            @default(now()) @db.DateTime(0)
+  updatedAt                  DateTime?            @default(now()) @db.DateTime(0)
+  deletedAt                  DateTime?            @db.DateTime(0)
+  productConversions         productConversions[]
+  users                      users?               @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "unitUser")
+  users_units_ownerIdTousers users                @relation("units_ownerIdTousers", fields: [ownerId], references: [id], onDelete: Cascade, map: "units_ibfk_1")
 
   @@index([ownerId], map: "unitStore")
   @@index([userCreate], map: "unitUser")
 }
 
 model users {
-  id                                       String                 @id @default(uuid()) @db.VarChar(36)
-  name                                     String                 @db.VarChar(255)
-  username                                 String                 @db.VarChar(100)
-  password                                 String                 @db.VarChar(255)
-  email                                    String?                @db.VarChar(255)
-  phone                                    String?                @db.VarChar(15)
+  id                                       String                   @id @default(uuid()) @db.VarChar(36)
+  name                                     String                   @db.VarChar(255)
+  username                                 String                   @db.VarChar(100)
+  password                                 String                   @db.VarChar(255)
+  email                                    String?                  @db.VarChar(255)
+  phone                                    String?                  @db.VarChar(15)
   level                                    users_level?
-  verified                                 user_verifed @default(non_active)
-  storeId                                  String?                @db.VarChar(36)
-  createdAt                                DateTime?              @default(now()) @db.DateTime(0)
-  updatedAt                                DateTime?              @default(now()) @db.DateTime(0)
-  token String? @db.Text()
-  deletedAt                                DateTime?              @db.DateTime(0)
-  userCreate                               String?                @db.VarChar(36)
+  verified                                 user_verifed             @default(non_active)
+  storeId                                  String?                  @db.VarChar(36)
+  createdAt                                DateTime?                @default(now()) @db.DateTime(0)
+  updatedAt                                DateTime?                @default(now()) @db.DateTime(0)
+  token                                    String?                  @db.Text()
+  deletedAt                                DateTime?                @db.DateTime(0)
+  userCreate                               String?                  @db.VarChar(36)
   brands                                   brands[]
   categories                               categories[]
-  categories_categories_ownerIdTousers     categories[]           @relation("categories_ownerIdTousers")
+  categories_categories_ownerIdTousers     categories[]             @relation("categories_ownerIdTousers")
   itemInDetails                            itemInDetails[]
   itemIns                                  itemIns[]
   itemOutDetails                           itemOutDetails[]
   itemOuts                                 itemOuts[]
   memberLevels                             memberLevels?
-  memberLevels_memberLevels_ownerIdTousers memberLevels[]         @relation("memberLevels_ownerIdTousers")
+  memberLevels_memberLevels_ownerIdTousers memberLevels[]           @relation("memberLevels_ownerIdTousers")
   members                                  members[]
-  members_members_ownerIdTousers           members[]              @relation("members_ownerIdTousers")
+  members_members_ownerIdTousers           members[]                @relation("members_ownerIdTousers")
   productVariants                          productVariants[]
   purchaseDetails                          purchaseDetails[]
   purchaseOrderDetails                     purchaseOrderDetails[]
@@ -537,27 +536,26 @@ model users {
   sales                                    sales[]
   stores                                   stores[]
   suppliers                                suppliers[]
-  suppliers_suppliers_ownerIdTousers       suppliers[]            @relation("suppliers_ownerIdTousers")
+  suppliers_suppliers_ownerIdTousers       suppliers[]              @relation("suppliers_ownerIdTousers")
   salesPeople                              salesPeoples[]
-  salesPeople_salesPeople_ownerIdTousers   salesPeoples[]          @relation("salesPeople_ownerIdTousers")
+  salesPeople_salesPeople_ownerIdTousers   salesPeoples[]           @relation("salesPeople_ownerIdTousers")
   units                                    units[]
-  units_units_ownerIdTousers               units[]                @relation("units_ownerIdTousers")
+  units_units_ownerIdTousers               units[]                  @relation("units_ownerIdTousers")
   variants                                 variants[]
-  subscriptionsStores SubscriptionStore[]
-  salePendingDetails salePendingDetails[]
-  salePending salePending[]
-  notificationRecipients notificationRecipients[]
-  deviceTokens deviceTokens[]
-  stockOpnames stockOpname[]
-  stockOpnameDetails stockOpnameDetails[]
-  expenses expense[]
-  attendances attendances[]
-  storeSubscriptions store_subscriptions[] @relation("StoreSubscriptionCreator")
-  
-  affiliateCode affiliate_codes?
-  referredBy    referrals?      @relation("ReferredUser")
-}
+  subscriptionsStores                      SubscriptionStore[]
+  salePendingDetails                       salePendingDetails[]
+  salePending                              salePending[]
+  notificationRecipients                   notificationRecipients[]
+  deviceTokens                             deviceTokens[]
+  stockOpnames                             stockOpname[]
+  stockOpnameDetails                       stockOpnameDetails[]
+  expenses                                 expense[]
+  attendances                              attendances[]
+  storeSubscriptions                       store_subscriptions[]    @relation("StoreSubscriptionCreator")
 
+  affiliateCode affiliate_codes?
+  referredBy    referrals?       @relation("ReferredUser")
+}
 
 model variants {
   id              String            @id @db.VarChar(36)
@@ -577,87 +575,87 @@ model variants {
 }
 
 model stocks {
-  id String @id @db.VarChar(36)
-  storeId String @db.VarChar(36)
-  productId String @db.VarChar(36) @unique
-  quantity Int @db.Int()
-  userCreate String? @db.VarChar(36)
-  createdAt DateTime? @default(now()) @db.DateTime(0)
-  updatedAt DateTime? @default(now()) @db.DateTime(0)
+  id         String    @id @db.VarChar(36)
+  storeId    String    @db.VarChar(36)
+  productId  String    @unique @db.VarChar(36)
+  quantity   Int       @db.Int()
+  userCreate String?   @db.VarChar(36)
+  createdAt  DateTime? @default(now()) @db.DateTime(0)
+  updatedAt  DateTime? @default(now()) @db.DateTime(0)
   deletedAt  DateTime? @db.DateTime(0)
-  products products? @relation(fields: [productId], references: [id])
+  products   products? @relation(fields: [productId], references: [id])
 }
 
 model productPurchasePrices {
-  id           String    @id @db.VarChar(36)
-  conversionId String?   @db.VarChar(36)
-  storeId      String?   @db.VarChar(36)
-  price        Float?    @db.Float
-  userCreate   String?   @db.VarChar(36)
-  createdAt    DateTime? @db.DateTime(0)
-  updatedAt    DateTime? @db.DateTime(0)
-  deletedAt    DateTime? @db.DateTime(0)
+  id                 String              @id @db.VarChar(36)
+  conversionId       String?             @db.VarChar(36)
+  storeId            String?             @db.VarChar(36)
+  price              Float?              @db.Float
+  userCreate         String?             @db.VarChar(36)
+  createdAt          DateTime?           @db.DateTime(0)
+  updatedAt          DateTime?           @db.DateTime(0)
+  deletedAt          DateTime?           @db.DateTime(0)
   productConversions productConversions? @relation(fields: [conversionId], references: [id])
 }
 
 model productSellPrices {
-  id           String    @id @db.VarChar(36)
-  conversionId String?   @db.VarChar(36)
-  storeId      String?   @db.VarChar(36)
-  price        Float?    @db.Float
-  level        Int?      @default(1) @db.SmallInt
-  userCreate   String?   @db.VarChar(36)
-  createdAt    DateTime? @db.DateTime(0)
-  updatedAt    DateTime? @db.DateTime(0)
-  deletedAt    DateTime? @db.DateTime(0)
+  id                 String              @id @db.VarChar(36)
+  conversionId       String?             @db.VarChar(36)
+  storeId            String?             @db.VarChar(36)
+  price              Float?              @db.Float
+  level              Int?                @default(1) @db.SmallInt
+  userCreate         String?             @db.VarChar(36)
+  createdAt          DateTime?           @db.DateTime(0)
+  updatedAt          DateTime?           @db.DateTime(0)
+  deletedAt          DateTime?           @db.DateTime(0)
   productConversions productConversions? @relation(fields: [conversionId], references: [id])
 }
 
 model cogs {
-  id String @id @db.VarChar(36)
-  hppHistoryId String? @db.VarChar(36)
-  price Decimal?      @db.Decimal(14, 2)
-  quantity Decimal?      @db.Decimal(14, 2)
-  saleDetailId  String @db.VarChar(36)
+  id           String    @id @db.VarChar(36)
+  hppHistoryId String?   @db.VarChar(36)
+  price        Decimal?  @db.Decimal(14, 2)
+  quantity     Decimal?  @db.Decimal(14, 2)
+  saleDetailId String    @db.VarChar(36)
   userCreate   String?   @db.VarChar(36)
   createdAt    DateTime? @db.DateTime(0)
   updatedAt    DateTime? @db.DateTime(0)
   deletedAt    DateTime? @db.DateTime(0)
-  
+
   saleDetail saleDetails? @relation(fields: [saleDetailId], references: [id])
 }
 
 model hppHistory {
-  id           String    @id @db.VarChar(36)
-  storeId      String?   @db.VarChar(36)
-  transactionDetailId      String?   @db.VarChar(36)
-  date DateTime @default(now()) @db.DateTime()
-  productId String @db.VarChar(36)
-  price        Float?    @db.Float
-  type String?
-  quantity        Int?      @default(1) @db.Int()
-  quantityUsed Int? @db.Int()
-  status hpp_history? @default(available)
+  id                  String       @id @db.VarChar(36)
+  storeId             String?      @db.VarChar(36)
+  transactionDetailId String?      @db.VarChar(36)
+  date                DateTime     @default(now()) @db.DateTime()
+  productId           String       @db.VarChar(36)
+  price               Float?       @db.Float
+  type                String?
+  quantity            Int?         @default(1) @db.Int()
+  quantityUsed        Int?         @db.Int()
+  status              hpp_history? @default(available)
 }
 
 model account {
-  id        String    @id @db.VarChar(36)
-  ownerId   String    @db.VarChar(36)
-  storeId String? @db.VarChar(36)
-  name      String?   @db.VarChar(255)
-  balance   Decimal?  @db.Decimal(13, 4)
-  currentBalance Decimal? @db.Decimal(13, 4)
-  type      String?   @db.VarChar(10)
-  image String? @db.Text()
-  createdAt DateTime? @db.DateTime(0)
-  updatedAt DateTime? @db.DateTime(0)
-  deletedAt DateTime? @db.DateTime(0)
-  sales sales[]
-  expenses expense[]
-  stores stores[]
-  cashflows cashflow[] @relation("FromAccount")
-  toCashflows cashflow[] @relation("ToAccount")
-  defaultForStores stores[] @relation("StoreDefaultCash")
+  id               String     @id @db.VarChar(36)
+  ownerId          String     @db.VarChar(36)
+  storeId          String?    @db.VarChar(36)
+  name             String?    @db.VarChar(255)
+  balance          Decimal?   @db.Decimal(13, 4)
+  currentBalance   Decimal?   @db.Decimal(13, 4)
+  type             String?    @db.VarChar(10)
+  image            String?    @db.Text()
+  createdAt        DateTime?  @db.DateTime(0)
+  updatedAt        DateTime?  @db.DateTime(0)
+  deletedAt        DateTime?  @db.DateTime(0)
+  sales            sales[]
+  expenses         expense[]
+  stores           stores[]
+  cashflows        cashflow[] @relation("FromAccount")
+  toCashflows      cashflow[] @relation("ToAccount")
+  defaultForStores stores[]   @relation("StoreDefaultCash")
 }
 
 model debts {
@@ -674,7 +672,7 @@ model debts {
 
 model itemInDetails {
   id                  String              @id @db.VarChar(36)
-  itemInId          String              @db.VarChar(36)
+  itemInId            String              @db.VarChar(36)
   productId           String              @db.VarChar(36)
   productConversionId String?             @db.VarChar(36)
   quantity            Decimal?            @db.Decimal(14, 4)
@@ -687,7 +685,7 @@ model itemInDetails {
   updatedAt           DateTime?           @default(now()) @db.DateTime(0)
   deletedAt           DateTime?           @db.DateTime(0)
   products            products?           @relation(fields: [productId], references: [id], onUpdate: Restrict, map: "itemindetails_ibfk_1")
-  itemIns           itemIns           @relation(fields: [itemInId], references: [id], onDelete: Cascade, map: "itemindetails_ibfk_2")
+  itemIns             itemIns             @relation(fields: [itemInId], references: [id], onDelete: Cascade, map: "itemindetails_ibfk_2")
   productConversions  productConversions? @relation(fields: [productConversionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "itemindetails_ibfk_3")
   users               users?              @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "itemindetails_ibfk_4")
 
@@ -698,19 +696,19 @@ model itemInDetails {
 }
 
 model itemIns {
-  id          String    @id @db.VarChar(36)
-  storeId     String?   @db.VarChar(36)
-  date        DateTime  @db.Date
-  invoice     String    @db.VarChar(100)
-  subTotal    Decimal?  @db.Decimal(14, 4)
-  total       Decimal?  @db.Decimal(14, 4)
-  description String?   @db.Text
-  userCreate  String?   @db.VarChar(36)
-  createdAt   DateTime? @default(now()) @db.DateTime(0)
-  updatedAt   DateTime? @default(now()) @db.DateTime(0)
-  deletedAt   DateTime? @db.DateTime(0)
-  stores      stores?   @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "itemins_ibfk_1")
-  users       users?    @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "itemins_ibfk_3")
+  id            String          @id @db.VarChar(36)
+  storeId       String?         @db.VarChar(36)
+  date          DateTime        @db.Date
+  invoice       String          @db.VarChar(100)
+  subTotal      Decimal?        @db.Decimal(14, 4)
+  total         Decimal?        @db.Decimal(14, 4)
+  description   String?         @db.Text
+  userCreate    String?         @db.VarChar(36)
+  createdAt     DateTime?       @default(now()) @db.DateTime(0)
+  updatedAt     DateTime?       @default(now()) @db.DateTime(0)
+  deletedAt     DateTime?       @db.DateTime(0)
+  stores        stores?         @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "itemins_ibfk_1")
+  users         users?          @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "itemins_ibfk_3")
   itemInDetails itemInDetails[]
 
   @@index([storeId], map: "purchaseStore")
@@ -821,27 +819,27 @@ model purchaseOrders {
 }
 
 model notifications {
-  id          String              @id @default(uuid()) @db.VarChar(36)
-  title       String?             @db.VarChar(255)
-  body        String              @db.Text()
-  type        String?             @db.VarChar(50)
-  createdAt   DateTime            @default(now()) @db.DateTime(0)
-  screen      String?             @db.VarChar(50)
-  referenceId String?             @db.VarChar(36)
+  id          String                   @id @default(uuid()) @db.VarChar(36)
+  title       String?                  @db.VarChar(255)
+  body        String                   @db.Text()
+  type        String?                  @db.VarChar(50)
+  createdAt   DateTime                 @default(now()) @db.DateTime(0)
+  screen      String?                  @db.VarChar(50)
+  referenceId String?                  @db.VarChar(36)
   metadata    Json?
   recipients  notificationRecipients[]
 }
 
 model notificationRecipients {
-  id             String        @id @default(uuid()) @db.VarChar(36)
-  notificationId String        @db.VarChar(36)
-  userId         String        @db.VarChar(36)
-  isRead         Boolean       @default(false)
-  readAt         DateTime?     @db.DateTime(0)
-  createdAt      DateTime      @default(now()) @db.DateTime(0)
+  id             String    @id @default(uuid()) @db.VarChar(36)
+  notificationId String    @db.VarChar(36)
+  userId         String    @db.VarChar(36)
+  isRead         Boolean   @default(false)
+  readAt         DateTime? @db.DateTime(0)
+  createdAt      DateTime  @default(now()) @db.DateTime(0)
 
-  notification   notifications  @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-  user           users          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification notifications @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         users         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model deviceTokens {
@@ -854,26 +852,26 @@ model deviceTokens {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  user       users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model stockOpname {
-  id              String                @id @db.VarChar(36)
-  storeId         String                @db.VarChar(36)
-  date            DateTime              @db.Date
-  invoice         String                @unique @db.VarChar(100)
-  description     String?               @db.Text
-  status          stockOpname_status?   @default(pending)
-  adjustmentTotal Decimal?              @db.Decimal(14, 4)
-  userCreate      String?               @db.VarChar(36)
-  createdAt       DateTime?             @default(now()) @db.DateTime(0)
-  updatedAt       DateTime?             @default(now()) @db.DateTime(0)
-  deletedAt       DateTime?             @db.DateTime(0)
+  id              String              @id @db.VarChar(36)
+  storeId         String              @db.VarChar(36)
+  date            DateTime            @db.Date
+  invoice         String              @unique @db.VarChar(100)
+  description     String?             @db.Text
+  status          stockOpname_status? @default(pending)
+  adjustmentTotal Decimal?            @db.Decimal(14, 4)
+  userCreate      String?             @db.VarChar(36)
+  createdAt       DateTime?           @default(now()) @db.DateTime(0)
+  updatedAt       DateTime?           @default(now()) @db.DateTime(0)
+  deletedAt       DateTime?           @db.DateTime(0)
 
   // Relations
-  stores          stores                @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameStore")
-  users           users?                @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameUser")
-  stockOpnameDetails         stockOpnameDetails[]
+  stores             stores               @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameStore")
+  users              users?               @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameUser")
+  stockOpnameDetails stockOpnameDetails[]
 
   @@index([storeId], map: "stockOpnameStoreIndex")
   @@index([userCreate], map: "stockOpnameUserIndex")
@@ -881,25 +879,25 @@ model stockOpname {
 }
 
 model stockOpnameDetails {
-  id                  String              @id @db.VarChar(36)
-  stockOpnameId       String              @db.VarChar(36)
-  productId           String              @db.VarChar(36)
-  productConversionId String?             @db.VarChar(36)
-  systemQuantity      Decimal?            @db.Decimal(14, 4)
-  actualQuantity      Decimal             @db.Decimal(14, 4)
-  differenceQuantity  Decimal?            @db.Decimal(14, 4)
-  differenceValue     Decimal?            @db.Decimal(14, 4)
-  description         String?             @db.Text
-  userCreate          String?             @db.VarChar(36)
-  createdAt           DateTime?           @default(now()) @db.DateTime(0)
-  updatedAt           DateTime?           @default(now()) @db.DateTime(0)
-  deletedAt           DateTime?           @db.DateTime(0)
+  id                  String    @id @db.VarChar(36)
+  stockOpnameId       String    @db.VarChar(36)
+  productId           String    @db.VarChar(36)
+  productConversionId String?   @db.VarChar(36)
+  systemQuantity      Decimal?  @db.Decimal(14, 4)
+  actualQuantity      Decimal   @db.Decimal(14, 4)
+  differenceQuantity  Decimal?  @db.Decimal(14, 4)
+  differenceValue     Decimal?  @db.Decimal(14, 4)
+  description         String?   @db.Text
+  userCreate          String?   @db.VarChar(36)
+  createdAt           DateTime? @default(now()) @db.DateTime(0)
+  updatedAt           DateTime? @default(now()) @db.DateTime(0)
+  deletedAt           DateTime? @db.DateTime(0)
 
   // Relations
-  stockOpname         stockOpname         @relation(fields: [stockOpnameId], references: [id], onDelete: Cascade, map: "stockOpnameDetailHeader")
-  products            products?           @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameDetailProduct")
-  productConversions  productConversions? @relation(fields: [productConversionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameDetailConversion")
-  users               users?              @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameDetailUser")
+  stockOpname        stockOpname         @relation(fields: [stockOpnameId], references: [id], onDelete: Cascade, map: "stockOpnameDetailHeader")
+  products           products?           @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameDetailProduct")
+  productConversions productConversions? @relation(fields: [productConversionId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameDetailConversion")
+  users              users?              @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "stockOpnameDetailUser")
 
   @@index([stockOpnameId], map: "stockOpnameDetailHeaderIndex")
   @@index([productId], map: "stockOpnameDetailProductIndex")
@@ -907,124 +905,124 @@ model stockOpnameDetails {
 }
 
 model cashflow {
-  id            String    @id @default(uuid()) @db.VarChar(36)
-  kasId         String    @db.VarChar(36)
-  toKasId       String?   @db.VarChar(36) 
-  type          String    @db.VarChar(10) // 'IN' | 'OUT' | 'TRANSFER'
-  amount        Decimal   @db.Decimal(12,2)
-  description   String?   @db.VarChar(255)
-  referenceId   String?   @db.VarChar(36) // ID transaksi penjualan/pembelian
-  referenceType String?   @db.VarChar(50) // "SALE", "EXPENSE", dll
-  transactionDate DateTime @default(now()) 
-  storeId       String    @db.VarChar(36)
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  kasId           String   @db.VarChar(36)
+  toKasId         String?  @db.VarChar(36)
+  type            String   @db.VarChar(10) // 'IN' | 'OUT' | 'TRANSFER'
+  amount          Decimal  @db.Decimal(12, 2)
+  description     String?  @db.VarChar(255)
+  referenceId     String?  @db.VarChar(36) // ID transaksi penjualan/pembelian
+  referenceType   String?  @db.VarChar(50) // "SALE", "EXPENSE", dll
+  transactionDate DateTime @default(now())
+  storeId         String   @db.VarChar(36)
 
-  userCreate    String?   @db.VarChar(36)
-  createdAt     DateTime  @default(now())
-  deletedAt     DateTime?
+  userCreate String?   @db.VarChar(36)
+  createdAt  DateTime  @default(now())
+  deletedAt  DateTime?
 
-  account           account? @relation("FromAccount", fields: [kasId], references: [id])
-  toAccount         account? @relation("ToAccount", fields: [toKasId], references: [id])
-  store             stores  @relation(fields: [storeId], references: [id])
+  account   account? @relation("FromAccount", fields: [kasId], references: [id])
+  toAccount account? @relation("ToAccount", fields: [toKasId], references: [id])
+  store     stores   @relation(fields: [storeId], references: [id])
 
-  @@map("cashflow")
   @@index([kasId])
+  @@map("cashflow")
 }
 
 model expenseCategory {
-  id        String     @id @default(uuid()) @db.VarChar(36)
-  storeId   String     @db.VarChar(36)
-  name      String     @db.VarChar(100)
-  description      String?    @db.Text
+  id          String  @id @default(uuid()) @db.VarChar(36)
+  storeId     String  @db.VarChar(36)
+  name        String  @db.VarChar(100)
+  description String? @db.Text
 
-  store     stores     @relation(fields: [storeId], references: [id])
-  expenses  expense[]
-
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @default(now())
-  deletedAt DateTime?
-
-  @@map("expenseCategory")
-  @@index([storeId])
-}
-
-model expense {
-  id                 String           @id @default(uuid()) @db.VarChar(36)
-  storeId            String           @db.VarChar(36)
-  accountId       String           @db.VarChar(36)
-  expenseCategoryId  String           @db.VarChar(36)
-  amount             Decimal          @db.Decimal(14, 2)
-  description        String?          @db.Text
-  expenseDate        DateTime         @db.Date
-  userCreate         String?          @db.VarChar(36)
-
-  store              stores           @relation(fields: [storeId], references: [id])
-  account         account       @relation(fields: [accountId], references: [id])
-  category           expenseCategory  @relation(fields: [expenseCategoryId], references: [id])
-  user               users?           @relation(fields: [userCreate], references: [id])
+  store    stores    @relation(fields: [storeId], references: [id])
+  expenses expense[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now())
   deletedAt DateTime?
 
-  @@map("expense")
+  @@index([storeId])
+  @@map("expenseCategory")
+}
+
+model expense {
+  id                String   @id @default(uuid()) @db.VarChar(36)
+  storeId           String   @db.VarChar(36)
+  accountId         String   @db.VarChar(36)
+  expenseCategoryId String   @db.VarChar(36)
+  amount            Decimal  @db.Decimal(14, 2)
+  description       String?  @db.Text
+  expenseDate       DateTime @db.Date
+  userCreate        String?  @db.VarChar(36)
+
+  store    stores          @relation(fields: [storeId], references: [id])
+  account  account         @relation(fields: [accountId], references: [id])
+  category expenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  user     users?          @relation(fields: [userCreate], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
+  deletedAt DateTime?
+
   @@index([storeId])
   @@index([accountId])
   @@index([expenseCategoryId])
+  @@map("expense")
 }
 
 model attendances {
-  id         String   @id @db.VarChar(36)
+  id String @id @db.VarChar(36)
 
-  ownerId    String   @db.VarChar(36)
-  storeId    String   @db.VarChar(36)
-  userId String   @db.VarChar(36)
+  ownerId String @db.VarChar(36)
+  storeId String @db.VarChar(36)
+  userId  String @db.VarChar(36)
 
   // ===== CHECK IN =====
-  checkInAt     DateTime @db.DateTime(0)
-  checkInLat    Decimal? @db.Decimal(10, 7)
-  checkInLng    Decimal? @db.Decimal(10, 7)
+  checkInAt       DateTime         @db.DateTime(0)
+  checkInLat      Decimal?         @db.Decimal(10, 7)
+  checkInLng      Decimal?         @db.Decimal(10, 7)
   checkInDistance Int?
-  checkInStatus AttendanceStatus @default(VALID)
+  checkInStatus   AttendanceStatus @default(VALID)
 
   // ===== CHECK OUT =====
-  checkOutAt     DateTime? @db.DateTime(0)
-  checkOutLat    Decimal? @db.Decimal(10, 7)
-  checkOutLng    Decimal? @db.Decimal(10, 7)
+  checkOutAt       DateTime?         @db.DateTime(0)
+  checkOutLat      Decimal?          @db.Decimal(10, 7)
+  checkOutLng      Decimal?          @db.Decimal(10, 7)
   checkOutDistance Int?
-  checkOutStatus AttendanceStatus?
+  checkOutStatus   AttendanceStatus?
 
   // ===== META =====
   isLocationRequired Boolean
-  deviceId  String? @db.VarChar(100)
-  note      String? @db.Text
-  photoInUrl  String? @db.Text
-  photoOutUrl String? @db.Text
+  deviceId           String? @db.VarChar(100)
+  note               String? @db.Text
+  photoInUrl         String? @db.Text
+  photoOutUrl        String? @db.Text
 
   createdAt DateTime @default(now()) @db.DateTime(0)
 
-  store     stores    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  users  users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store stores @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  users users  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, checkInAt])
   @@index([storeId, checkInAt])
 }
 
 model productComponents {
-  id            String   @id @db.VarChar(36)
-  productId     String   @db.VarChar(36) // produk utama
-  componentId   String   @db.VarChar(36) // produk bahan / item
-  conversionId  String?  @db.VarChar(36) // hanya untuk recipe
-  quantity      Int
-  type          product_component_type
-  status        Int?     @default(1) @db.SmallInt
-  userCreate    String?  @db.VarChar(36)
-  createdAt     DateTime? @default(now()) @db.DateTime(0)
-  updatedAt     DateTime? @default(now()) @db.DateTime(0)
-  deletedAt     DateTime? @db.DateTime(0)
+  id           String                 @id @db.VarChar(36)
+  productId    String                 @db.VarChar(36) // produk utama
+  componentId  String                 @db.VarChar(36) // produk bahan / item
+  conversionId String?                @db.VarChar(36) // hanya untuk recipe
+  quantity     Int
+  type         product_component_type
+  status       Int?                   @default(1) @db.SmallInt
+  userCreate   String?                @db.VarChar(36)
+  createdAt    DateTime?              @default(now()) @db.DateTime(0)
+  updatedAt    DateTime?              @default(now()) @db.DateTime(0)
+  deletedAt    DateTime?              @db.DateTime(0)
 
-  product     products @relation("ProductComponent_Product", fields: [productId], references: [id])
-  component   products @relation("ProductComponent_Component", fields: [componentId], references: [id])
-  conversion  productConversions? @relation(fields: [conversionId], references: [id])
+  product    products            @relation("ProductComponent_Product", fields: [productId], references: [id])
+  component  products            @relation("ProductComponent_Component", fields: [componentId], references: [id])
+  conversion productConversions? @relation(fields: [conversionId], references: [id])
 
   @@index([productId])
   @@index([componentId])
@@ -1121,32 +1119,33 @@ enum store_subscription_status {
 }
 
 model affiliate_codes {
-  id              String   @id @default(uuid()) @db.VarChar(36)
-  userId          String   @unique @db.VarChar(36)
-  code            String   @unique @db.VarChar(50)
-  commissionType  String?  @db.VarChar(20) // e.g., 'PERCENTAGE' or 'FIXED'
-  commissionValue Decimal? @db.Decimal(12, 2)
-  createdAt       DateTime @default(now()) @db.DateTime
-  updatedAt       DateTime @updatedAt @db.DateTime
-  user            users    @relation(fields: [userId], references: [id])
-  referrals       referrals[]
+  id                    String                  @id @default(uuid()) @db.VarChar(36)
+  userId                String                  @unique @db.VarChar(36)
+  code                  String                  @unique @db.VarChar(50)
+  commissionType        String?                 @db.VarChar(20) // e.g., 'PERCENTAGE' or 'FIXED'
+  commissionValue       Decimal?                @db.Decimal(12, 2)
+  createdAt             DateTime                @default(now()) @db.DateTime
+  updatedAt             DateTime                @updatedAt @db.DateTime
+  user                  users                   @relation(fields: [userId], references: [id])
+  referrals             referrals[]
   affiliate_commissions affiliate_commissions[]
 
   @@map("affiliate_codes")
 }
 
 model referrals {
-  id              String   @id @default(uuid()) @db.VarChar(36)
-  affiliateCodeId String   @db.VarChar(36)
-  referredUserId  String   @unique @db.VarChar(36)
-  earnedAmount    Decimal? @db.Decimal(12, 2)
-  status          String   @default("PENDING") @db.VarChar(20)
-  createdAt       DateTime @default(now()) @db.DateTime
+  id              String          @id @default(uuid()) @db.VarChar(36)
+  affiliateCodeId String          @db.VarChar(36)
+  referredUserId  String          @unique @db.VarChar(36)
+  earnedAmount    Decimal?        @db.Decimal(12, 2)
+  status          String          @default("PENDING") @db.VarChar(20)
+  createdAt       DateTime        @default(now()) @db.DateTime
   affiliateCode   affiliate_codes @relation(fields: [affiliateCodeId], references: [id])
   referredUser    users           @relation("ReferredUser", fields: [referredUserId], references: [id])
 
   @@map("referrals")
 }
+
 model affiliate_commissions {
   id              String   @id @default(uuid()) @db.VarChar(36)
   affiliateCodeId String   @db.VarChar(36)
@@ -1154,8 +1153,8 @@ model affiliate_commissions {
   amount          Decimal  @db.Decimal(12, 2)
   createdAt       DateTime @default(now()) @db.DateTime
 
-  affiliateCode   affiliate_codes    @relation(fields: [affiliateCodeId], references: [id])
-  subscription    store_subscriptions @relation(fields: [subscriptionId], references: [id])
+  affiliateCode affiliate_codes     @relation(fields: [affiliateCodeId], references: [id])
+  subscription  store_subscriptions @relation(fields: [subscriptionId], references: [id])
 
   @@map("affiliate_commissions")
 }
