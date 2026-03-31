@@ -7,7 +7,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 
 const getStoreId = async (
     userId: string,
-    userLevel: string
+    userLevel: string,
 ): Promise<string> => {
     const owner: any = await getOwnerId(userId, userLevel);
     const store = await Model.stores.findFirst({
@@ -55,7 +55,7 @@ export const createCashflowEntry = async (
         referenceType?: string;
         transactionDate?: Date;
         userCreate?: string;
-    }
+    },
 ): Promise<void> => {
     const amount = new Decimal(data.amount);
 
@@ -86,7 +86,7 @@ export const createCashflowEntry = async (
         throw new ValidationError(
             "Kas Account tidak ditemukan",
             404,
-            "kasAccount"
+            "kasAccount",
         );
     }
 
@@ -121,7 +121,7 @@ export const createCashflowEntry = async (
             throw new ValidationError(
                 "Kas Tujuan tidak ditemukan",
                 404,
-                "toKasId"
+                "toKasId",
             );
         }
 
@@ -139,7 +139,7 @@ export const createCashflowEntry = async (
 export const getCashflows = async (
     query: CashflowQueryInterface,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
     const take: number = parseInt(query.limit ?? "20");
@@ -194,9 +194,11 @@ export const getCashflows = async (
 export const createCashflow = async (
     cashflowData: any,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
+
+    console.log({ cashflowData });
 
     // Validasi kas account milik store ini
     const kasAccount = await Model.account.findUnique({
@@ -206,7 +208,7 @@ export const createCashflow = async (
         throw new ValidationError(
             "Kas Account tidak ditemukan",
             404,
-            "kasAccount"
+            "kasAccount",
         );
     }
 
@@ -217,7 +219,7 @@ export const createCashflow = async (
             throw new ValidationError(
                 "Kas Tujuan harus diisi untuk transfer",
                 400,
-                "toKasId"
+                "toKasId",
             );
         }
         toKasAccount = await Model.account.findUnique({
@@ -227,7 +229,7 @@ export const createCashflow = async (
             throw new ValidationError(
                 "Kas Tujuan tidak ditemukan",
                 404,
-                "toKasId"
+                "toKasId",
             );
         }
     }
@@ -266,6 +268,7 @@ export const createCashflow = async (
         referenceId: cashflowData.referenceId,
         referenceType: cashflowData.referenceType || "MANUAL",
         userCreate: userId,
+        transactionDate: cashflowData.transactionDate,
     };
 
     const transactions = [
@@ -281,7 +284,7 @@ export const createCashflow = async (
             Model.account.update({
                 where: { id: cashflowData.toKasId },
                 data: { currentBalance: destNewSaldo },
-            })
+            }),
         );
     }
 
@@ -294,7 +297,7 @@ export const updateCashflow = async (
     id: string,
     cashflowData: any,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
 
@@ -323,7 +326,7 @@ export const updateCashflow = async (
         Model.account.update({
             where: { id: existing.kasId },
             data: { currentBalance: reversedSourceBalance },
-        })
+        }),
     );
 
     // Kembalikan saldo tujuan jika TRANSFER
@@ -339,7 +342,7 @@ export const updateCashflow = async (
             Model.account.update({
                 where: { id: existing.toKasId },
                 data: { currentBalance: reversedDestBalance },
-            })
+            }),
         );
     }
 
@@ -377,7 +380,7 @@ export const updateCashflow = async (
             throw new ValidationError(
                 "Kas Tujuan tidak ditemukan",
                 404,
-                "toKasId"
+                "toKasId",
             );
         }
         destBalance = destAccount.currentBalance || new Decimal(0);
@@ -430,7 +433,7 @@ export const updateCashflow = async (
             Model.account.update({
                 where: { id: existing.kasId },
                 data: { currentBalance: reversedSourceBalance },
-            })
+            }),
         );
     }
 
@@ -439,7 +442,7 @@ export const updateCashflow = async (
             Model.account.update({
                 where: { id: newToKasId },
                 data: { currentBalance: destBalance },
-            })
+            }),
         );
         // Jika toKasId berubah, kembalikan saldo toKasId lama
         if (
@@ -454,7 +457,7 @@ export const updateCashflow = async (
                 Model.account.update({
                     where: { id: existing.toKasId },
                     data: { currentBalance: oldDestReversedBalance },
-                })
+                }),
             );
         }
     } else if (existing.type === "TRANSFER" && existing.toKasId) {
@@ -466,7 +469,7 @@ export const updateCashflow = async (
             Model.account.update({
                 where: { id: existing.toKasId },
                 data: { currentBalance: oldDestReversedBalance },
-            })
+            }),
         );
     }
 
@@ -483,7 +486,7 @@ export const revertCashflowByReference = async (
     tx: any,
     referenceId: string,
     referenceType: string,
-    storeId: string
+    storeId: string,
 ): Promise<void> => {
     // Cari semua cashflow terkait transaction ini yang belum dihapus
     const cashflows = await tx.cashflow.findMany({
@@ -556,7 +559,7 @@ export const revertCashflowByReference = async (
 export const deleteCashflow = async (
     id: string,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
 
@@ -583,7 +586,7 @@ export const deleteCashflow = async (
         Model.account.update({
             where: { id: cashflow.kasId },
             data: { currentBalance: sourceNewBalance },
-        })
+        }),
     );
 
     if (
@@ -598,7 +601,7 @@ export const deleteCashflow = async (
             Model.account.update({
                 where: { id: cashflow.toKasId },
                 data: { currentBalance: destNewBalance },
-            })
+            }),
         );
     }
 
@@ -606,7 +609,7 @@ export const deleteCashflow = async (
         Model.cashflow.update({
             where: { id },
             data: { deletedAt: new Date() },
-        })
+        }),
     );
 
     await Model.$transaction(transactions);
@@ -617,7 +620,7 @@ export const deleteCashflow = async (
 export const getCashflowById = async (
     id: string,
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     const storeId = await getStoreId(userId, userLevel);
 
