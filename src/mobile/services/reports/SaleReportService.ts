@@ -100,7 +100,7 @@ export const getSaleReport = async (filters: {
         summary.total = categorySubTotal;
     } else {
         summary = {
-            total: total._sum.subTotal || 0,
+            total: (total._sum.subTotal || 0) - (total._sum.discount || 0),
             subTotal: total._sum.subTotal || 0,
             discount: total._sum.discount || 0,
             tax: total._sum.tax || 0,

@@ -164,13 +164,6 @@ const ProductUpdateValidation = [
         .custom((value) => value >= 0)
         .withMessage("Sell price must be non-negative"),
 
-    body("price.*.type")
-        .optional()
-        .isString()
-        .withMessage("Type should be string")
-        .isIn(["default", "satuan"])
-        .withMessage("Type should be 'default' or 'satuan'"),
-
     body("price.*.level")
         .optional()
         .isNumeric()
