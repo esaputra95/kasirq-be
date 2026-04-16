@@ -9,7 +9,7 @@ export const getBestSellerReport = async (filters: {
 }) => {
     const start = moment(filters.start, "YYYY-MM-DD").startOf("day").toDate();
     const end = moment(filters.finish, "YYYY-MM-DD").endOf("day").toDate();
-    const limit = parseInt(filters.limit ?? "10");
+    const limit = parseInt(filters.limit ?? "200");
 
     let whereClause: any = {
         sales: {

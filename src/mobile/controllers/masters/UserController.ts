@@ -5,14 +5,15 @@ import * as UserService from "#root/mobile/services/masters/UserService";
 
 const getData = async (
     req: Request<{}, {}, {}, UserQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
         const result = await UserService.getUsers(
             req.query,
             res.locals.userId,
-            res.locals.userType
+            res.locals.userType,
         );
+
         res.status(200).json({
             status: true,
             ...result,
@@ -27,7 +28,7 @@ const postData = async (req: Request, res: Response) => {
         const result = await UserService.createUser(
             req.body,
             res.locals.userId,
-            res.locals.userType
+            res.locals.userType,
         );
         res.status(200).json({
             status: true,
@@ -56,7 +57,7 @@ const changePassword = async (req: Request, res: Response) => {
         const result = await UserService.changePassword(
             res.locals.userId,
             currentPassword,
-            newPassword
+            newPassword,
         );
         res.status(200).json({
             status: true,
@@ -93,7 +94,7 @@ const getDataById = async (req: Request, res: Response) => {
 
 const getDataCashiers = async (
     req: Request<{}, {}, {}, UserQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
         const result = await UserService.getUserCashiers(req.query);
@@ -111,7 +112,7 @@ const postDeviceToken = async (req: Request, res: Response) => {
         const result = await UserService.postDeviceToken(
             req.body.userId,
             req.body.token,
-            req.body.platform || "android" // Default to android if not specified
+            req.body.platform || "android", // Default to android if not specified
         );
         res.status(200).json({
             status: true,

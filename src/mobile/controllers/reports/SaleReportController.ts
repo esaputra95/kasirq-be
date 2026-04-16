@@ -4,6 +4,8 @@ import * as SaleReportService from "#root/mobile/services/reports/SaleReportServ
 
 const getData = async (req: Request, res: Response) => {
     try {
+        console.log("user :", req.query.userId);
+
         const result = await SaleReportService.getSaleReport({
             start: req.query.start as string,
             finish: req.query.finish as string,
@@ -12,6 +14,7 @@ const getData = async (req: Request, res: Response) => {
             memberId: req.query.memberId as string | undefined,
             salePeopleId: req.query.salePeopleId as string | undefined,
             categoryId: req.query.categoryId as string | undefined,
+            userId: req.query.userId as string | undefined,
         });
 
         res.status(200).json({

@@ -9,6 +9,7 @@ export const getSaleReport = async (filters: {
     memberId?: string;
     salePeopleId?: string;
     categoryId?: string;
+    userId?: string;
 }) => {
     let filter: any = {};
 
@@ -22,6 +23,7 @@ export const getSaleReport = async (filters: {
     if (filters.storeId) filter.storeId = filters.storeId;
     if (filters.memberId) filter.memberId = filters.memberId;
     if (filters.salePeopleId) filter.salePeopleId = filters.salePeopleId;
+    if (filters.userId) filter.userCreate = filters.userId;
     if (filters.categoryId) {
         filter.saleDetails = {
             some: {
@@ -40,7 +42,12 @@ export const getSaleReport = async (filters: {
             include: {
                 members: true,
                 saleDetails: {
-                    include: { products: true },
+                    include: {
+                        products: true,
+                        productConversions: {
+                            select: { units: { select: { name: true } } },
+                        },
+                    },
                     where: filters.categoryId
                         ? { products: { categoryId: filters.categoryId } }
                         : undefined,
@@ -91,7 +98,7 @@ export const getSaleReport = async (filters: {
                 (acc: number, detail: any) =>
                     acc +
                     Number(detail.price || 0) * Number(detail.quantity || 0),
-                0
+                0,
             );
             sale.subTotal = sale.total - (sale.discount ?? 0);
             categorySubTotal += sale.subTotal;

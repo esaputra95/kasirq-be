@@ -77,6 +77,16 @@ export const registerOwner = async (userData: {
             },
         });
 
+        await tx.memberLevels.create({
+            data: {
+                ownerId: user.id,
+                name: "General",
+                id: uuidv4(),
+                level: 1,
+                userCreate: user.id,
+            },
+        });
+
         const store = await tx.stores.create({
             data: {
                 id: uuidv4(),

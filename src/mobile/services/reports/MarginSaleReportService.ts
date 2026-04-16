@@ -21,16 +21,24 @@ export const getMarginSaleReport = async (filters: {
         FROM 
             saleDetails
         LEFT JOIN 
-            cogs ON cogs.saleDetailId = saleDetails.id
+            cogs ON cogs.saleDetailId COLLATE utf8mb4_unicode_ci = saleDetails.id COLLATE utf8mb4_unicode_ci
         LEFT JOIN 
-            sales ON sales.id = saleDetails.saleId
+            sales ON sales.id COLLATE utf8mb4_unicode_ci = saleDetails.saleId COLLATE utf8mb4_unicode_ci
         LEFT JOIN 
-            products ON products.id = saleDetails.productId
+            products ON products.id COLLATE utf8mb4_unicode_ci = saleDetails.productId COLLATE utf8mb4_unicode_ci
         WHERE 
             sales.createdAt BETWEEN ${start} 
             AND ${end}
         AND sales.storeId COLLATE utf8mb4_unicode_ci = ${filters.storeId} COLLATE utf8mb4_unicode_ci
-        GROUP BY saleDetails.id
+        GROUP BY 
+            saleDetails.id, 
+            saleDetails.quantity, 
+            saleDetails.price, 
+            sales.date, 
+            sales.createdAt, 
+            sales.invoice, 
+            sales.discount, 
+            products.name
         ORDER BY sales.createdAt DESC
     `;
 

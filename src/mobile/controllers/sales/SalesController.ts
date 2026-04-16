@@ -156,13 +156,17 @@ const postData = async (req: Request, res: Response) => {
                 });
             }
 
-            for (const key in dataDetail) {
-                if (dataDetail[key].quantity === 0) continue;
+            for (const rawKey in dataDetail) {
+                const productId = rawKey.includes("_")
+                    ? rawKey.split("_")[0]
+                    : rawKey;
+
+                if (dataDetail[rawKey].quantity === 0) continue;
                 const idDetail = uuidv4();
 
                 // Get product info to check type
                 const product = await prisma.products.findUnique({
-                    where: { id: key },
+                    where: { id: productId },
                     select: { type: true, isStock: true },
                 });
 
@@ -170,26 +174,26 @@ const postData = async (req: Request, res: Response) => {
                     data: {
                         id: idDetail,
                         saleId: salesData.id,
-                        productId: key,
-                        productConversionId: dataDetail[key].unitId,
-                        quantity: dataDetail[key].quantity ?? 1,
-                        price: dataDetail[key].price ?? 0,
+                        productId: productId,
+                        productConversionId: dataDetail[rawKey].unitId,
+                        quantity: dataDetail[rawKey].quantity ?? 1,
+                        price: dataDetail[rawKey].price ?? 0,
                     },
                 });
 
                 const conversion = await prisma.productConversions.findFirst({
                     where: {
-                        id: dataDetail[key].unitId,
+                        id: dataDetail[rawKey].unitId,
                     },
                 });
 
                 if (!conversion) {
                     throw new Error(
-                        `Konversi produk dengan ID ${dataDetail[key].unitId} tidak ditemukan`,
+                        `Konversi produk dengan ID ${dataDetail[rawKey].unitId} tidak ditemukan`,
                     );
                 }
 
-                const saleQuantity = dataDetail[key].quantity ?? 1;
+                const saleQuantity = dataDetail[rawKey].quantity ?? 1;
                 const baseQuantity = saleQuantity * (conversion?.quantity ?? 1);
 
                 // Handle package and formula type products
@@ -200,7 +204,7 @@ const postData = async (req: Request, res: Response) => {
                     // Get product components
                     const components = await prisma.productComponents.findMany({
                         where: {
-                            productId: key,
+                            productId: productId,
                             status: 1,
                             // type: product.type as "package" | "formula",
                         },
@@ -289,7 +293,7 @@ const postData = async (req: Request, res: Response) => {
                     // Handle regular product (existing logic)
                     const decrement = await DecrementStock(
                         prisma,
-                        key,
+                        productId,
                         data.storeId,
                         baseQuantity,
                     );
@@ -306,7 +310,7 @@ const postData = async (req: Request, res: Response) => {
                         prisma,
                         storeId: data.storeId,
                         quantityNeed: baseQuantity,
-                        productId: key,
+                        productId: productId,
                     });
 
                     for (const value of hpp.hpp) {
