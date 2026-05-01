@@ -42,6 +42,7 @@ import { AttendanceRoute } from "./mobile/routers/attendances";
 import { enhanceStore } from "./services/enhanceStore";
 import { generateMemberLevels } from "./services/generateMemberLevels";
 import { viewLogs } from "./mobile/controllers/logs/LogViewerController";
+import RbacRoute from "./mobile/routers/rbac/RbacRoute";
 
 const app = express();
 app.use(cors());
@@ -78,6 +79,7 @@ app.use("/transfers", AccessToken, TransferRoute);
 app.use("/cash-ins", AccessToken, CashInRoute);
 app.use("/cash-outs", AccessToken, CashOutRoute);
 app.use("/attendances", AccessToken, AttendanceRoute);
+app.use("/rbac", AccessToken, RbacRoute);
 
 app.use("/admin", AdminRoute);
 app.use("/stores-api", StoresRoute);
