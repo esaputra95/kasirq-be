@@ -150,6 +150,21 @@ const OWNER_ALLOWED: PermissionKey[] = [
     "suppliers:read",
     "suppliers:update",
     "suppliers:delete",
+    "users:create",
+    "users:read",
+    "users:update",
+    "users:delete",
+    "printers:create",
+    "printers:read",
+    "printers:update",
+    "printers:delete",
+    "reset_transactions:read",
+    "member_levels:create",
+    "member_levels:read",
+    "member_levels:update",
+    "member_levels:delete",
+    "rbac:read",
+    "configuration_stores:read",
 ];
 
 const KASIR_ALLOWED: PermissionKey[] = [
@@ -632,7 +647,8 @@ export const getRoleForLevelWithPermissions = async (
     });
 
     const level = normalizeLevel(actor.level);
-    const roleName = level === "owner" || level === "superadmin" ? "owner" : "kasir";
+    const roleName =
+        level === "owner" || level === "superadmin" ? "owner" : "kasir";
 
     const role = await Model.roles.findFirst({
         where: {
