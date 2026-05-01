@@ -20,7 +20,7 @@ const AccessToken = async (req: Request, res: Response, next: NextFunction) => {
             },
         );
     } catch (error) {
-        res.send(403);
+        return res.send(403);
     }
 };
 

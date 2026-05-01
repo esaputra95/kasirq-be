@@ -8,13 +8,13 @@ import { sendNotificationToDevice } from "#root/helpers/sendNotification";
 
 const getData = async (
     req: Request<{}, {}, {}, NotificationQueryInterface>,
-    res: Response
+    res: Response,
 ) => {
     try {
         const query = req.query;
         const owner: any = await getOwnerId(
             res.locals.userId,
-            res.locals.userType
+            res.locals.userType,
         );
 
         // PAGING
@@ -151,7 +151,7 @@ const postData = async (req: Request, res: Response) => {
             for (const recipient of recipients) {
                 // Skip if user has no device tokens
                 // Send to all devices of this user
-                for (const deviceToken of recipient.user.deviceTokens) {
+                for (const deviceToken of recipient.user?.deviceTokens || []) {
                     const promise = (async () => {
                         try {
                             await sendNotificationToDevice(
@@ -161,12 +161,12 @@ const postData = async (req: Request, res: Response) => {
                                 {
                                     notificationId: recipient.id, // Use recipient ID
                                     type: type || "GENERAL",
-                                }
+                                },
                             );
                         } catch (error) {
                             console.error(
                                 `❌ Failed to send to user ${recipient.userId} device ${deviceToken.id}:`,
-                                error
+                                error,
                             );
                             // Don't throw, continue sending to other devices
                         }

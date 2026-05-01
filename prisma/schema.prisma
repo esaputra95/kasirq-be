@@ -439,6 +439,8 @@ model stores {
   expenses           expense[]
   cashflows          cashflow[]
   attendances        attendances[]
+  roles              roles[]               @relation("roles_store")
+  userRoles          user_roles[]
 
   defaultCashId String?  @db.VarChar(36)
   defaultCash   account? @relation("StoreDefaultCash", fields: [defaultCashId], references: [id])
@@ -552,9 +554,63 @@ model users {
   expenses                                 expense[]
   attendances                              attendances[]
   storeSubscriptions                       store_subscriptions[]    @relation("StoreSubscriptionCreator")
+  userRoles                                user_roles[]
 
   affiliateCode affiliate_codes?
   referredBy    referrals?       @relation("ReferredUser")
+}
+
+model roles {
+  id              String             @id @default(uuid()) @db.VarChar(36)
+  name            String             @db.VarChar(100)
+  storeId         String?            @db.VarChar(36)
+  isSystem        Boolean            @default(false)
+  createdAt       DateTime           @default(now()) @db.DateTime(0)
+  updatedAt       DateTime           @updatedAt @db.DateTime(0)
+  store           stores?            @relation("roles_store", fields: [storeId], references: [id], onDelete: Cascade)
+  rolePermissions role_permissions[]
+  userRoles       user_roles[]
+
+  @@unique([storeId, name], map: "roles_storeId_name_key")
+  @@index([storeId], map: "roles_storeId_idx")
+}
+
+model permissions {
+  id              String             @id @default(uuid()) @db.VarChar(36)
+  module          String             @db.VarChar(50)
+  action          String             @db.VarChar(20)
+  createdAt       DateTime           @default(now()) @db.DateTime(0)
+  updatedAt       DateTime           @updatedAt @db.DateTime(0)
+  rolePermissions role_permissions[]
+
+  @@unique([module, action], map: "permissions_module_action_key")
+  @@index([module], map: "permissions_module_idx")
+}
+
+model role_permissions {
+  roleId       String      @db.VarChar(36)
+  permissionId String      @db.VarChar(36)
+  createdAt    DateTime    @default(now()) @db.DateTime(0)
+  role         roles       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   permissions @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId], map: "role_permissions_permissionId_idx")
+}
+
+model user_roles {
+  userId    String   @db.VarChar(36)
+  storeId   String   @db.VarChar(36)
+  roleId    String   @db.VarChar(36)
+  createdAt DateTime @default(now()) @db.DateTime(0)
+  updatedAt DateTime @updatedAt @db.DateTime(0)
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     stores   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  role      roles    @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, storeId])
+  @@index([storeId], map: "user_roles_storeId_idx")
+  @@index([roleId], map: "user_roles_roleId_idx")
 }
 
 model variants {
@@ -838,8 +894,8 @@ model notificationRecipients {
   readAt         DateTime? @db.DateTime(0)
   createdAt      DateTime  @default(now()) @db.DateTime(0)
 
-  notification notifications @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-  user         users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification notifications? @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         users?        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model deviceTokens {
