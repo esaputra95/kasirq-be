@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import sendEmail from "#root/helpers/sendEmail";
 import moment from "moment";
 import { UnauthorizedError, ValidationError } from "#root/helpers/handleErrors";
+import { runRbacMigration } from "#root/mobile/services/rbac/RbacService";
 
 /**
  * Login user and generate JWT token
@@ -64,7 +65,7 @@ export const registerOwner = async (userData: {
     const token = Math.random().toString(36).substring(2, 7);
     const code = await hash(token, salt);
 
-    const user = await Model.$transaction(async (tx) => {
+    const result = await Model.$transaction(async (tx) => {
         const user = await tx.users.create({
             data: {
                 id: uuidv4(),
@@ -154,14 +155,24 @@ export const registerOwner = async (userData: {
             }
         }
 
-        return user;
+        return { user, storeId: store.id };
     });
+
+    // Generate RBAC permissions & default roles for the newly created store.
+    // Run this after the DB transaction commits so the store is visible.
+    await runRbacMigration(
+        {
+            userId: result.user.id,
+            level: "owner",
+        },
+        result.storeId,
+    );
 
     await sendEmail(userData.email, code, "register");
 
     return {
         message: "success post user data",
-        data: user,
+        data: result.user,
     };
 };
 
