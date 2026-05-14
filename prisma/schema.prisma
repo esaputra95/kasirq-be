@@ -423,6 +423,7 @@ model stores {
   locationRadius     Int?
   slug               String?               @db.VarChar(255)
   phone              String?               @db.VarChar(20)
+  image        String?                @db.Text
   itemIns            itemIns[]
   itemOuts           itemOuts[]
   purchaseOrders     purchaseOrders[]

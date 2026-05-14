@@ -57,4 +57,20 @@ const getDataById = async (req: Request, res: Response) => {
     }
 };
 
-export { getSelect, updateData, getDataById, getSelectSubscription };
+const uploadReceiptLogo = async (req: Request, res: Response) => {
+    try {
+        res.status(200).json({
+            code: 1,
+            status: 200,
+            message: "Successfully uploaded receipt logo",
+            data: req?.file?.filename ?? "",
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: false,
+            errors: `${error}`,
+        });
+    }
+};
+
+export { getSelect, updateData, getDataById, getSelectSubscription, uploadReceiptLogo };
