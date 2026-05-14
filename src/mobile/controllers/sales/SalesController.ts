@@ -1151,6 +1151,8 @@ const getFacture = async (req: Request, res: Response) => {
             select: {
                 name: true,
                 address: true,
+                image: true,
+                phone: true,
             },
         });
 
