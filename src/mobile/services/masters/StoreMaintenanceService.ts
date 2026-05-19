@@ -13,131 +13,137 @@ export const resetStoreData = async (storeId: string, ownerId: string) => {
         });
         const productIds = ownerProducts.map((p) => p.id);
 
-        await Model.$transaction(async (tx) => {
-            // --- 1. BERSIHKAN TRANSAKSI PENJUALAN (SALES) ---
+        await Model.$transaction(
+            async (tx) => {
+                // --- 1. BERSIHKAN TRANSAKSI PENJUALAN (SALES) ---
 
-            // Hapus COGS (Anak dari SaleDetail)
-            await tx.cogs.deleteMany({
-                where: {
-                    saleDetail: {
+                // Hapus COGS (Anak dari SaleDetail)
+                await tx.cogs.deleteMany({
+                    where: {
+                        saleDetail: {
+                            sales: {
+                                storeId: storeId,
+                            },
+                        },
+                    },
+                });
+
+                // Hapus SaleDetail (Anak dari Sale)
+                await tx.saleDetails.deleteMany({
+                    where: {
                         sales: {
                             storeId: storeId,
                         },
                     },
-                },
-            });
+                });
 
-            // Hapus SaleDetail (Anak dari Sale)
-            await tx.saleDetails.deleteMany({
-                where: {
-                    sales: {
-                        storeId: storeId,
-                    },
-                },
-            });
-
-            // Hapus Sale (Parent)
-            await tx.sales.deleteMany({
-                where: {
-                    storeId: storeId,
-                },
-            });
-
-            // --- 2. BERSIHKAN TRANSAKSI PEMBELIAN (PURCHASE) ---
-
-            // Hapus HppHistory
-            await tx.hppHistory.deleteMany({
-                where: {
-                    storeId: storeId,
-                },
-            });
-
-            // Hapus PurchaseDetail (Anak dari Purchase)
-            await tx.purchaseDetails.deleteMany({
-                where: {
-                    purchases: {
-                        storeId: storeId,
-                    },
-                },
-            });
-
-            // Hapus Purchase (Parent)
-            await tx.purchases.deleteMany({
-                where: {
-                    storeId: storeId,
-                },
-            });
-
-            // --- 3. BERSIHKAN ITEM IN & STOCK OPNAME ---
-
-            // Hapus ItemInDetails
-            await tx.itemInDetails.deleteMany({
-                where: {
-                    itemIns: {
-                        storeId: storeId,
-                    },
-                },
-            });
-
-            // Hapus ItemIns
-            await tx.itemIns.deleteMany({
-                where: {
-                    storeId: storeId,
-                },
-            });
-
-            // Hapus StockOpnameDetails
-            await tx.stockOpnameDetails.deleteMany({
-                where: {
-                    stockOpname: {
-                        storeId: storeId,
-                    },
-                },
-            });
-
-            // Hapus StockOpname
-            await tx.stockOpname.deleteMany({
-                where: {
-                    storeId: storeId,
-                },
-            });
-
-            // --- 4. RESET STOK MENJADI 0 ---
-            if (productIds.length > 0) {
-                await tx.stocks.updateMany({
+                // Hapus Sale (Parent)
+                await tx.sales.deleteMany({
                     where: {
-                        productId: { in: productIds },
-                    },
-                    data: {
-                        quantity: 0,
+                        storeId: storeId,
                     },
                 });
-            }
 
-            // --- 5. BERSIHKAN TRANSAKSI KAS ---
-            await tx.cashflow.deleteMany({
-                where: {
-                    storeId: storeId,
-                },
-            });
+                // --- 2. BERSIHKAN TRANSAKSI PEMBELIAN (PURCHASE) ---
 
-            await tx.expense.deleteMany({
-                where: {
-                    storeId: storeId,
-                },
-            });
+                // Hapus HppHistory
+                await tx.hppHistory.deleteMany({
+                    where: {
+                        storeId: storeId,
+                    },
+                });
 
-            // --- 6. RESET SALDO KAS ---
-            await tx.account.updateMany({
-                where: {
-                    storeId: storeId,
-                },
-                data: {
-                    balance: 0,
-                    currentBalance: 0,
-                },
-            });
-        });
+                // Hapus PurchaseDetail (Anak dari Purchase)
+                await tx.purchaseDetails.deleteMany({
+                    where: {
+                        purchases: {
+                            storeId: storeId,
+                        },
+                    },
+                });
+
+                // Hapus Purchase (Parent)
+                await tx.purchases.deleteMany({
+                    where: {
+                        storeId: storeId,
+                    },
+                });
+
+                // --- 3. BERSIHKAN ITEM IN & STOCK OPNAME ---
+
+                // Hapus ItemInDetails
+                await tx.itemInDetails.deleteMany({
+                    where: {
+                        itemIns: {
+                            storeId: storeId,
+                        },
+                    },
+                });
+
+                // Hapus ItemIns
+                await tx.itemIns.deleteMany({
+                    where: {
+                        storeId: storeId,
+                    },
+                });
+
+                // Hapus StockOpnameDetails
+                await tx.stockOpnameDetails.deleteMany({
+                    where: {
+                        stockOpname: {
+                            storeId: storeId,
+                        },
+                    },
+                });
+
+                // Hapus StockOpname
+                await tx.stockOpname.deleteMany({
+                    where: {
+                        storeId: storeId,
+                    },
+                });
+
+                // --- 4. RESET STOK MENJADI 0 ---
+                if (productIds.length > 0) {
+                    await tx.stocks.updateMany({
+                        where: {
+                            productId: { in: productIds },
+                        },
+                        data: {
+                            quantity: 0,
+                        },
+                    });
+                }
+
+                // --- 5. BERSIHKAN TRANSAKSI KAS ---
+                await tx.cashflow.deleteMany({
+                    where: {
+                        storeId: storeId,
+                    },
+                });
+
+                await tx.expense.deleteMany({
+                    where: {
+                        storeId: storeId,
+                    },
+                });
+
+                // --- 6. RESET SALDO KAS ---
+                await tx.account.updateMany({
+                    where: {
+                        storeId: storeId,
+                    },
+                    data: {
+                        balance: 0,
+                        currentBalance: 0,
+                    },
+                });
+            },
+            {
+                maxWait: 10000,
+                timeout: 30000,
+            },
+        );
 
         return {
             message:
