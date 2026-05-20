@@ -40,6 +40,9 @@ import {
     xlsxData as xlsxDataAffiliate,
     download as downloadAffiliate,
 } from "#root/admin/controllers/reports/ReportAffiliatesController";
+import {
+    getData as getDataStoreUsage,
+} from "#root/admin/controllers/reports/ReportStoreUsageController";
 
 const ReportSalesRoute = express.Router();
 
@@ -108,5 +111,7 @@ ReportSalesRoute.get("/subscription-report/download", downloadSubscription);
 ReportSalesRoute.get("/affiliate-report", getDataAffiliate);
 ReportSalesRoute.get("/affiliate-report/excel", xlsxDataAffiliate);
 ReportSalesRoute.get("/affiliate-report/download", downloadAffiliate);
+
+ReportSalesRoute.get("/store-usage-report", getDataStoreUsage);
 
 export default ReportSalesRoute;
