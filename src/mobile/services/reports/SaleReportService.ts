@@ -17,7 +17,12 @@ export const getSaleReport = async (filters: {
         if (filters.accountId === "cash") {
             filter.accountCashId = null;
         } else {
-            filter.accountCashId = filters.accountId;
+            filter.salePayments = {
+                some: {
+                    accountId: filters.accountId,
+                    deletedAt: null,
+                },
+            };
         }
     }
     if (filters.storeId) filter.storeId = filters.storeId;
@@ -53,6 +58,10 @@ export const getSaleReport = async (filters: {
                         : undefined,
                 },
                 salePeoples: true,
+                salePayments: {
+                    where: { deletedAt: null },
+                    include: { account: true },
+                },
             },
             where: {
                 createdAt: { gte: start, lte: end },

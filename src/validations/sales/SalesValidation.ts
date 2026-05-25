@@ -13,6 +13,21 @@ const SalesValidation = [
         .notEmpty()
         .withMessage("pay wajib diisi"),
 
+    body("payments")
+        .optional()
+        .isArray()
+        .withMessage("payments harus berupa array"),
+
+    body("payments.*.accountId")
+        .optional()
+        .isUUID()
+        .withMessage("accountId di setiap pembayaran harus UUID"),
+
+    body("payments.*.amount")
+        .optional()
+        .isNumeric()
+        .withMessage("amount di setiap pembayaran harus angka"),
+
     body("detailItem")
         .isObject()
         .withMessage("detailItem harus berupa objek")
