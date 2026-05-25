@@ -27,11 +27,19 @@ export interface SalesInterface {
     createdAt: Date | null;
     updatedAt: Date | null;
     deletedAt: Date | null;
+    payments?: SalePaymentInput[];
 }
 
 export interface SalesQueryInterface extends SalesInterface {
     limit: string;
     page: string;
+}
+
+export interface SalePaymentInput {
+    accountId: string;
+    amount: number;
+    paymentRef?: string;
+    note?: string;
 }
 
 export interface ItemInBodyInterface {

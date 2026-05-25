@@ -138,6 +138,7 @@ model productConversions {
   purchaseOrderDetails  purchaseOrderDetails[]
   saleDetails           saleDetails[]
   salePendingDetails    salePendingDetails[]
+  saleSplitBillItems    saleSplitBillItems[]
   stockOpnameDetails    stockOpnameDetails[]
   productComponents     productComponents[]
 
@@ -198,6 +199,7 @@ model products {
   purchaseOrderDetails purchaseOrderDetails[]
   saleDetails          saleDetails[]
   salePendingDetails   salePendingDetails[]
+  saleSplitBillItems   saleSplitBillItems[]
   stockOpnameDetails   stockOpnameDetails[]
   components           productComponents[]       @relation("ProductComponent_Product")
   partOfBundles        productComponents[]       @relation("ProductComponent_Component")
@@ -356,6 +358,8 @@ model sales {
   salePeopleId         String?       @db.VarChar(36)
   salePeoples          salesPeoples? @relation(fields: [salePeopleId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePeopleSale")
   saleDetails          saleDetails[]
+  salePayments         salePayments[]
+  saleSplitBills       saleSplitBills[]
   members              members?      @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleMember")
   stores               stores?       @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleStore")
   users                users?        @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "saleUser")
@@ -364,6 +368,83 @@ model sales {
   @@index([memberId], map: "saleMember")
   @@index([storeId], map: "saleStore")
   @@index([userCreate], map: "saleUser")
+}
+
+model salePayments {
+  id           String    @id @default(uuid()) @db.VarChar(36)
+  saleId       String?   @db.VarChar(36)
+  salePendingId String?  @db.VarChar(36)
+  splitBillId  String?   @db.VarChar(36)
+  storeId      String    @db.VarChar(36)
+  accountId    String    @db.VarChar(36)
+  amount       Decimal   @db.Decimal(14, 4)
+  changeAmount Decimal?  @default(0) @db.Decimal(14, 4)
+  paymentRef   String?   @db.VarChar(100)
+  note         String?   @db.VarChar(255)
+  userCreate   String?   @db.VarChar(36)
+  createdAt    DateTime? @default(now()) @db.DateTime(0)
+  deletedAt    DateTime? @db.DateTime(0)
+
+  sale    sales?  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  salePending salePending? @relation(fields: [salePendingId], references: [id], onDelete: Cascade)
+  splitBill saleSplitBills? @relation(fields: [splitBillId], references: [id], onDelete: Cascade)
+  account account @relation(fields: [accountId], references: [id], onUpdate: Cascade)
+  store   stores  @relation(fields: [storeId], references: [id])
+
+  @@index([saleId])
+  @@index([salePendingId])
+  @@index([splitBillId])
+  @@index([accountId])
+  @@index([storeId])
+}
+
+model saleSplitBills {
+  id           String    @id @default(uuid()) @db.VarChar(36)
+  saleId       String?   @db.VarChar(36)
+  salePendingId String?  @db.VarChar(36)
+  storeId      String    @db.VarChar(36)
+  name         String?   @db.VarChar(100)
+  mode         String    @db.VarChar(20)
+  subTotal     Decimal?  @db.Decimal(14, 4)
+  discount     Decimal?  @default(0) @db.Decimal(14, 4)
+  total        Decimal   @db.Decimal(14, 4)
+  paidAmount   Decimal?  @default(0) @db.Decimal(14, 4)
+  changeAmount Decimal?  @default(0) @db.Decimal(14, 4)
+  status       String    @default("OPEN") @db.VarChar(20)
+  userCreate   String?   @db.VarChar(36)
+  createdAt    DateTime? @default(now()) @db.DateTime(0)
+  updatedAt    DateTime? @default(now()) @db.DateTime(0)
+  deletedAt    DateTime? @db.DateTime(0)
+
+  sale     sales?         @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  salePending salePending? @relation(fields: [salePendingId], references: [id], onDelete: Cascade)
+  store    stores         @relation(fields: [storeId], references: [id])
+  payments salePayments[]
+  items    saleSplitBillItems[]
+
+  @@index([saleId])
+  @@index([salePendingId])
+  @@index([storeId])
+}
+
+model saleSplitBillItems {
+  id                  String              @id @default(uuid()) @db.VarChar(36)
+  splitBillId         String              @db.VarChar(36)
+  productId           String              @db.VarChar(36)
+  productConversionId String?             @db.VarChar(36)
+  quantity            Decimal             @db.Decimal(14, 4)
+  price               Decimal             @db.Decimal(14, 4)
+  total               Decimal             @db.Decimal(14, 4)
+  createdAt           DateTime?           @default(now()) @db.DateTime(0)
+  deletedAt           DateTime?           @db.DateTime(0)
+
+  splitBill           saleSplitBills      @relation(fields: [splitBillId], references: [id], onDelete: Cascade)
+  products            products?           @relation(fields: [productId], references: [id], onUpdate: Restrict)
+  productConversions  productConversions? @relation(fields: [productConversionId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([splitBillId])
+  @@index([productId])
+  @@index([productConversionId])
 }
 
 model salePending {
@@ -398,6 +479,8 @@ model salePending {
   name                 String?              @db.VarChar(50)
   transactionNumber    Int?                 @db.Int()
   salePendingDetails   salePendingDetails[]
+  salePayments         salePayments[]
+  saleSplitBills       saleSplitBills[]
   members              members?             @relation(fields: [memberId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingMember")
   stores               stores?              @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingStore")
   users                users?               @relation(fields: [userCreate], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "salePendingUser")
@@ -429,6 +512,8 @@ model stores {
   purchaseOrders     purchaseOrders[]
   purchases          purchases[]
   sales              sales[]
+  salePayments       salePayments[]
+  saleSplitBills     saleSplitBills[]
   salePending        salePending[]
   users              users                 @relation(fields: [ownerId], references: [id], onDelete: Cascade, map: "storeUser")
   variants           variants[]
@@ -708,6 +793,7 @@ model account {
   updatedAt        DateTime?  @db.DateTime(0)
   deletedAt        DateTime?  @db.DateTime(0)
   sales            sales[]
+  salePayments     salePayments[]
   expenses         expense[]
   stores           stores[]
   cashflows        cashflow[] @relation("FromAccount")

@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from "uuid";
 import { SalesQueryInterface } from "#root/interfaces/sales/SalesInterface";
 import moment from "moment";
 import momentT from "moment-timezone";
-import "moment/locale/id";
 import formatter from "#root/helpers/formatCurrency";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
@@ -134,12 +133,14 @@ const postData = async (req: Request, res: Response) => {
             for (const key in dataDetail) {
                 const item = dataDetail[key];
                 if (!item || toNumber(item.quantity) === 0) continue;
+                const productId = key.includes("_") ? key.split("_")[0] : key;
+                console.log({ productId });
 
                 await prisma.salePendingDetails.create({
                     data: {
                         id: uuidv4(),
                         saleId: salesData.id,
-                        productId: key,
+                        productId: productId,
                         productConversionId: item.unitId,
                         quantity: toNumber(item.quantity) || 1,
                         price: toNumber(item.price),
