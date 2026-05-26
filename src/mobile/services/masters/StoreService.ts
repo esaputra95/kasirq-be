@@ -79,8 +79,6 @@ export const getStoresForSelectSubscription = async (
             },
         });
 
-        console.log({ stores });
-
         dataOption = stores.map((store) => ({
             key: store.id,
             value: store.name,
@@ -102,8 +100,6 @@ export const getStoresForSelectSubscription = async (
                 },
             },
         });
-
-        console.log({ stores });
 
         dataOption = stores.map((store) => ({
             key: store.id,
