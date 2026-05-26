@@ -73,4 +73,10 @@ const uploadReceiptLogo = async (req: Request, res: Response) => {
     }
 };
 
-export { getSelect, updateData, getDataById, getSelectSubscription, uploadReceiptLogo };
+export {
+    getSelect,
+    updateData,
+    getDataById,
+    getSelectSubscription,
+    uploadReceiptLogo,
+};
