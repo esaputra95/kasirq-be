@@ -53,11 +53,10 @@ export const getStoresForSelect = async (userId: string, userLevel: string) => {
 
 export const getStoresForSelectSubscription = async (
     userId: string,
-    userLevel: string
+    userLevel: string,
 ) => {
     let dataOption: any = [];
     const now = new Date();
-
     if (userLevel === "cashier") {
         const user = await Model.users.findUnique({
             where: { id: userId },
@@ -66,6 +65,9 @@ export const getStoresForSelectSubscription = async (
         const stores = await Model.stores.findMany({
             where: {
                 id: user?.storeId ?? "",
+                expiredDate: {
+                    gte: now,
+                },
                 storeSubscriptions: {
                     some: {
                         status: "ACTIVE",
@@ -76,6 +78,8 @@ export const getStoresForSelectSubscription = async (
                 },
             },
         });
+
+        console.log({ stores });
 
         dataOption = stores.map((store) => ({
             key: store.id,
@@ -85,6 +89,9 @@ export const getStoresForSelectSubscription = async (
         const stores = await Model.stores.findMany({
             where: {
                 ownerId: userId,
+                expiredDate: {
+                    gte: now,
+                },
                 storeSubscriptions: {
                     some: {
                         status: "ACTIVE",
@@ -95,6 +102,8 @@ export const getStoresForSelectSubscription = async (
                 },
             },
         });
+
+        console.log({ stores });
 
         dataOption = stores.map((store) => ({
             key: store.id,
