@@ -13,6 +13,7 @@ import {
     ValidationError,
 } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
+import { assertStoreCanTransact } from "#root/helpers/assertStoreCanTransact";
 
 const getData = async (
     req: Request<{}, {}, {}, SalesQueryInterface>,
@@ -357,6 +358,8 @@ const postData = async (req: Request, res: Response) => {
         const dataDetail = data.detailItem ?? [];
         // Start transaction
         return Model.$transaction(async (prisma) => {
+            await assertStoreCanTransact(prisma, data.storeId);
+
             const invoice = await transactionNumber({
                 storeId: data.storeId,
                 module: "SALE",
@@ -700,6 +703,8 @@ const updateData = async (req: Request, res: Response) => {
             });
 
             if (!existing) throw new Error("sales data not found");
+
+            await assertStoreCanTransact(prisma, existing.storeId);
 
             await revertCashflowByReference(
                 prisma,
@@ -2215,6 +2220,7 @@ const createSplitBills = async (req: Request, res: Response) => {
 
         const result = await Model.$transaction(async (prisma) => {
             const sale = await getSaleForSplit(prisma, saleId);
+            await assertStoreCanTransact(prisma, sale.storeId);
 
             const mode = `${body.mode ?? ""}`.toUpperCase();
             const hasNonItemSplit = sale.saleSplitBills.some(
@@ -2360,6 +2366,8 @@ const updateSplitBill = async (req: Request, res: Response) => {
             );
         }
 
+        await assertStoreCanTransact(Model, splitBill.storeId);
+
         if (splitBill.status === "PAID") {
             throw new ValidationError(
                 "Split bill yang sudah lunas tidak dapat diubah",
@@ -2414,6 +2422,8 @@ const deleteSplitBill = async (req: Request, res: Response) => {
                     "splitBill",
                 );
             }
+
+            await assertStoreCanTransact(prisma, splitBill.storeId);
 
             if (splitBill.status === "PAID") {
                 throw new ValidationError(
@@ -2471,6 +2481,8 @@ const paySplitBill = async (req: Request, res: Response) => {
                     "splitBill",
                 );
             }
+
+            await assertStoreCanTransact(prisma, splitBill.storeId);
 
             if (splitBill.status === "PAID") {
                 throw new ValidationError(
@@ -2563,6 +2575,7 @@ const createPendingSplitBills = async (req: Request, res: Response) => {
                 prisma,
                 salePendingId,
             );
+            await assertStoreCanTransact(prisma, salePending.storeId);
 
             const mode = `${body.mode ?? ""}`.toUpperCase();
             const hasNonItemSplit = salePending.saleSplitBills.some(
@@ -2709,6 +2722,8 @@ const deletePendingSplitBill = async (req: Request, res: Response) => {
                 );
             }
 
+            await assertStoreCanTransact(prisma, splitBill.storeId);
+
             if (splitBill.status === "PAID") {
                 throw new ValidationError(
                     "Split bill yang sudah lunas tidak dapat dihapus",
@@ -2759,6 +2774,8 @@ const payPendingSplitBill = async (req: Request, res: Response) => {
                     "splitBill",
                 );
             }
+
+            await assertStoreCanTransact(prisma, splitBill.storeId);
 
             if (splitBill.status === "PAID") {
                 throw new ValidationError(

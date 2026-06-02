@@ -8,6 +8,7 @@ import momentT from "moment-timezone";
 import formatter from "#root/helpers/formatCurrency";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
+import { assertStoreCanTransact } from "#root/helpers/assertStoreCanTransact";
 
 /**
  * Helper aman untuk konversi angka
@@ -99,6 +100,8 @@ const postData = async (req: Request, res: Response) => {
         const dataDetail = data.detailItem ?? {};
 
         return Model.$transaction(async (prisma) => {
+            await assertStoreCanTransact(prisma, data.storeId);
+
             const invoice = await transactionNumber({
                 storeId: data.storeId,
                 module: "PENDING",
@@ -191,6 +194,8 @@ const updateData = async (req: Request, res: Response) => {
                 throw new Error("Sale Pending not found");
             }
 
+            await assertStoreCanTransact(prisma, exists.storeId);
+
             const salesData = {
                 supplierId: data.supplierId,
                 discount: toNumber(data.discount),
@@ -281,6 +286,8 @@ const updateNewData = async (req: Request, res: Response) => {
                 // Akan ditangkap di catch dan dibalas 404
                 throw new Error("Sale Pending not found");
             }
+
+            await assertStoreCanTransact(prisma, data.storeId ?? exists.storeId);
 
             const subTotal = toNumber(data.subTotal);
             const discount = toNumber(data.discount);
