@@ -6,6 +6,10 @@ const StoreSubscriptionValidation = [
         .withMessage("storeId is required")
         .isString()
         .withMessage("storeId should be string"),
+    body("planId")
+        .optional()
+        .isString()
+        .withMessage("planId should be string"),
     body("type")
         .exists({ checkFalsy: true })
         .withMessage("type is required")
@@ -47,6 +51,10 @@ const StoreSubscriptionUpdateValidation = [
         .optional()
         .isString()
         .withMessage("storeId should be string"),
+    body("planId")
+        .optional()
+        .isString()
+        .withMessage("planId should be string"),
     body("type")
         .optional()
         .isIn(["TRIAL", "PAID"])

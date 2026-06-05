@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import moment from "moment-timezone";
 import { ValidationError } from "#root/helpers/handleErrors";
+import { assertStoreHasFeature } from "#root/mobile/services/entitlements/FeatureEntitlementService";
 
 type PrismaClientLike = Prisma.TransactionClient | any;
 
@@ -34,4 +35,6 @@ export const assertStoreCanTransact = async (
             "storeId",
         );
     }
+
+    await assertStoreHasFeature(prisma, storeId, "sales");
 };

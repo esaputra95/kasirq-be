@@ -8,3 +8,5 @@ export { default as AccountRoute } from "#root/admin/routers/masters/AccountRout
 export { default as SubscriptionStoreRoute } from "#root/admin/routers/masters/SubscriptionStoreRoute";
 export { default as StoreSubscriptionRoute } from "#root/admin/routers/masters/StoreSubscriptionRoute";
 export { default as NotificationRoute } from "#root/admin/routers/masters/NotificationRoute";
+export { default as FeatureRoute } from "#root/admin/routers/masters/FeatureRoute";
+export { default as SubscriptionPlanRoute } from "#root/admin/routers/masters/SubscriptionPlanRoute";

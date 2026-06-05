@@ -6,6 +6,7 @@ import { errorType } from "#root/helpers/errorType";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
+import { resolveSubscriptionPlanId } from "#root/mobile/services/entitlements/FeatureEntitlementService";
 
 interface StoreSubscriptionQueryInterface extends Partial<store_subscriptions> {
     limit?: string;
@@ -31,12 +32,22 @@ const getData = async (req: Request, res: Response) => {
         if (query.type) {
             filter = { ...filter, type: query.type };
         }
+        if ((query as any).planId) {
+            filter = { ...filter, planId: (query as any).planId };
+        }
 
         const data = await Model.store_subscriptions.findMany({
             where: {
                 ...filter,
             },
             include: {
+                plan: {
+                    select: {
+                        id: true,
+                        code: true,
+                        name: true,
+                    },
+                },
                 store: {
                     select: {
                         id: true,
@@ -89,10 +100,17 @@ const postData = async (req: Request, res: Response) => {
         const uuid = uuidv4();
 
         await Model.$transaction(async (tx) => {
+            const planId = await resolveSubscriptionPlanId(
+                (data as any).planId,
+                data.type,
+                tx,
+            );
+
             await tx.store_subscriptions.create({
                 data: {
                     id: uuid,
                     storeId: data.storeId,
+                    planId,
                     type: data.type,
                     startDate: moment(data.startDate).toISOString(),
                     endDate: moment(data.endDate).toISOString(),
@@ -180,12 +198,32 @@ const updateData = async (req: Request, res: Response) => {
         const data = { ...req.body } as store_subscriptions;
 
         await Model.$transaction(async (tx) => {
+            const existing = await tx.store_subscriptions.findUnique({
+                where: {
+                    id: req.params.id,
+                },
+                select: {
+                    planId: true,
+                    type: true,
+                },
+            });
+
+            const planId =
+                (data as any).planId === undefined && existing?.planId
+                    ? existing.planId
+                    : await resolveSubscriptionPlanId(
+                          (data as any).planId,
+                          data.type ?? existing?.type,
+                          tx,
+                      );
+
             await tx.store_subscriptions.update({
                 where: {
                     id: req.params.id,
                 },
                 data: {
                     storeId: data.storeId,
+                    planId,
                     type: data.type,
                     startDate: moment(data.startDate).toISOString(),
                     endDate: moment(data.endDate).toISOString(),
@@ -249,6 +287,13 @@ const getDataById = async (req: Request, res: Response) => {
                 id: req.params.id,
             },
             include: {
+                plan: {
+                    select: {
+                        id: true,
+                        code: true,
+                        name: true,
+                    },
+                },
                 store: {
                     select: {
                         id: true,
@@ -327,10 +372,17 @@ const migrateData = async (req: Request, res: Response) => {
                 : "EXPIRED";
 
             // 2. Buat record baru di store_subscriptions
+            const planId = await resolveSubscriptionPlanId(
+                null,
+                "PAID",
+                Model,
+            );
+
             await Model.store_subscriptions.create({
                 data: {
                     id: uuidv4(),
                     storeId: store.id,
+                    planId,
                     type: "PAID",
                     startDate: store.createdAt || now,
                     endDate: expiredDate,
