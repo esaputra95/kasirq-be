@@ -8,6 +8,12 @@ export interface StoreInterface {
     updatedAt: Date | null
     deletedAt: Date | null
     userCreate: string | null
+    taxEnabled?: boolean
+    taxRate?: number
+    taxLabel?: string | null
+    salesTaxType?: "include" | "exclude" | string | null
+    purchaseTaxType?: "include" | "exclude" | string | null
+    taxScope?: "all_products" | "selected_products" | string | null
 }
 
 export interface StoreQueryInterface extends StoreInterface {

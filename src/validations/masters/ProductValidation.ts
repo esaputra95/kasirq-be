@@ -52,6 +52,11 @@ const ProductValidation = [
         .isBoolean()
         .withMessage("isStock should be boolean"),
 
+    body("isTaxable")
+        .optional()
+        .isBoolean()
+        .withMessage("isTaxable should be boolean"),
+
     // Price/conversion validation (CRITICAL for security)
     body("price")
         .exists({ checkFalsy: true })
@@ -134,6 +139,11 @@ const ProductUpdateValidation = [
         .optional()
         .isBoolean()
         .withMessage("isStock should be boolean"),
+
+    body("isTaxable")
+        .optional()
+        .isBoolean()
+        .withMessage("isTaxable should be boolean"),
 
     // Price validation
     body("price")
