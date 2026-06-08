@@ -201,7 +201,9 @@ const updateData = async (req: Request, res: Response) => {
             },
             data: {
                 address: data.address,
-                expiredDate: moment(data.expiredDate).format(),
+                ...(data.expiredDate && {
+                    expiredDate: moment(data.expiredDate).format(),
+                }),
                 name: data.name,
                 ownerId: data.ownerId,
                 slug: data.slug,
