@@ -10,13 +10,16 @@ export const getMarginSaleReport = async (filters: {
     const end = moment(filters.finish, "YYYY-MM-DD").endOf("day").toDate();
     const results: any[] = await Model.$queryRaw`
         SELECT 
-            saleDetails.quantity * saleDetails.price AS sell,
+            COALESCE(NULLIF(saleDetails.netTotal, 0), saleDetails.quantity * saleDetails.price) AS sell,
             SUM(COALESCE(cogs.price, 0) * COALESCE(cogs.quantity, 0)) AS capital,
             sales.date,
             sales.createdAt,
             sales.invoice,
             saleDetails.id,
             sales.discount,
+            saleDetails.tax,
+            saleDetails.taxBase,
+            saleDetails.discountAllocation,
             products.name
         FROM 
             saleDetails
@@ -38,6 +41,10 @@ export const getMarginSaleReport = async (filters: {
             sales.createdAt, 
             sales.invoice, 
             sales.discount, 
+            saleDetails.netTotal,
+            saleDetails.tax,
+            saleDetails.taxBase,
+            saleDetails.discountAllocation,
             products.name
         ORDER BY sales.createdAt DESC
     `;
@@ -70,10 +77,19 @@ export const getMarginSaleReport = async (filters: {
 
     const discount =
         results?.length > 0
-            ? results.reduce(
-                  (total, val) => (total ?? 0) + parseInt(val?.discount),
-                  0
-              )
+            ? Array.from(
+                  results
+                      .reduce((acc: Map<string, number>, val) => {
+                          if (!acc.has(val?.invoice)) {
+                              acc.set(
+                                  val?.invoice,
+                                  parseInt(val?.discount ?? 0),
+                              );
+                          }
+                          return acc;
+                      }, new Map<string, number>())
+                      .values(),
+              ).reduce((total, value) => total + value, 0)
             : 0;
 
     return {

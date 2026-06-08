@@ -55,7 +55,7 @@ const getMarginYear = async (req: Request, res: Response) => {
             );
             const results = await Model.$queryRaw`
                 SELECT 
-                    saleDetails.quantity * saleDetails.price AS totals,
+                    COALESCE(NULLIF(saleDetails.netTotal, 0), saleDetails.quantity * saleDetails.price) AS totals,
                     SUM(cogs.price * cogs.quantity) AS total_cogs,
                     sales.date
                 FROM 

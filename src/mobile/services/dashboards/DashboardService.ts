@@ -59,7 +59,7 @@ export const getMarginWeek = async (storeId: string) => {
 
             const rows = await Model.$queryRaw`
         SELECT 
-          saleDetails.quantity * saleDetails.price AS totals,
+          COALESCE(NULLIF(saleDetails.netTotal, 0), saleDetails.quantity * saleDetails.price) AS totals,
           SUM(cogs.price * cogs.quantity) AS total_cogs,
           sales.createdAt
         FROM saleDetails

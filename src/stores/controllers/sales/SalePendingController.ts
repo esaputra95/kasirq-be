@@ -20,6 +20,21 @@ const toNumber = (val: any): number => {
     return Number.isFinite(n) ? n : 0;
 };
 
+const getDetailTaxData = (item: any) => ({
+    grossTotal: toNumber(item?.grossTotal),
+    netTotal: toNumber(item?.netTotal),
+    taxBase: toNumber(item?.taxBase),
+    tax: toNumber(item?.tax),
+    taxRate:
+        item?.taxRate === undefined || item?.taxRate === null
+            ? undefined
+            : toNumber(item.taxRate),
+    taxType: item?.taxType,
+    taxLabel: item?.taxLabel,
+    isTaxable: Boolean(item?.isTaxable),
+    discountAllocation: toNumber(item?.discountAllocation),
+});
+
 /**
  * GET list salePending (with pagination & filter)
  */
@@ -134,6 +149,12 @@ const postData = async (req: Request<{ slug: string }>, res: Response) => {
 
                 const subTotal = toNumber(data.subTotal);
                 const discount = toNumber(data.discount);
+                const tax = toNumber(data.tax);
+                const taxBase = toNumber(data.taxBase);
+                const total =
+                    data.total !== undefined && data.total !== null
+                        ? toNumber(data.total)
+                        : subTotal - discount + tax;
                 const pay = toNumber(data.pay);
 
                 const salesData = {
@@ -148,7 +169,12 @@ const postData = async (req: Request<{ slug: string }>, res: Response) => {
                     invoice: invoice.invoice,
                     status: "pending" as sales_status,
                     subTotal,
-                    total: subTotal - discount,
+                    tax,
+                    taxBase,
+                    taxRate: toNumber(data.taxRate),
+                    taxType: data.taxType,
+                    taxLabel: data.taxLabel ?? "PPN",
+                    total,
                     description: data.description,
                     userCreate: res.locals.userId,
                     discount,
@@ -173,6 +199,7 @@ const postData = async (req: Request<{ slug: string }>, res: Response) => {
                             productConversionId: item.unitId,
                             quantity: toNumber(item.quantity) || 1,
                             price: toNumber(item.price),
+                            ...getDetailTaxData(item),
                         },
                     });
                 }
@@ -185,14 +212,19 @@ const postData = async (req: Request<{ slug: string }>, res: Response) => {
 
         const subTotal = toNumber(data.subTotal);
         const discount = toNumber(data.discount);
+        const tax = toNumber(data.tax);
+        const total =
+            data.total !== undefined && data.total !== null
+                ? toNumber(data.total)
+                : subTotal - discount + tax;
         const pay = toNumber(data.pay);
-        const remainder = pay - (subTotal - discount);
+        const remainder = pay - total;
 
         // --- NOTIFICATION LOGIC ---
         try {
             const notificationId = uuidv4();
             const notificationTitle = "Order Baru Masuk";
-            const notificationBody = `Ada orderan masuk dari ${data?.name ?? "Umum"} hp ${data.phone ?? "-"} senilai ${formatter.format(subTotal - discount)} di ${data.address}. Periksa Pesanan di menu List Pending `;
+            const notificationBody = `Ada orderan masuk dari ${data?.name ?? "Umum"} hp ${data.phone ?? "-"} senilai ${formatter.format(total)} di ${data.address}. Periksa Pesanan di menu List Pending `;
 
             // 1. Ambil semua user yang harus dinotifikasi: owner dan semua user yang terkait
             const targetUsers = await Model.users.findMany({
@@ -296,7 +328,17 @@ const updateData = async (req: Request, res: Response) => {
                 supplierId: data.supplierId,
                 discount: toNumber(data.discount),
                 payCash: toNumber(data.pay),
-                total: toNumber(data.total),
+                tax: toNumber(data.tax),
+                taxBase: toNumber(data.taxBase),
+                taxRate: toNumber(data.taxRate),
+                taxType: data.taxType,
+                taxLabel: data.taxLabel ?? "PPN",
+                total:
+                    data.total !== undefined && data.total !== null
+                        ? toNumber(data.total)
+                        : toNumber(data.subTotal) -
+                          toNumber(data.discount) +
+                          toNumber(data.tax),
                 description: data?.description,
             };
 
@@ -324,6 +366,7 @@ const updateData = async (req: Request, res: Response) => {
                             quantity:
                                 toNumber(found.quantity) +
                                 toNumber(detail.quantity),
+                            ...getDetailTaxData(detail),
                         },
                         where: { id: found.id },
                     });
@@ -336,6 +379,7 @@ const updateData = async (req: Request, res: Response) => {
                             productConversionId: detail.unitId,
                             quantity: toNumber(detail.quantity) || 1,
                             price: toNumber(detail.price),
+                            ...getDetailTaxData(detail),
                         },
                     });
                 }
@@ -482,6 +526,11 @@ const getFacture = async (req: Request, res: Response) => {
                 date: true,
                 total: true,
                 subTotal: true,
+                tax: true,
+                taxBase: true,
+                taxRate: true,
+                taxType: true,
+                taxLabel: true,
                 payCash: true,
                 discount: true,
                 createdAt: true,
@@ -545,8 +594,10 @@ const getFacture = async (req: Request, res: Response) => {
         const payCash = toNumber(data.payCash);
         const subTotal = toNumber(data.subTotal);
         const discount = toNumber(data.discount);
+        const tax = toNumber(data.tax);
+        const taxBase = toNumber(data.taxBase);
 
-        const totalBelanja = subTotal - discount;
+        const totalBelanja = toNumber(data.total || subTotal - discount + tax);
         const selisih = payCash - totalBelanja;
 
         res.status(200).json({
@@ -563,6 +614,11 @@ const getFacture = async (req: Request, res: Response) => {
                     total: formatter.format(toNumber(totalBelanja)),
                     subTotal: formatter.format(toNumber(subTotal)),
                     discount: formatter.format(toNumber(discount)),
+                    tax: formatter.format(toNumber(tax)),
+                    taxBase: formatter.format(toNumber(taxBase)),
+                    taxRate: data.taxRate,
+                    taxType: data.taxType,
+                    taxLabel: data.taxLabel ?? "PPN",
                     payCash: formatter.format(toNumber(payCash)),
                     change: formatter.format(toNumber(selisih)),
                     id: data.id,
