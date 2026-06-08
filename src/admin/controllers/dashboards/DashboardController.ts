@@ -17,12 +17,18 @@ const color = {
 const getTotalSales = async (req: Request, res: Response) => {
     try {
         const query = req.query;
+        const startOfMonth = moment().startOf("month").toDate();
+        const endOfMonth = moment().endOf("month").toDate();
         const data = await Model.sales.aggregate({
             _sum: {
                 total: true,
             },
             where: {
                 storeId: query.storeId as string,
+                date: {
+                    gte: startOfMonth,
+                    lte: endOfMonth,
+                },
             },
         });
         res.status(200).json({

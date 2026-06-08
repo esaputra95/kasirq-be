@@ -66,6 +66,9 @@ export const getStoresForSelectSubscription = async (
         const stores = await Model.stores.findMany({
             where: {
                 id: user?.storeId ?? "",
+                expiredDate: {
+                    gte: now,
+                },
                 storeSubscriptions: {
                     some: {
                         status: "ACTIVE",
@@ -85,6 +88,9 @@ export const getStoresForSelectSubscription = async (
         const stores = await Model.stores.findMany({
             where: {
                 ownerId: userId,
+                expiredDate: {
+                    gte: now,
+                },
                 storeSubscriptions: {
                     some: {
                         status: "ACTIVE",
