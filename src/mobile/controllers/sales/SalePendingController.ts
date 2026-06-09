@@ -9,6 +9,7 @@ import formatter from "#root/helpers/formatCurrency";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
 import { assertStoreCanTransact } from "#root/helpers/assertStoreCanTransact";
+import { toDbDateOnly } from "#root/helpers/date";
 
 /**
  * Helper aman untuk konversi angka
@@ -134,7 +135,7 @@ const postData = async (req: Request, res: Response) => {
 
             const salesData = {
                 id: salesId,
-                date: moment().format(),
+                date: toDbDateOnly(data.date),
                 storeId: data.storeId,
                 accountCashId: data.accountId,
                 payMetodeId: data.accountId,

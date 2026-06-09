@@ -5,8 +5,8 @@ import { handleValidationError } from "#root/helpers/handleValidationError";
 import { errorType } from "#root/helpers/errorType";
 import { v4 as uuidv4 } from "uuid";
 import { ItemInQueryInterface } from "#root/interfaces/supplies/ItemInInterface";
-import moment from "moment";
 import { DecrementStock, IncrementStock } from "#root/helpers/stock";
+import { toDbDateOnly } from "#root/helpers/date";
 
 const getData = async (
     req: Request<{}, {}, {}, ItemInQueryInterface>,
@@ -73,7 +73,7 @@ const postData = async (req: Request, res: Response) => {
         return Model.$transaction(async (prisma) => {
             const ItemInData = {
                 id: ItemInId,
-                date: moment().format(),
+                date: toDbDateOnly(data.date),
                 storeId: data.storeId,
                 invoice: uuidv4(),
                 total: data.total ?? 0,

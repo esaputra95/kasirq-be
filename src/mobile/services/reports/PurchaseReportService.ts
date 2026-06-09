@@ -11,6 +11,8 @@ export const getPurchaseReport = async (filters: {
     
     if (filters.storeId) filter.storeId = filters.storeId;
     if (filters.supplierId) filter.supplierId = filters.supplierId;
+    const start = moment(filters.start, "YYYY-MM-DD").startOf("day").toDate();
+    const end = moment(filters.finish, "YYYY-MM-DD").endOf("day").toDate();
 
     const [data, total] = await Promise.all([
         Model.purchases.findMany({
@@ -19,21 +21,21 @@ export const getPurchaseReport = async (filters: {
                 purchaseDetails: { include: { products: true } }
             },
             where: {
-                date: {
-                    gte: moment(filters.start + " 00:00:00").format(),
-                    lte: moment(filters.finish + " 23:59:00").format()
-                },
+                date: { gte: start, lte: end },
                 ...filter
             },
             orderBy: { createdAt: "desc" }
         }),
         Model.purchases.aggregate({
-            _sum: { total: true },
+            _sum: {
+                total: true,
+                subTotal: true,
+                discount: true,
+                tax: true,
+                additionalCost: true,
+            },
             where: {
-                date: {
-                    gte: new Date(filters.start as unknown as Date),
-                    lte: new Date(filters.finish as unknown as Date)
-                },
+                date: { gte: start, lte: end },
                 ...filter
             }
         })

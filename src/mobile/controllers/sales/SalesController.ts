@@ -14,6 +14,7 @@ import {
 } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
 import { assertStoreCanTransact } from "#root/helpers/assertStoreCanTransact";
+import { toDbDateOnly } from "#root/helpers/date";
 
 const getData = async (
     req: Request<{}, {}, {}, SalesQueryInterface>,
@@ -420,7 +421,7 @@ const postData = async (req: Request, res: Response) => {
             const salesData: Prisma.salesUncheckedCreateInput = {
                 salePeopleId: data.salePeopleId,
                 id: salesId,
-                date: moment().format(),
+                date: toDbDateOnly(data.date),
                 storeId: data.storeId,
                 accountCashId: primaryPayment.accountId,
                 payMetodeId: primaryPayment.accountId,
@@ -1804,6 +1805,11 @@ const getSplitBillFacture = async (req: Request, res: Response) => {
                       },
                   ];
 
+        const splitSubTotal = Number(splitBill.subTotal ?? total);
+        const splitDiscount = Number(splitBill.discount ?? 0);
+        const splitTax = Number(splitBill.tax ?? 0);
+        const splitTaxBase = Number(splitBill.taxBase ?? 0);
+
         res.status(200).json({
             status: true,
             message: "successfully in get split bill facture",
@@ -1818,10 +1824,13 @@ const getSplitBillFacture = async (req: Request, res: Response) => {
                             .tz("Asia/Jakarta")
                             .format("HH:mm"),
                     total: formatter.format(parseInt(`${total}`)),
-                    subTotal: formatter.format(parseInt(`${total}`)),
-                    discount: formatter.format(
-                        parseInt(`${splitBill.discount ?? 0}`),
-                    ),
+                    subTotal: formatter.format(parseInt(`${splitSubTotal}`)),
+                    discount: formatter.format(parseInt(`${splitDiscount}`)),
+                    tax: formatter.format(parseInt(`${splitTax}`)),
+                    taxBase: formatter.format(parseInt(`${splitTaxBase}`)),
+                    taxRate: splitBill.taxRate,
+                    taxType: splitBill.taxType,
+                    taxLabel: splitBill.taxLabel ?? "PPN",
                     payCash: formatter.format(parseInt(`${paidAmount}`)),
                     change: formatter.format(parseInt(`${changeAmount}`)),
                     id: splitBill.id,

@@ -198,8 +198,6 @@ export const createCashflow = async (
 ) => {
     const storeId = await getStoreId(userId, userLevel);
 
-    console.log({ cashflowData });
-
     // Validasi kas account milik store ini
     const kasAccount = await Model.account.findUnique({
         where: { id: cashflowData.kasId },
