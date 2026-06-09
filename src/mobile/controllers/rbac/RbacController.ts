@@ -45,8 +45,6 @@ export const getRoles = async (req: Request, res: Response) => {
             ...result,
         });
     } catch (error) {
-        console.log(error);
-
         return handleErrorMessage(res, error);
     }
 };

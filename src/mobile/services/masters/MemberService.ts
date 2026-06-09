@@ -49,8 +49,6 @@ export const createMember = async (
 };
 
 export const updateMember = async (id: string, memberData: any) => {
-    console.log(memberData);
-
     await Model.members.update({
         where: { id },
         data: {

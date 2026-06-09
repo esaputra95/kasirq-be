@@ -1792,9 +1792,7 @@ const getSplitBillFacture = async (req: Request, res: Response) => {
                           parseInt(`${item.quantity ?? 0}`),
                       ),
                       price: formatter.format(parseInt(`${item.price ?? 0}`)),
-                      unit:
-                          item.productConversions?.units?.name ??
-                          "Item",
+                      unit: item.productConversions?.units?.name ?? "Item",
                   }))
                 : [
                       {
@@ -2280,7 +2278,8 @@ const buildItemSplitBillDrafts = (
             const detailTax = toNumber(detail.tax);
             const grossTotal =
                 detailGrossTotal > 0 ? detailGrossTotal * ratio : total;
-            const netTotal = detailNetTotal > 0 ? detailNetTotal * ratio : total;
+            const netTotal =
+                detailNetTotal > 0 ? detailNetTotal * ratio : total;
             const taxBase = detailTaxBase > 0 ? detailTaxBase * ratio : 0;
             const tax = detailTax > 0 ? detailTax * ratio : 0;
             const discountAllocation =
@@ -2881,8 +2880,6 @@ const createPendingSplitBills = async (req: Request, res: Response) => {
             data: { splitBills: result },
         });
     } catch (error) {
-        console.log(error);
-
         handleErrorMessage(res, error);
     }
 };

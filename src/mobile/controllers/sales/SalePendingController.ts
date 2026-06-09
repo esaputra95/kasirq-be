@@ -164,7 +164,6 @@ const postData = async (req: Request, res: Response) => {
                 const item = dataDetail[key];
                 if (!item || toNumber(item.quantity) === 0) continue;
                 const productId = key.includes("_") ? key.split("_")[0] : key;
-                console.log({ productId });
 
                 await prisma.salePendingDetails.create({
                     data: {
@@ -332,7 +331,10 @@ const updateNewData = async (req: Request, res: Response) => {
                 throw new Error("Sale Pending not found");
             }
 
-            await assertStoreCanTransact(prisma, data.storeId ?? exists.storeId);
+            await assertStoreCanTransact(
+                prisma,
+                data.storeId ?? exists.storeId,
+            );
 
             const subTotal = toNumber(data.subTotal);
             const discount = toNumber(data.discount);
@@ -435,8 +437,6 @@ const updateNewData = async (req: Request, res: Response) => {
                 message: "Sale Pending not found",
             });
         }
-
-        console.log(error);
 
         handleErrorMessage(res, error);
     }

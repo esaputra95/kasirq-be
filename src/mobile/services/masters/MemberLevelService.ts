@@ -137,11 +137,7 @@ export const getMemberLevelsForSelect = async (
     userId: string,
     userLevel: string,
 ) => {
-    console.log("oke");
-
     const owner: any = await getOwnerId(userId, userLevel);
-
-    console.log(owner);
 
     let filter: any = {};
     if (name) filter = { ...filter, name: { contains: name } };
