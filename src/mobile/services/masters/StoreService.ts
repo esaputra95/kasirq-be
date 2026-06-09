@@ -1,6 +1,7 @@
 import Model from "#root/services/PrismaService";
 import moment from "moment";
 import { ValidationError } from "#root/helpers/handleErrors";
+import { getStoreEntitlement } from "#root/mobile/services/entitlements/FeatureEntitlementService";
 
 /**
  * Get stores for select dropdown based on user level
@@ -79,10 +80,19 @@ export const getStoresForSelectSubscription = async (
             },
         });
 
-        dataOption = stores.map((store) => ({
-            key: store.id,
-            value: store.name,
-        }));
+        dataOption = await Promise.all(
+            stores.map(async (store) => {
+                const entitlement = await getStoreEntitlement(store.id);
+
+                return {
+                    key: store.id,
+                    value: store.name,
+                    subscription: entitlement.subscription,
+                    featureKeys: entitlement.featureKeys,
+                    isExpired: entitlement.isExpired,
+                };
+            }),
+        );
     } else {
         const stores = await Model.stores.findMany({
             where: {
@@ -101,11 +111,20 @@ export const getStoresForSelectSubscription = async (
             },
         });
 
-        dataOption = stores.map((store) => ({
-            key: store.id,
-            value: store.name,
-            defaultCashId: store.defaultCashId,
-        }));
+        dataOption = await Promise.all(
+            stores.map(async (store) => {
+                const entitlement = await getStoreEntitlement(store.id);
+
+                return {
+                    key: store.id,
+                    value: store.name,
+                    defaultCashId: store.defaultCashId,
+                    subscription: entitlement.subscription,
+                    featureKeys: entitlement.featureKeys,
+                    isExpired: entitlement.isExpired,
+                };
+            }),
+        );
     }
 
     return {

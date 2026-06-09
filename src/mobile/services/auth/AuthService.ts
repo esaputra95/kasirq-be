@@ -6,6 +6,7 @@ import sendEmail from "#root/helpers/sendEmail";
 import moment from "moment";
 import { UnauthorizedError, ValidationError } from "#root/helpers/handleErrors";
 import { runRbacMigration } from "#root/mobile/services/rbac/RbacService";
+import { getRequiredPlanByCode } from "#root/mobile/services/entitlements/FeatureEntitlementService";
 
 /**
  * Login user and generate JWT token
@@ -122,11 +123,14 @@ export const registerOwner = async (userData: {
             },
         });
 
+        const trialPlan = await getRequiredPlanByCode("TRIAL", tx);
+
         // Create subscription for store (30 days trial)
         await tx.store_subscriptions.create({
             data: {
                 id: uuidv4(),
                 storeId: store.id,
+                planId: trialPlan.id,
                 type: "TRIAL",
                 startDate: moment().toDate(),
                 endDate: moment().add(30, "d").toDate(),

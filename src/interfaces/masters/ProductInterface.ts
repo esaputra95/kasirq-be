@@ -9,6 +9,7 @@ export interface ProductInterface {
     name: string
     hppType: string | null
     taxInclude: number | null
+    isTaxable: boolean
     stockMinimum: number | null
     description: string | null
     status: products_status | null

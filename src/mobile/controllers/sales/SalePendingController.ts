@@ -8,6 +8,8 @@ import momentT from "moment-timezone";
 import formatter from "#root/helpers/formatCurrency";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
+import { assertStoreCanTransact } from "#root/helpers/assertStoreCanTransact";
+import { toDbDateOnly } from "#root/helpers/date";
 
 /**
  * Helper aman untuk konversi angka
@@ -16,6 +18,21 @@ const toNumber = (val: any): number => {
     const n = Number(val);
     return Number.isFinite(n) ? n : 0;
 };
+
+const getDetailTaxData = (item: any) => ({
+    grossTotal: toNumber(item?.grossTotal),
+    netTotal: toNumber(item?.netTotal),
+    taxBase: toNumber(item?.taxBase),
+    tax: toNumber(item?.tax),
+    taxRate:
+        item?.taxRate === undefined || item?.taxRate === null
+            ? undefined
+            : toNumber(item.taxRate),
+    taxType: item?.taxType,
+    taxLabel: item?.taxLabel,
+    isTaxable: Boolean(item?.isTaxable),
+    discountAllocation: toNumber(item?.discountAllocation),
+});
 
 /**
  * GET list salePending (with pagination & filter)
@@ -99,6 +116,8 @@ const postData = async (req: Request, res: Response) => {
         const dataDetail = data.detailItem ?? {};
 
         return Model.$transaction(async (prisma) => {
+            await assertStoreCanTransact(prisma, data.storeId);
+
             const invoice = await transactionNumber({
                 storeId: data.storeId,
                 module: "PENDING",
@@ -106,11 +125,17 @@ const postData = async (req: Request, res: Response) => {
 
             const subTotal = toNumber(data.subTotal);
             const discount = toNumber(data.discount);
+            const tax = toNumber(data.tax);
+            const taxBase = toNumber(data.taxBase);
+            const total =
+                data.total !== undefined && data.total !== null
+                    ? toNumber(data.total)
+                    : subTotal - discount + tax;
             const pay = toNumber(data.pay);
 
             const salesData = {
                 id: salesId,
-                date: moment().format(),
+                date: toDbDateOnly(data.date),
                 storeId: data.storeId,
                 accountCashId: data.accountId,
                 payMetodeId: data.accountId,
@@ -118,7 +143,12 @@ const postData = async (req: Request, res: Response) => {
                 invoice: invoice.invoice,
                 status: "pending" as sales_status,
                 subTotal,
-                total: subTotal - discount,
+                tax,
+                taxBase,
+                taxRate: toNumber(data.taxRate),
+                taxType: data.taxType,
+                taxLabel: data.taxLabel ?? "PPN",
+                total,
                 description: data.description,
                 userCreate: res.locals.userId,
                 discount,
@@ -134,7 +164,6 @@ const postData = async (req: Request, res: Response) => {
                 const item = dataDetail[key];
                 if (!item || toNumber(item.quantity) === 0) continue;
                 const productId = key.includes("_") ? key.split("_")[0] : key;
-                console.log({ productId });
 
                 await prisma.salePendingDetails.create({
                     data: {
@@ -144,6 +173,7 @@ const postData = async (req: Request, res: Response) => {
                         productConversionId: item.unitId,
                         quantity: toNumber(item.quantity) || 1,
                         price: toNumber(item.price),
+                        ...getDetailTaxData(item),
                     },
                 });
             }
@@ -157,8 +187,13 @@ const postData = async (req: Request, res: Response) => {
 
         const subTotal = toNumber(data.subTotal);
         const discount = toNumber(data.discount);
+        const tax = toNumber(data.tax);
+        const total =
+            data.total !== undefined && data.total !== null
+                ? toNumber(data.total)
+                : subTotal - discount + tax;
         const pay = toNumber(data.pay);
-        const remainder = pay - (subTotal - discount);
+        const remainder = pay - total;
 
         res.status(200).json({
             status: true,
@@ -191,11 +226,23 @@ const updateData = async (req: Request, res: Response) => {
                 throw new Error("Sale Pending not found");
             }
 
+            await assertStoreCanTransact(prisma, exists.storeId);
+
             const salesData = {
                 supplierId: data.supplierId,
                 discount: toNumber(data.discount),
                 payCash: toNumber(data.pay),
-                total: toNumber(data.total),
+                tax: toNumber(data.tax),
+                taxBase: toNumber(data.taxBase),
+                taxRate: toNumber(data.taxRate),
+                taxType: data.taxType,
+                taxLabel: data.taxLabel ?? "PPN",
+                total:
+                    data.total !== undefined && data.total !== null
+                        ? toNumber(data.total)
+                        : toNumber(data.subTotal) -
+                          toNumber(data.discount) +
+                          toNumber(data.tax),
                 description: data?.description,
             };
 
@@ -223,6 +270,7 @@ const updateData = async (req: Request, res: Response) => {
                             quantity:
                                 toNumber(found.quantity) +
                                 toNumber(detail.quantity),
+                            ...getDetailTaxData(detail),
                         },
                         where: { id: found.id },
                     });
@@ -235,6 +283,7 @@ const updateData = async (req: Request, res: Response) => {
                             productConversionId: detail.unitId,
                             quantity: toNumber(detail.quantity) || 1,
                             price: toNumber(detail.price),
+                            ...getDetailTaxData(detail),
                         },
                     });
                 }
@@ -282,14 +331,30 @@ const updateNewData = async (req: Request, res: Response) => {
                 throw new Error("Sale Pending not found");
             }
 
+            await assertStoreCanTransact(
+                prisma,
+                data.storeId ?? exists.storeId,
+            );
+
             const subTotal = toNumber(data.subTotal);
             const discount = toNumber(data.discount);
+            const tax = toNumber(data.tax);
+            const taxBase = toNumber(data.taxBase);
+            const total =
+                data.total !== undefined && data.total !== null
+                    ? toNumber(data.total)
+                    : subTotal - discount + tax;
             const payCash = toNumber(data.pay);
 
             const salesData = {
                 subTotal: subTotal,
                 discount: discount,
-                total: subTotal - discount,
+                tax,
+                taxBase,
+                taxRate: toNumber(data.taxRate),
+                taxType: data.taxType,
+                taxLabel: data.taxLabel ?? "PPN",
+                total,
                 payCash: payCash,
             };
 
@@ -326,6 +391,7 @@ const updateNewData = async (req: Request, res: Response) => {
                             price: toNumber(detail.price),
                             productConversionId: detail.unitId,
                             productId: key,
+                            ...getDetailTaxData(detail),
                         },
                         where: { id: detail.salesDetailId },
                     });
@@ -338,6 +404,7 @@ const updateNewData = async (req: Request, res: Response) => {
                             productConversionId: detail.unitId,
                             quantity: toNumber(detail.quantity) || 1,
                             price: toNumber(detail.price),
+                            ...getDetailTaxData(detail),
                         },
                     });
                 }
@@ -349,8 +416,13 @@ const updateNewData = async (req: Request, res: Response) => {
         // Hitung sisa
         const subTotal = toNumber(data.subTotal);
         const discount = toNumber(data.discount);
+        const tax = toNumber(data.tax);
+        const total =
+            data.total !== undefined && data.total !== null
+                ? toNumber(data.total)
+                : subTotal - discount + tax;
         const payCash = toNumber(data.pay);
-        const remainder = payCash - (subTotal - discount);
+        const remainder = payCash - total;
 
         return res.status(200).json({
             status: true,
@@ -365,8 +437,6 @@ const updateNewData = async (req: Request, res: Response) => {
                 message: "Sale Pending not found",
             });
         }
-
-        console.log(error);
 
         handleErrorMessage(res, error);
     }
@@ -492,6 +562,11 @@ const getFacture = async (req: Request, res: Response) => {
                 date: true,
                 total: true,
                 subTotal: true,
+                tax: true,
+                taxBase: true,
+                taxRate: true,
+                taxType: true,
+                taxLabel: true,
                 payCash: true,
                 discount: true,
                 createdAt: true,
@@ -555,8 +630,10 @@ const getFacture = async (req: Request, res: Response) => {
         const payCash = toNumber(data.payCash);
         const subTotal = toNumber(data.subTotal);
         const discount = toNumber(data.discount);
+        const tax = toNumber(data.tax);
+        const taxBase = toNumber(data.taxBase);
 
-        const totalBelanja = subTotal - discount;
+        const totalBelanja = toNumber(data.total || subTotal - discount + tax);
         const selisih = payCash - totalBelanja;
 
         res.status(200).json({
@@ -573,6 +650,11 @@ const getFacture = async (req: Request, res: Response) => {
                     total: formatter.format(toNumber(totalBelanja)),
                     subTotal: formatter.format(toNumber(subTotal)),
                     discount: formatter.format(toNumber(discount)),
+                    tax: formatter.format(toNumber(tax)),
+                    taxBase: formatter.format(toNumber(taxBase)),
+                    taxRate: data.taxRate,
+                    taxType: data.taxType,
+                    taxLabel: data.taxLabel ?? "PPN",
                     payCash: formatter.format(toNumber(payCash)),
                     change: formatter.format(toNumber(selisih)),
                     id: data.id,

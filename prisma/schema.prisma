@@ -42,6 +42,7 @@ model SubscriptionStore {
 model store_subscriptions {
   id            String                    @id @default(uuid()) @db.VarChar(36)
   storeId       String                    @db.VarChar(36)
+  planId        String?                   @db.VarChar(36)
   type          store_subscription_type
   startDate     DateTime                  @db.DateTime
   endDate       DateTime                  @db.DateTime
@@ -54,10 +55,12 @@ model store_subscriptions {
   userCreate    String?                   @db.VarChar(36)
 
   store                 stores                  @relation("StoreSubscriptions", fields: [storeId], references: [id], onDelete: Cascade)
+  plan                  subscription_plans?     @relation(fields: [planId], references: [id])
   user                  users?                  @relation("StoreSubscriptionCreator", fields: [userCreate], references: [id])
   affiliate_commissions affiliate_commissions[]
 
   @@index([storeId])
+  @@index([planId])
   @@index([status])
   @@map("store_subscriptions")
 }
@@ -175,6 +178,7 @@ model products {
   name                 String                    @db.VarChar(255)
   hppType              String?                   @db.VarChar(15)
   taxInclude           Int?                      @db.SmallInt
+  isTaxable            Boolean                   @default(true)
   stockMinimum         Int?
   description          String?                   @db.Text
   status               products_status?          @default(active)
@@ -220,6 +224,15 @@ model purchaseDetails {
   price               Decimal?            @db.Decimal(14, 4)
   discount            Decimal?            @db.Decimal(14, 4)
   total               Decimal?            @db.Decimal(14, 4)
+  grossTotal          Decimal?            @default(0) @db.Decimal(14, 4)
+  netTotal            Decimal?            @default(0) @db.Decimal(14, 4)
+  taxBase             Decimal?            @default(0) @db.Decimal(14, 4)
+  tax                 Decimal?            @default(0) @db.Decimal(14, 4)
+  taxRate             Decimal?            @db.Decimal(5, 2)
+  taxType             String?             @db.VarChar(20)
+  taxLabel            String?             @db.VarChar(50)
+  isTaxable           Boolean             @default(false)
+  discountAllocation  Decimal?            @default(0) @db.Decimal(14, 4)
   expiredDate         DateTime?           @db.Date
   userCreate          String?             @db.VarChar(36)
   createdAt           DateTime?           @default(now()) @db.DateTime(0)
@@ -245,6 +258,10 @@ model purchases {
   invoice              String                 @db.VarChar(100)
   subTotal             Decimal?               @db.Decimal(14, 4)
   tax                  Decimal?               @db.Decimal(14, 4)
+  taxBase              Decimal?               @db.Decimal(14, 4)
+  taxRate              Decimal?               @db.Decimal(5, 2)
+  taxType              String?                @db.VarChar(20)
+  taxLabel             String?                @db.VarChar(50)
   discount             Decimal?               @db.Decimal(14, 4)
   additionalCost       Decimal?               @db.Decimal(14, 4)
   total                Decimal?               @db.Decimal(14, 4)
@@ -282,6 +299,15 @@ model saleDetails {
   price               Decimal?            @db.Decimal(14, 4)
   discount            Decimal?            @db.Decimal(14, 4)
   total               Decimal?            @db.Decimal(14, 4)
+  grossTotal          Decimal?            @default(0) @db.Decimal(14, 4)
+  netTotal            Decimal?            @default(0) @db.Decimal(14, 4)
+  taxBase             Decimal?            @default(0) @db.Decimal(14, 4)
+  tax                 Decimal?            @default(0) @db.Decimal(14, 4)
+  taxRate             Decimal?            @db.Decimal(5, 2)
+  taxType             String?             @db.VarChar(20)
+  taxLabel            String?             @db.VarChar(50)
+  isTaxable           Boolean             @default(false)
+  discountAllocation  Decimal?            @default(0) @db.Decimal(14, 4)
   expiredDate         DateTime?           @db.Date
   status              saleDetails_status? @default(ordered)
   userCreate          String?             @db.VarChar(36)
@@ -310,6 +336,15 @@ model salePendingDetails {
   price               Decimal?            @db.Decimal(14, 4)
   discount            Decimal?            @db.Decimal(14, 4)
   total               Decimal?            @db.Decimal(14, 4)
+  grossTotal          Decimal?            @default(0) @db.Decimal(14, 4)
+  netTotal            Decimal?            @default(0) @db.Decimal(14, 4)
+  taxBase             Decimal?            @default(0) @db.Decimal(14, 4)
+  tax                 Decimal?            @default(0) @db.Decimal(14, 4)
+  taxRate             Decimal?            @db.Decimal(5, 2)
+  taxType             String?             @db.VarChar(20)
+  taxLabel            String?             @db.VarChar(50)
+  isTaxable           Boolean             @default(false)
+  discountAllocation  Decimal?            @default(0) @db.Decimal(14, 4)
   expiredDate         DateTime?           @db.Date
   status              saleDetails_status? @default(ordered)
   userCreate          String?             @db.VarChar(36)
@@ -336,6 +371,10 @@ model sales {
   invoice              String?       @db.VarChar(100)
   subTotal             Decimal?      @db.Decimal(14, 4)
   tax                  Decimal?      @db.Decimal(14, 4)
+  taxBase              Decimal?      @db.Decimal(14, 4)
+  taxRate              Decimal?      @db.Decimal(5, 2)
+  taxType              String?       @db.VarChar(20)
+  taxLabel             String?       @db.VarChar(50)
   discount             Decimal?      @db.Decimal(14, 4)
   addtionalCost        Decimal?      @db.Decimal(14, 4)
   shippingCost         Decimal?      @db.Decimal(14, 4)
@@ -408,6 +447,13 @@ model saleSplitBills {
   subTotal     Decimal?  @db.Decimal(14, 4)
   discount     Decimal?  @default(0) @db.Decimal(14, 4)
   total        Decimal   @db.Decimal(14, 4)
+  grossTotal   Decimal?  @default(0) @db.Decimal(14, 4)
+  netTotal     Decimal?  @default(0) @db.Decimal(14, 4)
+  taxBase      Decimal?  @default(0) @db.Decimal(14, 4)
+  tax          Decimal?  @default(0) @db.Decimal(14, 4)
+  taxRate      Decimal?  @db.Decimal(5, 2)
+  taxType      String?   @db.VarChar(20)
+  taxLabel     String?   @db.VarChar(50)
   paidAmount   Decimal?  @default(0) @db.Decimal(14, 4)
   changeAmount Decimal?  @default(0) @db.Decimal(14, 4)
   status       String    @default("OPEN") @db.VarChar(20)
@@ -435,6 +481,12 @@ model saleSplitBillItems {
   quantity            Decimal             @db.Decimal(14, 4)
   price               Decimal             @db.Decimal(14, 4)
   total               Decimal             @db.Decimal(14, 4)
+  grossTotal          Decimal?            @default(0) @db.Decimal(14, 4)
+  netTotal            Decimal?            @default(0) @db.Decimal(14, 4)
+  taxBase             Decimal?            @default(0) @db.Decimal(14, 4)
+  tax                 Decimal?            @default(0) @db.Decimal(14, 4)
+  discountAllocation  Decimal?            @default(0) @db.Decimal(14, 4)
+  isTaxable           Boolean             @default(false)
   createdAt           DateTime?           @default(now()) @db.DateTime(0)
   deletedAt           DateTime?           @db.DateTime(0)
 
@@ -456,6 +508,10 @@ model salePending {
   invoice              String?              @db.VarChar(100)
   subTotal             Decimal?             @db.Decimal(14, 4)
   tax                  Decimal?             @db.Decimal(14, 4)
+  taxBase              Decimal?             @db.Decimal(14, 4)
+  taxRate              Decimal?             @db.Decimal(5, 2)
+  taxType              String?              @db.VarChar(20)
+  taxLabel             String?              @db.VarChar(50)
   discount             Decimal?             @db.Decimal(14, 4)
   addtionalCost        Decimal?             @db.Decimal(14, 4)
   shippingCost         Decimal?             @db.Decimal(14, 4)
@@ -501,6 +557,12 @@ model stores {
   deletedAt          DateTime?             @db.DateTime(0)
   userCreate         String?               @db.VarChar(36)
   requireLocation    Boolean?              @default(true)
+  taxEnabled         Boolean               @default(false)
+  taxRate            Decimal?              @default(11) @db.Decimal(5, 2)
+  taxLabel           String?               @default("PPN") @db.VarChar(50)
+  salesTaxType       String?               @default("exclude") @db.VarChar(20)
+  purchaseTaxType    String?               @default("include") @db.VarChar(20)
+  taxScope           String?               @default("all_products") @db.VarChar(30)
   latitude           Decimal?              @db.Decimal(10, 7)
   longitude          Decimal?              @db.Decimal(10, 7)
   locationRadius     Int?
@@ -697,6 +759,53 @@ model user_roles {
   @@id([userId, storeId])
   @@index([storeId], map: "user_roles_storeId_idx")
   @@index([roleId], map: "user_roles_roleId_idx")
+}
+
+model features {
+  id           String                       @id @default(uuid()) @db.VarChar(36)
+  key          String                       @unique @db.VarChar(100)
+  name         String                       @db.VarChar(150)
+  description  String?                      @db.Text
+  group        String?                      @db.VarChar(100)
+  status       String                       @default("active") @db.VarChar(20)
+  createdAt    DateTime                     @default(now()) @db.DateTime
+  updatedAt    DateTime                     @updatedAt @db.DateTime
+  planFeatures subscription_plan_features[]
+
+  @@index([status])
+  @@map("features")
+}
+
+model subscription_plans {
+  id                 String                       @id @default(uuid()) @db.VarChar(36)
+  code               String                       @unique @db.VarChar(50)
+  name               String                       @db.VarChar(150)
+  description        String?                      @db.Text
+  price              Decimal?                     @db.Decimal(12, 2)
+  durationMonth      Int?
+  status             String                       @default("active") @db.VarChar(20)
+  isPublic           Boolean                      @default(true)
+  createdAt          DateTime                     @default(now()) @db.DateTime
+  updatedAt          DateTime                     @updatedAt @db.DateTime
+  planFeatures       subscription_plan_features[]
+  storeSubscriptions store_subscriptions[]
+
+  @@index([status])
+  @@map("subscription_plans")
+}
+
+model subscription_plan_features {
+  id        String             @id @default(uuid()) @db.VarChar(36)
+  planId    String             @db.VarChar(36)
+  featureId String             @db.VarChar(36)
+  createdAt DateTime           @default(now()) @db.DateTime
+  plan      subscription_plans @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature   features           @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureId])
+  @@index([planId])
+  @@index([featureId])
+  @@map("subscription_plan_features")
 }
 
 model variants {

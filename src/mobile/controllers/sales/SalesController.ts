@@ -13,6 +13,8 @@ import {
     ValidationError,
 } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
+import { assertStoreCanTransact } from "#root/helpers/assertStoreCanTransact";
+import { toDbDateOnly } from "#root/helpers/date";
 
 const getData = async (
     req: Request<{}, {}, {}, SalesQueryInterface>,
@@ -91,6 +93,21 @@ const toNumber = (value: unknown): number => {
     const parsed = parseFloat(`${value ?? 0}`);
     return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const getDetailTaxData = (item: any) => ({
+    grossTotal: toNumber(item?.grossTotal),
+    netTotal: toNumber(item?.netTotal),
+    taxBase: toNumber(item?.taxBase),
+    tax: toNumber(item?.tax),
+    taxRate:
+        item?.taxRate === undefined || item?.taxRate === null
+            ? undefined
+            : toNumber(item.taxRate),
+    taxType: item?.taxType,
+    taxLabel: item?.taxLabel,
+    isTaxable: Boolean(item?.isTaxable),
+    discountAllocation: toNumber(item?.discountAllocation),
+});
 
 const isCashAccount = (account: {
     type?: string | null;
@@ -357,12 +374,18 @@ const postData = async (req: Request, res: Response) => {
         const dataDetail = data.detailItem ?? [];
         // Start transaction
         return Model.$transaction(async (prisma) => {
+            await assertStoreCanTransact(prisma, data.storeId);
+
             const invoice = await transactionNumber({
                 storeId: data.storeId,
                 module: "SALE",
             });
+            const tax = toNumber(data.tax);
+            const taxBase = toNumber(data.taxBase);
             const grandTotal =
-                toNumber(data.subTotal) - toNumber(data.discount);
+                data.total !== undefined && data.total !== null
+                    ? toNumber(data.total)
+                    : toNumber(data.subTotal) - toNumber(data.discount) + tax;
             const hasPendingSplitBills = data.salePendingId
                 ? (await prisma.saleSplitBills.count({
                       where: {
@@ -398,13 +421,18 @@ const postData = async (req: Request, res: Response) => {
             const salesData: Prisma.salesUncheckedCreateInput = {
                 salePeopleId: data.salePeopleId,
                 id: salesId,
-                date: moment().format(),
+                date: toDbDateOnly(data.date),
                 storeId: data.storeId,
                 accountCashId: primaryPayment.accountId,
                 payMetodeId: primaryPayment.accountId,
                 memberId: data.memberId,
                 invoice: invoice.invoice,
                 subTotal: toNumber(data.subTotal),
+                tax,
+                taxBase,
+                taxRate: toNumber(data.taxRate),
+                taxType: data.taxType,
+                taxLabel: data.taxLabel ?? "PPN",
                 total: grandTotal,
                 description: data.description,
                 userCreate: res.locals.userId,
@@ -484,6 +512,7 @@ const postData = async (req: Request, res: Response) => {
                         productConversionId: dataDetail[rawKey].unitId,
                         quantity: dataDetail[rawKey].quantity ?? 1,
                         price: dataDetail[rawKey].price ?? 0,
+                        ...getDetailTaxData(dataDetail[rawKey]),
                     },
                 });
 
@@ -668,7 +697,11 @@ const postData = async (req: Request, res: Response) => {
             data: salesId,
             remainder:
                 toNumber(data?.pay) -
-                (toNumber(data.subTotal) - toNumber(data.discount)),
+                (data.total !== undefined && data.total !== null
+                    ? toNumber(data.total)
+                    : toNumber(data.subTotal) -
+                      toNumber(data.discount) +
+                      toNumber(data.tax)),
         });
     } catch (error) {
         handleErrorMessage(res, error);
@@ -701,6 +734,8 @@ const updateData = async (req: Request, res: Response) => {
 
             if (!existing) throw new Error("sales data not found");
 
+            await assertStoreCanTransact(prisma, existing.storeId);
+
             await revertCashflowByReference(
                 prisma,
                 salesId,
@@ -711,8 +746,12 @@ const updateData = async (req: Request, res: Response) => {
                 where: { saleId: salesId },
             });
 
+            const tax = toNumber(body.tax);
+            const taxBase = toNumber(body.taxBase);
             const grandTotal =
-                toNumber(body.subTotal) - toNumber(body.discount);
+                body.total !== undefined && body.total !== null
+                    ? toNumber(body.total)
+                    : toNumber(body.subTotal) - toNumber(body.discount) + tax;
             const normalizedPayments = await normalizeSalePayments(prisma, {
                 storeId: existing.storeId ?? "",
                 payments: body.payments,
@@ -737,6 +776,11 @@ const updateData = async (req: Request, res: Response) => {
                 discount: toNumber(body.discount),
                 payCash: normalizedPayments.totalPaid,
                 subTotal: toNumber(body.subTotal),
+                tax,
+                taxBase,
+                taxRate: toNumber(body.taxRate),
+                taxType: body.taxType,
+                taxLabel: body.taxLabel ?? "PPN",
                 total: grandTotal,
                 memberId: body.memberId ?? existing.memberId,
                 description: body.description ?? existing.description,
@@ -827,6 +871,7 @@ const updateData = async (req: Request, res: Response) => {
                             productConversionId: item.unitId,
                             quantity: item.quantity ?? 1,
                             price: item.price ?? 0,
+                            ...getDetailTaxData(item),
                         },
                     });
 
@@ -935,6 +980,7 @@ const updateData = async (req: Request, res: Response) => {
                             productConversionId: item.unitId,
                             quantity: item.quantity ?? 1,
                             price: item.price ?? 0,
+                            ...getDetailTaxData(item),
                         },
                     });
 
@@ -1161,7 +1207,11 @@ const updateData = async (req: Request, res: Response) => {
             data: salesId,
             remainder:
                 toNumber(body?.pay) -
-                (toNumber(body.subTotal) - toNumber(body.discount)),
+                (body.total !== undefined && body.total !== null
+                    ? toNumber(body.total)
+                    : toNumber(body.subTotal) -
+                      toNumber(body.discount) +
+                      toNumber(body.tax)),
         });
     } catch (error) {
         handleErrorMessage(res, error);
@@ -1385,6 +1435,11 @@ const getFacture = async (req: Request, res: Response) => {
                 date: true,
                 total: true,
                 subTotal: true,
+                tax: true,
+                taxBase: true,
+                taxRate: true,
+                taxType: true,
+                taxLabel: true,
                 payCash: true,
                 discount: true,
                 createdAt: true,
@@ -1491,8 +1546,10 @@ const getFacture = async (req: Request, res: Response) => {
         const payCash = Number(data?.payCash ?? 0); // uang dibayar
         const subTotal = Number(data?.subTotal ?? 0); // total sebelum diskon
         const discount = Number(data?.discount ?? 0); // diskon
+        const tax = Number(data?.tax ?? 0);
+        const taxBase = Number(data?.taxBase ?? 0);
+        const totalBelanja = Number(data?.total ?? subTotal - discount + tax);
 
-        const totalBelanja = subTotal - discount; // total akhir
         const salePayments = data?.salePayments ?? [];
         const totalPaymentAmount =
             salePayments.length > 0
@@ -1542,6 +1599,11 @@ const getFacture = async (req: Request, res: Response) => {
                     total: formatter.format(parseInt(totalBelanja + "") ?? 0),
                     subTotal: formatter.format(parseInt(subTotal + "") ?? 0),
                     discount: formatter.format(parseInt(discount + "") ?? 0),
+                    tax: formatter.format(parseInt(tax + "") ?? 0),
+                    taxBase: formatter.format(parseInt(taxBase + "") ?? 0),
+                    taxRate: data?.taxRate,
+                    taxType: data?.taxType,
+                    taxLabel: data?.taxLabel ?? "PPN",
                     payCash: formatter.format(
                         parseInt(totalPaymentAmount + "") ?? 0,
                     ),
@@ -1730,9 +1792,7 @@ const getSplitBillFacture = async (req: Request, res: Response) => {
                           parseInt(`${item.quantity ?? 0}`),
                       ),
                       price: formatter.format(parseInt(`${item.price ?? 0}`)),
-                      unit:
-                          item.productConversions?.units?.name ??
-                          "Item",
+                      unit: item.productConversions?.units?.name ?? "Item",
                   }))
                 : [
                       {
@@ -1742,6 +1802,11 @@ const getSplitBillFacture = async (req: Request, res: Response) => {
                           unit: "Tagihan",
                       },
                   ];
+
+        const splitSubTotal = Number(splitBill.subTotal ?? total);
+        const splitDiscount = Number(splitBill.discount ?? 0);
+        const splitTax = Number(splitBill.tax ?? 0);
+        const splitTaxBase = Number(splitBill.taxBase ?? 0);
 
         res.status(200).json({
             status: true,
@@ -1757,10 +1822,13 @@ const getSplitBillFacture = async (req: Request, res: Response) => {
                             .tz("Asia/Jakarta")
                             .format("HH:mm"),
                     total: formatter.format(parseInt(`${total}`)),
-                    subTotal: formatter.format(parseInt(`${total}`)),
-                    discount: formatter.format(
-                        parseInt(`${splitBill.discount ?? 0}`),
-                    ),
+                    subTotal: formatter.format(parseInt(`${splitSubTotal}`)),
+                    discount: formatter.format(parseInt(`${splitDiscount}`)),
+                    tax: formatter.format(parseInt(`${splitTax}`)),
+                    taxBase: formatter.format(parseInt(`${splitTaxBase}`)),
+                    taxRate: splitBill.taxRate,
+                    taxType: splitBill.taxType,
+                    taxLabel: splitBill.taxLabel ?? "PPN",
                     payCash: formatter.format(parseInt(`${paidAmount}`)),
                     change: formatter.format(parseInt(`${changeAmount}`)),
                     id: splitBill.id,
@@ -1848,6 +1916,11 @@ const getSaleForSplit = async (prisma: any, saleId: string) => {
             invoice: true,
             subTotal: true,
             discount: true,
+            tax: true,
+            taxBase: true,
+            taxRate: true,
+            taxType: true,
+            taxLabel: true,
             total: true,
             status: true,
             saleSplitBills: {
@@ -1874,6 +1947,12 @@ const getSaleForSplit = async (prisma: any, saleId: string) => {
                     quantity: true,
                     price: true,
                     total: true,
+                    grossTotal: true,
+                    netTotal: true,
+                    taxBase: true,
+                    tax: true,
+                    discountAllocation: true,
+                    isTaxable: true,
                     products: {
                         select: { name: true },
                     },
@@ -1913,6 +1992,11 @@ const getSalePendingForSplit = async (prisma: any, salePendingId: string) => {
             invoice: true,
             subTotal: true,
             discount: true,
+            tax: true,
+            taxBase: true,
+            taxRate: true,
+            taxType: true,
+            taxLabel: true,
             total: true,
             status: true,
             saleSplitBills: {
@@ -1939,6 +2023,12 @@ const getSalePendingForSplit = async (prisma: any, salePendingId: string) => {
                     quantity: true,
                     price: true,
                     total: true,
+                    grossTotal: true,
+                    netTotal: true,
+                    taxBase: true,
+                    tax: true,
+                    discountAllocation: true,
+                    isTaxable: true,
                     products: {
                         select: { name: true },
                     },
@@ -2033,6 +2123,20 @@ const buildSplitBillDrafts = (
     return bills;
 };
 
+const buildSplitBillTaxSummary = (billTotal: number, source: any) => {
+    const sourceTotal = toNumber(source?.total);
+    const ratio = sourceTotal > 0 ? billTotal / sourceTotal : 0;
+    return {
+        grossTotal: billTotal,
+        netTotal: toNumber(source?.taxBase || source?.subTotal) * ratio,
+        taxBase: toNumber(source?.taxBase) * ratio,
+        tax: toNumber(source?.tax) * ratio,
+        taxRate: source?.taxRate,
+        taxType: source?.taxType,
+        taxLabel: source?.taxLabel,
+    };
+};
+
 type SplitBillDraft = {
     id: string;
     name?: string;
@@ -2040,6 +2144,13 @@ type SplitBillDraft = {
     subTotal: number;
     discount: number;
     total: number;
+    grossTotal?: number;
+    netTotal?: number;
+    taxBase?: number;
+    tax?: number;
+    taxRate?: number;
+    taxType?: string;
+    taxLabel?: string;
     items?: Array<{
         id: string;
         productId: string;
@@ -2047,6 +2158,12 @@ type SplitBillDraft = {
         quantity: number;
         price: number;
         total: number;
+        grossTotal: number;
+        netTotal: number;
+        taxBase: number;
+        tax: number;
+        discountAllocation: number;
+        isTaxable: boolean;
     }>;
 };
 
@@ -2151,6 +2268,22 @@ const buildItemSplitBillDrafts = (
                 toNumber(detail.price) ||
                 toNumber(detail.total) / Math.max(toNumber(detail.quantity), 1);
             const total = price * quantity;
+            const ratio =
+                toNumber(detail.quantity) > 0
+                    ? quantity / toNumber(detail.quantity)
+                    : 0;
+            const detailGrossTotal = toNumber(detail.grossTotal);
+            const detailNetTotal = toNumber(detail.netTotal);
+            const detailTaxBase = toNumber(detail.taxBase);
+            const detailTax = toNumber(detail.tax);
+            const grossTotal =
+                detailGrossTotal > 0 ? detailGrossTotal * ratio : total;
+            const netTotal =
+                detailNetTotal > 0 ? detailNetTotal * ratio : total;
+            const taxBase = detailTaxBase > 0 ? detailTaxBase * ratio : 0;
+            const tax = detailTax > 0 ? detailTax * ratio : 0;
+            const discountAllocation =
+                toNumber(detail.discountAllocation) * ratio;
             allocatedQty.set(key, nextAllocated);
             billSubTotal += total;
             items.push({
@@ -2160,6 +2293,12 @@ const buildItemSplitBillDrafts = (
                 quantity,
                 price,
                 total,
+                grossTotal,
+                netTotal,
+                taxBase,
+                tax,
+                discountAllocation,
+                isTaxable: Boolean(detail.isTaxable),
             });
         }
 
@@ -2197,13 +2336,37 @@ const buildItemSplitBillDrafts = (
                 ? Math.floor((draft.subTotal / rawSubTotal) * effectiveDiscount)
                 : 0;
         const billDiscount = isLast ? remainingDiscount : proportionalDiscount;
-        const billTotal = Math.max(draft.subTotal - billDiscount, 0);
         remainingDiscount -= billDiscount;
+        const billTax = (draft.items ?? []).reduce(
+            (sum, item) => sum + toNumber(item.tax),
+            0,
+        );
+        const billTaxBase = (draft.items ?? []).reduce(
+            (sum, item) => sum + toNumber(item.taxBase),
+            0,
+        );
+        const billNetTotal = (draft.items ?? []).reduce(
+            (sum, item) => sum + toNumber(item.netTotal),
+            0,
+        );
+        const billGrossTotal = (draft.items ?? []).reduce(
+            (sum, item) => sum + toNumber(item.grossTotal),
+            0,
+        );
+        const hasExcludeTax = billTax > 0 && billGrossTotal <= billNetTotal;
+        const billTotal = Math.max(
+            draft.subTotal - billDiscount + (hasExcludeTax ? billTax : 0),
+            0,
+        );
 
         return {
             ...draft,
             discount: billDiscount,
             total: billTotal,
+            grossTotal: billGrossTotal,
+            netTotal: billNetTotal,
+            taxBase: billTaxBase,
+            tax: billTax,
         };
     });
 };
@@ -2215,6 +2378,7 @@ const createSplitBills = async (req: Request, res: Response) => {
 
         const result = await Model.$transaction(async (prisma) => {
             const sale = await getSaleForSplit(prisma, saleId);
+            await assertStoreCanTransact(prisma, sale.storeId);
 
             const mode = `${body.mode ?? ""}`.toUpperCase();
             const hasNonItemSplit = sale.saleSplitBills.some(
@@ -2251,6 +2415,13 @@ const createSplitBills = async (req: Request, res: Response) => {
                             subTotal: new Decimal(bill.subTotal),
                             discount: new Decimal(bill.discount),
                             total: new Decimal(bill.total),
+                            grossTotal: new Decimal(bill.grossTotal ?? 0),
+                            netTotal: new Decimal(bill.netTotal ?? 0),
+                            taxBase: new Decimal(bill.taxBase ?? 0),
+                            tax: new Decimal(bill.tax ?? 0),
+                            taxRate: sale.taxRate,
+                            taxType: sale.taxType,
+                            taxLabel: sale.taxLabel,
                             paidAmount: new Decimal(0),
                             changeAmount: new Decimal(0),
                             status: "OPEN",
@@ -2264,6 +2435,14 @@ const createSplitBills = async (req: Request, res: Response) => {
                                     quantity: new Decimal(item.quantity),
                                     price: new Decimal(item.price),
                                     total: new Decimal(item.total),
+                                    grossTotal: new Decimal(item.grossTotal),
+                                    netTotal: new Decimal(item.netTotal),
+                                    taxBase: new Decimal(item.taxBase),
+                                    tax: new Decimal(item.tax),
+                                    discountAllocation: new Decimal(
+                                        item.discountAllocation,
+                                    ),
+                                    isTaxable: item.isTaxable,
                                 })),
                             },
                         },
@@ -2273,20 +2452,33 @@ const createSplitBills = async (req: Request, res: Response) => {
                 const bills = buildSplitBillDrafts(body, toNumber(sale.total));
 
                 await prisma.saleSplitBills.createMany({
-                    data: bills.map((bill, index) => ({
-                        id: uuidv4(),
-                        saleId,
-                        storeId: sale.storeId,
-                        name: bill.name || `Bill ${index + 1}`,
-                        mode: bill.mode,
-                        subTotal: new Decimal(bill.total),
-                        discount: new Decimal(0),
-                        total: new Decimal(bill.total),
-                        paidAmount: new Decimal(0),
-                        changeAmount: new Decimal(0),
-                        status: "OPEN",
-                        userCreate: res.locals.userId,
-                    })),
+                    data: bills.map((bill, index) => {
+                        const taxSummary = buildSplitBillTaxSummary(
+                            bill.total,
+                            sale,
+                        );
+                        return {
+                            id: uuidv4(),
+                            saleId,
+                            storeId: sale.storeId,
+                            name: bill.name || `Bill ${index + 1}`,
+                            mode: bill.mode,
+                            subTotal: new Decimal(bill.total),
+                            discount: new Decimal(0),
+                            total: new Decimal(bill.total),
+                            grossTotal: new Decimal(taxSummary.grossTotal),
+                            netTotal: new Decimal(taxSummary.netTotal),
+                            taxBase: new Decimal(taxSummary.taxBase),
+                            tax: new Decimal(taxSummary.tax),
+                            taxRate: taxSummary.taxRate,
+                            taxType: taxSummary.taxType,
+                            taxLabel: taxSummary.taxLabel,
+                            paidAmount: new Decimal(0),
+                            changeAmount: new Decimal(0),
+                            status: "OPEN",
+                            userCreate: res.locals.userId,
+                        };
+                    }),
                 });
             }
 
@@ -2360,6 +2552,8 @@ const updateSplitBill = async (req: Request, res: Response) => {
             );
         }
 
+        await assertStoreCanTransact(Model, splitBill.storeId);
+
         if (splitBill.status === "PAID") {
             throw new ValidationError(
                 "Split bill yang sudah lunas tidak dapat diubah",
@@ -2414,6 +2608,8 @@ const deleteSplitBill = async (req: Request, res: Response) => {
                     "splitBill",
                 );
             }
+
+            await assertStoreCanTransact(prisma, splitBill.storeId);
 
             if (splitBill.status === "PAID") {
                 throw new ValidationError(
@@ -2471,6 +2667,8 @@ const paySplitBill = async (req: Request, res: Response) => {
                     "splitBill",
                 );
             }
+
+            await assertStoreCanTransact(prisma, splitBill.storeId);
 
             if (splitBill.status === "PAID") {
                 throw new ValidationError(
@@ -2563,6 +2761,7 @@ const createPendingSplitBills = async (req: Request, res: Response) => {
                 prisma,
                 salePendingId,
             );
+            await assertStoreCanTransact(prisma, salePending.storeId);
 
             const mode = `${body.mode ?? ""}`.toUpperCase();
             const hasNonItemSplit = salePending.saleSplitBills.some(
@@ -2599,6 +2798,13 @@ const createPendingSplitBills = async (req: Request, res: Response) => {
                             subTotal: new Decimal(bill.subTotal),
                             discount: new Decimal(bill.discount),
                             total: new Decimal(bill.total),
+                            grossTotal: new Decimal(bill.grossTotal ?? 0),
+                            netTotal: new Decimal(bill.netTotal ?? 0),
+                            taxBase: new Decimal(bill.taxBase ?? 0),
+                            tax: new Decimal(bill.tax ?? 0),
+                            taxRate: salePending.taxRate,
+                            taxType: salePending.taxType,
+                            taxLabel: salePending.taxLabel,
                             paidAmount: new Decimal(0),
                             changeAmount: new Decimal(0),
                             status: "OPEN",
@@ -2612,6 +2818,14 @@ const createPendingSplitBills = async (req: Request, res: Response) => {
                                     quantity: new Decimal(item.quantity),
                                     price: new Decimal(item.price),
                                     total: new Decimal(item.total),
+                                    grossTotal: new Decimal(item.grossTotal),
+                                    netTotal: new Decimal(item.netTotal),
+                                    taxBase: new Decimal(item.taxBase),
+                                    tax: new Decimal(item.tax),
+                                    discountAllocation: new Decimal(
+                                        item.discountAllocation,
+                                    ),
+                                    isTaxable: item.isTaxable,
                                 })),
                             },
                         },
@@ -2624,20 +2838,33 @@ const createPendingSplitBills = async (req: Request, res: Response) => {
                 );
 
                 await prisma.saleSplitBills.createMany({
-                    data: bills.map((bill, index) => ({
-                        id: uuidv4(),
-                        salePendingId,
-                        storeId: salePending.storeId,
-                        name: bill.name || `Bill ${index + 1}`,
-                        mode: bill.mode,
-                        subTotal: new Decimal(bill.total),
-                        discount: new Decimal(0),
-                        total: new Decimal(bill.total),
-                        paidAmount: new Decimal(0),
-                        changeAmount: new Decimal(0),
-                        status: "OPEN",
-                        userCreate: res.locals.userId,
-                    })),
+                    data: bills.map((bill, index) => {
+                        const taxSummary = buildSplitBillTaxSummary(
+                            bill.total,
+                            salePending,
+                        );
+                        return {
+                            id: uuidv4(),
+                            salePendingId,
+                            storeId: salePending.storeId,
+                            name: bill.name || `Bill ${index + 1}`,
+                            mode: bill.mode,
+                            subTotal: new Decimal(bill.total),
+                            discount: new Decimal(0),
+                            total: new Decimal(bill.total),
+                            grossTotal: new Decimal(taxSummary.grossTotal),
+                            netTotal: new Decimal(taxSummary.netTotal),
+                            taxBase: new Decimal(taxSummary.taxBase),
+                            tax: new Decimal(taxSummary.tax),
+                            taxRate: taxSummary.taxRate,
+                            taxType: taxSummary.taxType,
+                            taxLabel: taxSummary.taxLabel,
+                            paidAmount: new Decimal(0),
+                            changeAmount: new Decimal(0),
+                            status: "OPEN",
+                            userCreate: res.locals.userId,
+                        };
+                    }),
                 });
             }
 
@@ -2653,8 +2880,6 @@ const createPendingSplitBills = async (req: Request, res: Response) => {
             data: { splitBills: result },
         });
     } catch (error) {
-        console.log(error);
-
         handleErrorMessage(res, error);
     }
 };
@@ -2709,6 +2934,8 @@ const deletePendingSplitBill = async (req: Request, res: Response) => {
                 );
             }
 
+            await assertStoreCanTransact(prisma, splitBill.storeId);
+
             if (splitBill.status === "PAID") {
                 throw new ValidationError(
                     "Split bill yang sudah lunas tidak dapat dihapus",
@@ -2759,6 +2986,8 @@ const payPendingSplitBill = async (req: Request, res: Response) => {
                     "splitBill",
                 );
             }
+
+            await assertStoreCanTransact(prisma, splitBill.storeId);
 
             if (splitBill.status === "PAID") {
                 throw new ValidationError(

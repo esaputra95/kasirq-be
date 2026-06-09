@@ -163,8 +163,6 @@ const getData = async (
             },
         });
     } catch (error) {
-        console.log(error);
-
         res.status(500).json({
             status: false,
             message: "Internal Server Error",

@@ -6,9 +6,33 @@ import { errorType } from "#root/helpers/errorType";
 import { v4 as uuidv4 } from "uuid";
 import { BrandQueryInterface } from "#root/interfaces/masters/BrandInterface";
 import getOwnerId from "#root/helpers/GetOwnerId";
-import moment from "moment";
 import { DecrementStock, IncrementStock } from "#root/helpers/stock";
 import { handleErrorMessage } from "#root/helpers/handleErrors";
+import { toDbDateOnly } from "#root/helpers/date";
+
+const toNumber = (value: unknown) => Number(value ?? 0) || 0;
+
+const getDetailTaxData = (item: any) => ({
+    grossTotal: toNumber(item?.grossTotal),
+    netTotal: toNumber(item?.netTotal),
+    taxBase: toNumber(item?.taxBase),
+    tax: toNumber(item?.tax),
+    taxRate:
+        item?.taxRate === undefined || item?.taxRate === null
+            ? null
+            : toNumber(item.taxRate),
+    taxType: item?.taxType,
+    taxLabel: item?.taxLabel,
+    isTaxable: Boolean(item?.isTaxable),
+    discountAllocation: toNumber(item?.discountAllocation),
+});
+
+const getNetUnitCost = (item: any, conversionQuantity = 1) => {
+    const quantity = toNumber(item?.quantity) || 1;
+    const grossTotal = toNumber(item?.price) * quantity;
+    const netTotal = toNumber(item?.netTotal) || grossTotal;
+    return netTotal / quantity / (conversionQuantity || 1);
+};
 
 const getData = async (
     req: Request<{}, {}, {}, BrandQueryInterface>,
@@ -86,19 +110,37 @@ const postData = async (req: Request, res: Response) => {
             res.locals.userType
         );
         const data = req.body;
-        const dataDetail = data.detailItem;
+        const dataDetail = data.detailItem ?? {};
 
         // Start transaction
         return Model.$transaction(async (prisma) => {
+            const subTotal = toNumber(data.subTotal);
+            const discount = toNumber(data.discount);
+            const tax = toNumber(data.tax);
+            const additionalCost = toNumber(data.additionalCost);
+            const total =
+                data.total !== undefined && data.total !== null
+                    ? toNumber(data.total)
+                    : subTotal -
+                      discount +
+                      additionalCost +
+                      (data.taxType === "exclude" ? tax : 0);
             const purchaseData = {
                 id: purchaseId,
                 supplierId: data.supplierId,
-                date: moment().format(),
+                date: toDbDateOnly(data.date),
                 storeId: data.storeId,
-                discount: data.discount ?? 0,
+                subTotal,
+                tax,
+                taxBase: toNumber(data.taxBase),
+                taxRate: toNumber(data.taxRate),
+                taxType: data.taxType,
+                taxLabel: data.taxLabel ?? "PPN",
+                discount,
+                additionalCost,
                 invoice: uuidv4(),
                 payCash: data.pay ?? 0,
-                total: data.total ?? 0,
+                total,
                 accountCashId: data.accountCashId,
             };
 
@@ -138,14 +180,19 @@ const postData = async (req: Request, res: Response) => {
 
             for (const key in dataDetail) {
                 const idDetail = uuidv4();
+                const detail = dataDetail[key];
                 const purchaseDetail = await prisma.purchaseDetails.create({
                     data: {
                         id: idDetail,
                         purchaseId: purchaseData.id,
                         productId: key,
-                        productConversionId: dataDetail[key].unitId,
-                        quantity: dataDetail[key].quantity ?? 1,
-                        price: dataDetail[key].price ?? 0,
+                        productConversionId: detail.unitId,
+                        quantity: detail.quantity ?? 1,
+                        price: detail.price ?? 0,
+                        total:
+                            toNumber(detail.grossTotal) ||
+                            toNumber(detail.price) * toNumber(detail.quantity),
+                        ...getDetailTaxData(detail),
                     },
                 });
 
@@ -154,16 +201,16 @@ const postData = async (req: Request, res: Response) => {
                         id: dataDetail[key].unitId,
                     },
                 });
+                const conversionQuantity = conversion?.quantity ?? 1;
 
                 await prisma.hppHistory.create({
                     data: {
                         id: uuidv4(),
                         productId: key,
-                        price:
-                            dataDetail[key].price / (conversion?.quantity ?? 1),
+                        price: getNetUnitCost(detail, conversionQuantity),
                         quantity:
                             dataDetail[key].quantity *
-                            (conversion?.quantity ?? 1),
+                            conversionQuantity,
                         quantityUsed: 0,
                         transactionDetailId: purchaseDetail.id,
                         storeId: data.storeId,
@@ -202,7 +249,7 @@ const postData = async (req: Request, res: Response) => {
 
 const updateData = async (req: Request, res: Response) => {
     const data = { ...req.body };
-    const dataDetail = data.detailItem;
+    const dataDetail = data.detailItem ?? {};
     const purchaseId = req.params.id;
 
     const transaction = async () => {
@@ -226,7 +273,8 @@ const updateData = async (req: Request, res: Response) => {
             );
 
             // 2. Buat cashflow baru (jika ada pembayaran)
-            let accountCashId = data.accountId ?? existing.accountCashId;
+            let accountCashId =
+                data.accountCashId ?? data.accountId ?? existing.accountCashId;
 
             // Logic Default Account jika tidak ada akun sama sekali
             if (!accountCashId && existing.storeId) {
@@ -254,11 +302,30 @@ const updateData = async (req: Request, res: Response) => {
                 });
             }
 
+            const subTotal = toNumber(data.subTotal);
+            const discount = toNumber(data.discount);
+            const tax = toNumber(data.tax);
+            const additionalCost = toNumber(data.additionalCost);
+            const total =
+                data.total !== undefined && data.total !== null
+                    ? toNumber(data.total)
+                    : subTotal -
+                      discount +
+                      additionalCost +
+                      (data.taxType === "exclude" ? tax : 0);
+
             const purchaseData = {
                 supplierId: data.supplierId,
-                discount: data.discount,
+                subTotal,
+                tax,
+                taxBase: toNumber(data.taxBase),
+                taxRate: toNumber(data.taxRate),
+                taxType: data.taxType,
+                taxLabel: data.taxLabel ?? "PPN",
+                discount,
+                additionalCost,
                 payCash: data.pay ?? 0,
-                total: data.total ?? 0,
+                total,
                 accountCashId: accountCashId, // Update akun kas
             };
 
@@ -303,6 +370,11 @@ const updateData = async (req: Request, res: Response) => {
                                 quantity: detail.quantity,
                                 productConversionId: detail.unitId,
                                 price: detail.price ?? 0,
+                                total:
+                                    toNumber(detail.grossTotal) ||
+                                    toNumber(detail.price) *
+                                        toNumber(detail.quantity),
+                                ...getDetailTaxData(detail),
                             },
                         });
 
@@ -314,9 +386,10 @@ const updateData = async (req: Request, res: Response) => {
                             data: {
                                 id: uuidv4(),
                                 productId: key,
-                                price:
-                                    (detail.price ?? 0) /
-                                    (newConversion?.quantity ?? 1),
+                                price: getNetUnitCost(
+                                    detail,
+                                    newConversion?.quantity ?? 1,
+                                ),
                                 quantity: newQty,
                                 quantityUsed: 0,
                                 storeId: updatePurchase.storeId,
@@ -351,6 +424,10 @@ const updateData = async (req: Request, res: Response) => {
                             productConversionId: detail.unitId,
                             quantity: detail.quantity ?? 1,
                             price: detail.price ?? 0,
+                            total:
+                                toNumber(detail.grossTotal) ||
+                                toNumber(detail.price) * toNumber(detail.quantity),
+                            ...getDetailTaxData(detail),
                         },
                     });
 
@@ -358,9 +435,10 @@ const updateData = async (req: Request, res: Response) => {
                         data: {
                             id: uuidv4(),
                             productId: key,
-                            price:
-                                (detail.price ?? 0) /
-                                (newConversion?.quantity ?? 1),
+                            price: getNetUnitCost(
+                                detail,
+                                newConversion?.quantity ?? 1,
+                            ),
                             quantity:
                                 (detail.quantity ?? 1) *
                                 (newConversion?.quantity ?? 1),
@@ -389,9 +467,7 @@ const updateData = async (req: Request, res: Response) => {
             status: true,
             message: "Successful in updating purchase data",
             data: purchaseId,
-            remainder:
-                parseInt(data?.pay ?? 0) -
-                (parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0)),
+            remainder: toNumber(data?.pay) - toNumber(data.total),
         });
     } catch (error) {
         handleErrorMessage(res, error);

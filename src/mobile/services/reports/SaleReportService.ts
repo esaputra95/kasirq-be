@@ -42,7 +42,7 @@ export const getSaleReport = async (filters: {
     const start = moment(filters.start, "YYYY-MM-DD").startOf("day").toDate();
     const end = moment(filters.finish, "YYYY-MM-DD").endOf("day").toDate();
 
-    const [data, total]: [any, any] = await Promise.all([
+    const [data, total, taxTotal]: [any, any, any] = await Promise.all([
         Model.sales.findMany({
             include: {
                 members: true,
@@ -94,6 +94,15 @@ export const getSaleReport = async (filters: {
                       ...filter,
                   },
               }),
+        filters.categoryId
+            ? Model.sales.aggregate({
+                  _sum: { tax: true },
+                  where: {
+                      createdAt: { gte: start, lte: end },
+                      ...filter,
+                  },
+              })
+            : Promise.resolve(null),
     ]);
 
     let summary: any = {
@@ -113,10 +122,11 @@ export const getSaleReport = async (filters: {
             categorySubTotal += sale.subTotal;
         });
         summary.subTotal = categorySubTotal;
-        summary.total = categorySubTotal;
+        summary.tax = taxTotal?._sum?.tax || 0;
+        summary.total = categorySubTotal + summary.tax;
     } else {
         summary = {
-            total: (total._sum.subTotal || 0) - (total._sum.discount || 0),
+            total: total._sum.total || 0,
             subTotal: total._sum.subTotal || 0,
             discount: total._sum.discount || 0,
             tax: total._sum.tax || 0,

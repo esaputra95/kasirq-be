@@ -15,6 +15,26 @@ import {
 } from "#root/helpers/handleErrors";
 import { transactionNumber } from "#root/helpers/transactionNumber";
 
+const toNumber = (value: unknown): number => {
+    const parsed = parseFloat(`${value ?? 0}`);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getDetailTaxData = (item: any) => ({
+    grossTotal: toNumber(item?.grossTotal),
+    netTotal: toNumber(item?.netTotal),
+    taxBase: toNumber(item?.taxBase),
+    tax: toNumber(item?.tax),
+    taxRate:
+        item?.taxRate === undefined || item?.taxRate === null
+            ? undefined
+            : toNumber(item.taxRate),
+    taxType: item?.taxType,
+    taxLabel: item?.taxLabel,
+    isTaxable: Boolean(item?.isTaxable),
+    discountAllocation: toNumber(item?.discountAllocation),
+});
+
 const getData = async (
     req: Request<{}, {}, {}, SalesQueryInterface>,
     res: Response,
@@ -89,6 +109,14 @@ const postData = async (req: Request, res: Response) => {
                 storeId: data.storeId,
                 module: "SALE",
             });
+            const tax = parseFloat(data.tax ?? 0);
+            const taxBase = parseFloat(data.taxBase ?? 0);
+            const total =
+                data.total !== undefined && data.total !== null
+                    ? parseFloat(data.total)
+                    : parseFloat(data.subTotal ?? 0) -
+                      parseFloat(data.discount ?? 0) +
+                      tax;
             const salesData: Prisma.salesUncheckedCreateInput = {
                 salePeopleId: data.salePeopleId,
                 id: salesId,
@@ -99,9 +127,12 @@ const postData = async (req: Request, res: Response) => {
                 memberId: data.memberId,
                 invoice: invoice.invoice,
                 subTotal: parseFloat(data.subTotal ?? 0),
-                total:
-                    parseFloat(data.subTotal ?? 0) -
-                    parseFloat(data.discount ?? 0),
+                tax,
+                taxBase,
+                taxRate: parseFloat(data.taxRate ?? 0),
+                taxType: data.taxType,
+                taxLabel: data.taxLabel ?? "PPN",
+                total,
                 description: data.description,
                 userCreate: res.locals.userId,
                 discount: parseFloat(data.discount ?? 0),
@@ -174,6 +205,7 @@ const postData = async (req: Request, res: Response) => {
                         productConversionId: dataDetail[key].unitId,
                         quantity: dataDetail[key].quantity ?? 1,
                         price: dataDetail[key].price ?? 0,
+                        ...getDetailTaxData(dataDetail[key]),
                     },
                 });
 
@@ -358,7 +390,11 @@ const postData = async (req: Request, res: Response) => {
             data: salesId,
             remainder:
                 parseInt(data?.pay ?? 0) -
-                (parseInt(data.subTotal ?? 0) - parseInt(data.discount ?? 0)),
+                (data.total !== undefined && data.total !== null
+                    ? parseInt(data.total ?? 0)
+                    : parseInt(data.subTotal ?? 0) -
+                      parseInt(data.discount ?? 0) +
+                      parseInt(data.tax ?? 0)),
         });
     } catch (error) {
         handleErrorMessage(res, error);
@@ -531,6 +567,7 @@ const updateData = async (req: Request, res: Response) => {
                             productConversionId: item.unitId,
                             quantity: item.quantity ?? 1,
                             price: item.price ?? 0,
+                            ...getDetailTaxData(item),
                         },
                     });
 
@@ -639,6 +676,7 @@ const updateData = async (req: Request, res: Response) => {
                             productConversionId: item.unitId,
                             quantity: item.quantity ?? 1,
                             price: item.price ?? 0,
+                            ...getDetailTaxData(item),
                         },
                     });
 
@@ -1082,6 +1120,11 @@ const getFacture = async (req: Request, res: Response) => {
                 date: true,
                 total: true,
                 subTotal: true,
+                tax: true,
+                taxBase: true,
+                taxRate: true,
+                taxType: true,
+                taxLabel: true,
                 payCash: true,
                 discount: true,
                 createdAt: true,
@@ -1166,8 +1209,10 @@ const getFacture = async (req: Request, res: Response) => {
         const payCash = Number(data?.payCash ?? 0); // uang dibayar
         const subTotal = Number(data?.subTotal ?? 0); // total sebelum diskon
         const discount = Number(data?.discount ?? 0); // diskon
+        const tax = Number(data?.tax ?? 0);
+        const taxBase = Number(data?.taxBase ?? 0);
+        const totalBelanja = Number(data?.total ?? subTotal - discount + tax);
 
-        const totalBelanja = subTotal - discount; // total akhir
         const selisih = payCash - totalBelanja; // kembalian (+) atau kurang (-)
         res.status(200).json({
             status: true,
@@ -1183,6 +1228,11 @@ const getFacture = async (req: Request, res: Response) => {
                     total: formatter.format(parseInt(totalBelanja + "") ?? 0),
                     subTotal: formatter.format(parseInt(subTotal + "") ?? 0),
                     discount: formatter.format(parseInt(discount + "") ?? 0),
+                    tax: formatter.format(parseInt(tax + "") ?? 0),
+                    taxBase: formatter.format(parseInt(taxBase + "") ?? 0),
+                    taxRate: data?.taxRate,
+                    taxType: data?.taxType,
+                    taxLabel: data?.taxLabel ?? "PPN",
                     payCash: formatter.format(parseInt(payCash + "") ?? 0),
                     change: formatter.format(parseInt(selisih + "") ?? 0),
                     id: data?.id,

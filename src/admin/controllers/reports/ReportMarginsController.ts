@@ -120,7 +120,7 @@ const modelData = async (req: Request, res: Response) => {
 
         const data: any[] = await Model.$queryRaw`
             SELECT 
-                saleDetails.quantity * saleDetails.price AS sell,
+                COALESCE(NULLIF(saleDetails.netTotal, 0), saleDetails.quantity * saleDetails.price) AS sell,
                 SUM(cogs.price * cogs.quantity) AS capital,
                 sales.date,
                 sales.invoice,

@@ -4,8 +4,6 @@ import * as SaleReportService from "#root/mobile/services/reports/SaleReportServ
 
 const getData = async (req: Request, res: Response) => {
     try {
-        console.log("user :", req.query.userId);
-
         const result = await SaleReportService.getSaleReport({
             start: req.query.start as string,
             finish: req.query.finish as string,
