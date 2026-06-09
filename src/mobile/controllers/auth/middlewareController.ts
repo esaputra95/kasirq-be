@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { setActivityUserContext } from "#root/services/activityContext";
 
 const AccessToken = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -16,6 +17,11 @@ const AccessToken = async (req: Request, res: Response, next: NextFunction) => {
                 if (err) return res.send(403);
                 res.locals.userId = decode?.id ?? "";
                 res.locals.level = decode?.level ?? "";
+                setActivityUserContext({
+                    userId: res.locals.userId,
+                    userLevel: res.locals.level,
+                    storeId: decode?.storeId ?? null,
+                });
                 return next();
             },
         );

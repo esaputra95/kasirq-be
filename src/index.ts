@@ -43,9 +43,13 @@ import { enhanceStore } from "./services/enhanceStore";
 import { generateMemberLevels } from "./services/generateMemberLevels";
 import { viewLogs } from "./mobile/controllers/logs/LogViewerController";
 import RbacRoute from "./mobile/routers/rbac/RbacRoute";
+import { startStoreExpiryReminderScheduler } from "./services/storeExpiryReminder";
+import { activityContextMiddleware } from "./services/activityContext";
+import ActivityLogRoute from "./mobile/routers/masters/ActivityLogRoute";
 
 const app = express();
 app.use(cors());
+app.use(activityContextMiddleware);
 app.use(bodyParser.json()); // Parse JSON requests
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -68,6 +72,7 @@ app.use("/reports", AccessToken, ReportRoute);
 app.use("/dashboards", AccessToken, DashboardRoute);
 app.use("/sales-people", AccessToken, SalesPeopleRoute);
 app.use("/notifications", AccessToken, NotificationRoute);
+app.use("/activity-logs", AccessToken, ActivityLogRoute);
 app.use("/store-maintenance", AccessToken, StoreMaintenanceRoute);
 app.use("/member-levels", AccessToken, MemberLevelRoute);
 
@@ -81,6 +86,7 @@ app.use("/cash-outs", AccessToken, CashOutRoute);
 app.use("/attendances", AccessToken, AttendanceRoute);
 app.use("/rbac", AccessToken, RbacRoute);
 
+app.use("/admin/activity-logs", AccessToken, ActivityLogRoute);
 app.use("/admin", AdminRoute);
 app.use("/stores-api", StoresRoute);
 
@@ -91,4 +97,7 @@ app.get("/view-logs", viewLogs);
 app.get("/enhance-store", enhanceStore);
 app.get("/generate-member-levels", generateMemberLevels);
 
-app.listen(3001, () => console.log("server run ip 127.0.0.1:3001"));
+app.listen(3001, () => {
+    console.log("server run ip 127.0.0.1:3001");
+    startStoreExpiryReminderScheduler();
+});

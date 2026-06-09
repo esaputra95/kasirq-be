@@ -589,6 +589,7 @@ model stores {
   attendances        attendances[]
   roles              roles[]               @relation("roles_store")
   userRoles          user_roles[]
+  activityLogs       activityLogs[]
 
   defaultCashId String?  @db.VarChar(36)
   defaultCash   account? @relation("StoreDefaultCash", fields: [defaultCashId], references: [id])
@@ -697,6 +698,7 @@ model users {
   salePending                              salePending[]
   notificationRecipients                   notificationRecipients[]
   deviceTokens                             deviceTokens[]
+  activityLogs                             activityLogs[]
   stockOpnames                             stockOpname[]
   stockOpnameDetails                       stockOpnameDetails[]
   expenses                                 expense[]
@@ -1092,6 +1094,38 @@ model notificationRecipients {
 
   notification notifications? @relation(fields: [notificationId], references: [id], onDelete: Cascade)
   user         users?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model activityLogs {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  ownerId     String?  @db.VarChar(36)
+  storeId     String?  @db.VarChar(36)
+  userId      String?  @db.VarChar(36)
+  userLevel   String?  @db.VarChar(50)
+  actorName   String?  @db.VarChar(255)
+  action      String   @db.VarChar(30)
+  module      String   @db.VarChar(80)
+  entityId    String?  @db.VarChar(36)
+  entityLabel String?  @db.VarChar(255)
+  method      String?  @db.VarChar(10)
+  path        String?  @db.VarChar(255)
+  ipAddress   String?  @db.VarChar(45)
+  userAgent   String?  @db.Text
+  beforeData  Json?
+  afterData   Json?
+  changes     Json?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @db.DateTime(0)
+
+  user  users?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  store stores? @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, createdAt])
+  @@index([storeId, createdAt])
+  @@index([userId, createdAt])
+  @@index([module, createdAt])
+  @@index([action, createdAt])
+  @@map("activityLogs")
 }
 
 model deviceTokens {
