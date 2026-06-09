@@ -110,7 +110,6 @@ export const getStoresForSelectSubscription = async (
                 },
             },
         });
-        console.log("stores", stores);
 
         dataOption = await Promise.all(
             stores.map(async (store) => {
