@@ -874,6 +874,66 @@ export const updateRole = async (
     });
 };
 
+export const deleteRole = async (
+    actor: ActorContext,
+    roleId: string,
+    requestedStoreId?: string,
+) => {
+    const storeId = await resolveStoreIdByActor({
+        userId: actor.userId,
+        level: actor.level,
+        requestedStoreId,
+    });
+
+    const role = await Model.roles.findUnique({
+        where: { id: roleId },
+        select: {
+            id: true,
+            name: true,
+            storeId: true,
+            isSystem: true,
+        },
+    });
+
+    if (!role) {
+        throw new ValidationError("Role tidak ditemukan", 404, "id");
+    }
+
+    if (role.storeId !== storeId) {
+        throw new UnauthorizedError("Role tidak termasuk store ini", 403);
+    }
+
+    if (role.isSystem) {
+        throw new ValidationError(
+            "Role bawaan sistem tidak dapat dihapus",
+            400,
+            "id",
+        );
+    }
+
+    const assignedUserCount = await Model.user_roles.count({
+        where: { roleId },
+    });
+
+    if (assignedUserCount > 0) {
+        throw new ValidationError(
+            `Role sedang digunakan oleh ${assignedUserCount} user dan tidak dapat dihapus`,
+            400,
+            "id",
+        );
+    }
+
+    await Model.$transaction(async (tx) => {
+        await tx.role_permissions.deleteMany({ where: { roleId } });
+        await tx.roles.delete({ where: { id: roleId } });
+    });
+
+    return {
+        id: role.id,
+        name: role.name,
+    };
+};
+
 export const assignRole = async (
     actor: ActorContext,
     payload: { userId: string; storeId?: string; roleId: string },

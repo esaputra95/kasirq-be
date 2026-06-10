@@ -1,5 +1,6 @@
 import express from "express";
 import {
+    deleteRoleById,
     getPermissions,
     getRoles,
     getMyRole,
@@ -28,6 +29,7 @@ router.get("/roles", getRoles);
 router.get("/roles/me", getMyRole);
 router.post("/roles", requireOwnerAccess, postRole);
 router.put("/roles/:id", requireOwnerAccess, putRole);
+router.delete("/roles/:id", requireOwnerAccess, deleteRoleById);
 router.post("/assign-role", requireOwnerAccess, postAssignRole);
 
 export default router;

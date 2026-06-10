@@ -3,6 +3,7 @@ import { handleErrorMessage } from "#root/helpers/handleErrors";
 import {
     assignRole,
     createRole,
+    deleteRole,
     getPermissionsForActor,
     getRoleForLevelWithPermissions,
     getRolesWithPermissions,
@@ -108,6 +109,27 @@ export const putRole = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             status: true,
+            data: result,
+        });
+    } catch (error) {
+        return handleErrorMessage(res, error);
+    }
+};
+
+export const deleteRoleById = async (req: Request, res: Response) => {
+    try {
+        const result = await deleteRole(
+            {
+                userId: res.locals.userId,
+                level: res.locals.level,
+            },
+            req.params.id,
+            req.query.storeId as string | undefined,
+        );
+
+        return res.status(200).json({
+            status: true,
+            message: "Role berhasil dihapus",
             data: result,
         });
     } catch (error) {
