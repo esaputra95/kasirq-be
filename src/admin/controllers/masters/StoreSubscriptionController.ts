@@ -13,6 +13,11 @@ interface StoreSubscriptionQueryInterface extends Partial<store_subscriptions> {
     page?: string;
 }
 
+const SUBSCRIPTION_TRANSACTION_OPTIONS = {
+    maxWait: 10000,
+    timeout: 15000,
+};
+
 const getData = async (req: Request, res: Response) => {
     try {
         const query = req.query as unknown as StoreSubscriptionQueryInterface;
@@ -99,90 +104,93 @@ const postData = async (req: Request, res: Response) => {
         const data = { ...req.body } as store_subscriptions;
         const uuid = uuidv4();
 
-        await Model.$transaction(async (tx) => {
-            const planId = await resolveSubscriptionPlanId(
-                (data as any).planId,
-                data.type,
-                tx,
-            );
+        await Model.$transaction(
+            async (tx) => {
+                const planId = await resolveSubscriptionPlanId(
+                    (data as any).planId,
+                    data.type,
+                    tx,
+                );
 
-            await tx.store_subscriptions.create({
-                data: {
-                    id: uuid,
-                    storeId: data.storeId,
-                    planId,
-                    type: data.type,
-                    startDate: moment(data.startDate).toISOString(),
-                    endDate: moment(data.endDate).toISOString(),
-                    durationMonth: data.durationMonth,
-                    price: data.price,
-                    status: data.status,
-                    paymentRef: data.paymentRef ?? null,
-                    userCreate: res.locals.userId ?? null,
-                },
-            });
-
-            // Update expiredDate in stores
-            const store = await tx.stores.update({
-                where: {
-                    id: data.storeId,
-                },
-                data: {
-                    expiredDate: moment(data.endDate).toISOString(),
-                },
-                select: {
-                    ownerId: true,
-                },
-            });
-
-            // Commission Logic
-            if (Number(data.price || 0) > 0 && store.ownerId) {
-                const referral = await tx.referrals.findFirst({
-                    where: { referredUserId: store.ownerId },
-                    include: {
-                        affiliateCode: true,
+                await tx.store_subscriptions.create({
+                    data: {
+                        id: uuid,
+                        storeId: data.storeId,
+                        planId,
+                        type: data.type,
+                        startDate: moment(data.startDate).toISOString(),
+                        endDate: moment(data.endDate).toISOString(),
+                        durationMonth: data.durationMonth,
+                        price: data.price,
+                        status: data.status,
+                        paymentRef: data.paymentRef ?? null,
+                        userCreate: res.locals.userId ?? null,
                     },
                 });
 
-                if (referral && referral.affiliateCode) {
-                    const aff = referral.affiliateCode;
-                    let commissionAmount = 0;
+                // Update expiredDate in stores
+                const store = await tx.stores.update({
+                    where: {
+                        id: data.storeId,
+                    },
+                    data: {
+                        expiredDate: moment(data.endDate).toISOString(),
+                    },
+                    select: {
+                        ownerId: true,
+                    },
+                });
 
-                    if (aff.commissionType === "PERCENTAGE") {
-                        commissionAmount =
-                            (Number(data.price) *
-                                Number(aff.commissionValue || 0)) /
-                            100;
-                    } else if (aff.commissionType === "FIXED") {
-                        commissionAmount =
-                            Number(aff.commissionValue || 0) *
-                            Number(data.durationMonth);
-                    }
+                // Commission Logic
+                if (Number(data.price || 0) > 0 && store.ownerId) {
+                    const referral = await tx.referrals.findFirst({
+                        where: { referredUserId: store.ownerId },
+                        include: {
+                            affiliateCode: true,
+                        },
+                    });
 
-                    if (commissionAmount > 0) {
-                        // Create commission record
-                        await tx.affiliate_commissions.create({
-                            data: {
-                                id: uuidv4(),
-                                affiliateCodeId: aff.id,
-                                subscriptionId: uuid,
-                                amount: commissionAmount,
-                            },
-                        });
+                    if (referral && referral.affiliateCode) {
+                        const aff = referral.affiliateCode;
+                        let commissionAmount = 0;
 
-                        // Update referral earnedAmount
-                        await tx.referrals.update({
-                            where: { id: referral.id },
-                            data: {
-                                earnedAmount: {
-                                    increment: commissionAmount,
+                        if (aff.commissionType === "PERCENTAGE") {
+                            commissionAmount =
+                                (Number(data.price) *
+                                    Number(aff.commissionValue || 0)) /
+                                100;
+                        } else if (aff.commissionType === "FIXED") {
+                            commissionAmount =
+                                Number(aff.commissionValue || 0) *
+                                Number(data.durationMonth);
+                        }
+
+                        if (commissionAmount > 0) {
+                            // Create commission record
+                            await tx.affiliate_commissions.create({
+                                data: {
+                                    id: uuidv4(),
+                                    affiliateCodeId: aff.id,
+                                    subscriptionId: uuid,
+                                    amount: commissionAmount,
                                 },
-                            },
-                        });
+                            });
+
+                            // Update referral earnedAmount
+                            await tx.referrals.update({
+                                where: { id: referral.id },
+                                data: {
+                                    earnedAmount: {
+                                        increment: commissionAmount,
+                                    },
+                                },
+                            });
+                        }
                     }
                 }
-            }
-        });
+            },
+            SUBSCRIPTION_TRANSACTION_OPTIONS,
+        );
 
         res.status(200).json({
             status: true,
@@ -197,53 +205,77 @@ const updateData = async (req: Request, res: Response) => {
     try {
         const data = { ...req.body } as store_subscriptions;
 
-        await Model.$transaction(async (tx) => {
-            const existing = await tx.store_subscriptions.findUnique({
-                where: {
-                    id: req.params.id,
-                },
-                select: {
-                    planId: true,
-                    type: true,
-                },
-            });
+        const existing = await Model.store_subscriptions.findUnique({
+            where: {
+                id: req.params.id,
+            },
+            select: {
+                planId: true,
+                type: true,
+                storeId: true,
+                endDate: true,
+            },
+        });
 
-            const planId =
-                (data as any).planId === undefined && existing?.planId
-                    ? existing.planId
-                    : await resolveSubscriptionPlanId(
-                          (data as any).planId,
-                          data.type ?? existing?.type,
-                          tx,
-                      );
+        if (!existing) throw new Error("data not found");
 
-            await tx.store_subscriptions.update({
-                where: {
-                    id: req.params.id,
-                },
-                data: {
-                    storeId: data.storeId,
-                    planId,
-                    type: data.type,
-                    startDate: moment(data.startDate).toISOString(),
-                    endDate: moment(data.endDate).toISOString(),
-                    durationMonth: data.durationMonth,
-                    price: data.price,
-                    status: data.status,
-                    paymentRef: data.paymentRef,
-                    updatedAt: moment().toISOString(),
-                },
-            });
+        const requestedPlanId = (data as any).planId;
+        const shouldResolvePlan =
+            requestedPlanId !== undefined || data.type !== undefined;
+        const planId = shouldResolvePlan
+            ? await resolveSubscriptionPlanId(
+                  requestedPlanId,
+                  data.type ?? existing.type,
+                  Model,
+              )
+            : existing.planId;
 
-            // Update expiredDate in stores
-            await tx.stores.update({
-                where: {
-                    id: data.storeId,
-                },
-                data: {
-                    expiredDate: moment(data.endDate).toISOString(),
-                },
-            });
+        const subscriptionData: Prisma.store_subscriptionsUncheckedUpdateInput =
+            {
+                planId,
+                updatedAt: moment().toISOString(),
+            };
+
+        if (data.storeId !== undefined) {
+            subscriptionData.storeId = data.storeId;
+        }
+        if (data.type !== undefined) subscriptionData.type = data.type;
+        if (data.startDate !== undefined) {
+            subscriptionData.startDate = moment(data.startDate).toISOString();
+        }
+        if (data.endDate !== undefined) {
+            subscriptionData.endDate = moment(data.endDate).toISOString();
+        }
+        if (data.durationMonth !== undefined) {
+            subscriptionData.durationMonth = data.durationMonth;
+        }
+        if (data.price !== undefined) {
+            subscriptionData.price = data.price;
+        }
+        if (data.status !== undefined) {
+            subscriptionData.status = data.status;
+        }
+        if (data.paymentRef !== undefined) {
+            subscriptionData.paymentRef = data.paymentRef;
+        }
+
+        await Model.store_subscriptions.update({
+            where: {
+                id: req.params.id,
+            },
+            data: subscriptionData,
+        });
+
+        // Update expiredDate in stores
+        await Model.stores.update({
+            where: {
+                id: data.storeId ?? existing.storeId,
+            },
+            data: {
+                expiredDate: moment(
+                    data.endDate ?? existing.endDate,
+                ).toISOString(),
+            },
         });
 
         res.status(200).json({

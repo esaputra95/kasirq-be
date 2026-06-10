@@ -118,6 +118,10 @@ export const createPrismaActivityLogMiddleware = (
             TRACKED_MODELS.has(params.model) &&
             ["create", "update", "delete", "upsert"].includes(params.action);
 
+        if (shouldTrack && params.runInTransaction) {
+            return next(params);
+        }
+
         const beforeData = shouldTrack
             ? await getBeforeData(delegate, params.action, params.args)
             : null;
