@@ -4,7 +4,7 @@ import Model from "#root/services/PrismaService";
 import { sendNotificationToDevice } from "#root/helpers/sendNotification";
 
 const TIMEZONE = "Asia/Jakarta";
-const REMINDER_DAYS_BEFORE = 3;
+const REMINDER_DAYS_THRESHOLD = 4;
 const NOTIFICATION_TYPE = "STORE_EXPIRY_REMINDER";
 
 const jakartaDayRange = (date = moment.tz(TIMEZONE)) => ({
@@ -23,6 +23,15 @@ const sendExpiryNotification = async (store: {
     };
 }) => {
     if (!store.expiredDate) return false;
+
+    const daysUntilExpiry = moment(store.expiredDate)
+        .tz(TIMEZONE)
+        .startOf("day")
+        .diff(moment.tz(TIMEZONE).startOf("day"), "days");
+
+    if (daysUntilExpiry < 0 || daysUntilExpiry >= REMINDER_DAYS_THRESHOLD) {
+        return false;
+    }
 
     const today = jakartaDayRange();
     const existingNotification = await Model.notifications.findFirst({
@@ -45,7 +54,9 @@ const sendExpiryNotification = async (store: {
         .tz(TIMEZONE)
         .format("DD/MM/YYYY");
     const title = "Masa aktif toko hampir habis";
-    const body = `Masa aktif ${store.name} akan berakhir dalam ${REMINDER_DAYS_BEFORE} hari (${expiredDateText}). Silakan perpanjang subscription toko.`;
+    const remainingText =
+        daysUntilExpiry === 0 ? "hari ini" : `dalam ${daysUntilExpiry} hari`;
+    const body = `Masa aktif ${store.name} akan berakhir ${remainingText} (${expiredDateText}). Silakan perpanjang subscription toko.`;
 
     await Model.notifications.create({
         data: {
@@ -59,7 +70,8 @@ const sendExpiryNotification = async (store: {
                 storeId: store.id,
                 storeName: store.name,
                 expiredDate: moment(store.expiredDate).tz(TIMEZONE).format(),
-                daysBefore: REMINDER_DAYS_BEFORE,
+                daysUntilExpiry,
+                reminderThresholdDays: REMINDER_DAYS_THRESHOLD,
             },
             recipients: {
                 create: {
@@ -93,15 +105,19 @@ const sendExpiryNotification = async (store: {
 };
 
 export const runStoreExpiryReminder = async () => {
-    const targetDate = moment.tz(TIMEZONE).add(REMINDER_DAYS_BEFORE, "days");
-    const target = jakartaDayRange(targetDate);
+    const today = jakartaDayRange();
+    const thresholdDate = moment
+        .tz(TIMEZONE)
+        .add(REMINDER_DAYS_THRESHOLD, "days")
+        .startOf("day")
+        .toDate();
 
     const stores = await Model.stores.findMany({
         where: {
             deletedAt: null,
             expiredDate: {
-                gte: target.start,
-                lte: target.end,
+                gte: today.start,
+                lt: thresholdDate,
             },
         },
         select: {
@@ -154,7 +170,10 @@ export const startStoreExpiryReminderScheduler = () => {
         setTimeout(() => {
             runStoreExpiryReminder()
                 .catch((error) => {
-                    console.error("Failed to run store expiry reminder:", error);
+                    console.error(
+                        "Failed to run store expiry reminder:",
+                        error,
+                    );
                 })
                 .finally(scheduleNextRun);
         }, timeoutMs);
